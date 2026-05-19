@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тарифы - LinkSnap</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dark-theme.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <style>
+        .pricing-header { text-align: center; margin-bottom: 60px; }
+        .pricing-header h1 { font-size: 2.8rem; background: linear-gradient(135deg, #60a5fa, #a78bfa); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+        .pricing-header .subtitle { font-size: 1.2rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+        .currency-selector { text-align: center; margin: 30px 0 40px; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px; }
+        .pricing-card { background: var(--surface); border: 1px solid var(--surface-light); border-radius: var(--radius-2xl); padding: 40px 30px; position: relative; transition: all 0.3s; }
+        .pricing-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: var(--shadow-xl), var(--glow-primary); }
+        .pricing-card.popular { border: 2px solid var(--primary); box-shadow: var(--shadow-lg), var(--glow-primary); }
+        .popular-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #60a5fa, #a78bfa); color: white; padding: 8px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+        .plan-name { font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 10px; }
+        .plan-price { font-size: 3rem; font-weight: 700; text-align: center; margin: 20px 0; display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+        .plan-price .currency { font-size: 1.5rem; }
+        .plan-price .period { font-size: 1rem; color: var(--text-muted); font-weight: normal; }
+        .plan-description { text-align: center; margin-bottom: 30px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; }
+        .features-list { list-style: none; padding: 0; margin-bottom: 30px; }
+        .features-list li { padding: 10px 0; border-bottom: 1px solid var(--surface-light); position: relative; padding-left: 30px; }
+        .features-list li::before { content: "✓"; position: absolute; left: 0; color: var(--success); background: rgba(16,185,129,0.1); width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .features-list li.disabled::before { content: "✗"; color: var(--danger); background: rgba(239,68,68,0.1); }
+        .features-list li.disabled { color: var(--text-muted); text-decoration: line-through; }
+        .cta-button { display: block; width: 100%; padding: 15px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: white; border: none; border-radius: 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .cta-button:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg), var(--glow-primary); }
+        .cta-button.secondary { background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--surface-light); }
+        .cta-button.secondary:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
+        .cta-button.current-plan { background: var(--success) !important; cursor: default; opacity: 1; }
+        .cta-button.current-plan:hover { transform: none; box-shadow: none; }
+        .comparison-table { 
+            background: rgba(255,255,255,0.03); 
+            border: 1px solid var(--surface-light); 
+            border-radius: 40px; 
+            padding: 40px; 
+            margin-top: 50px; 
+            overflow-x: auto; 
+        }
+        .comparison-table h2 { 
+            text-align: center;
+            margin-bottom: 30px; 
+            background: linear-gradient(135deg, #60a5fa, #a78bfa); 
+            background-clip: text; 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 600px; 
+            table-layout: fixed;
+        }
+        th { 
+            background: rgba(255,255,255,0.05); 
+            padding: 20px 15px; 
+            text-align: center; 
+            border-bottom: 2px solid var(--surface-light); 
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        th:first-child {
+            text-align: left;
+            width: 35%;
+        }
+        td { 
+            padding: 18px 15px; 
+            border-bottom: 1px solid var(--surface-light); 
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        td:first-child {
+            text-align: left;
+        }
+        .feature-name { font-weight: 500; color: var(--text-primary); }
+        .plan-column { text-align: center; }
+        .checkmark { color: var(--success); background: rgba(16,185,129,0.1); padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        .xmark { color: var(--danger); background: rgba(239,68,68,0.1); padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        .faq-section { margin-top: 80px; }
+        .faq-section h2 { text-align: center; margin-bottom: 40px; background: linear-gradient(135deg, #60a5fa, #a78bfa); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; align-items: start; }
+        .faq-item { background: rgba(255,255,255,0.03); border: 1px solid var(--surface-light); border-radius: 30px; overflow: hidden; transition: all 0.3s; }
+        .faq-item:hover { border-color: var(--primary); box-shadow: var(--shadow-md), var(--glow-primary); }
+        .faq-question { padding: 20px 25px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-radius: 30px 30px 0 0; background: rgba(255,255,255,0.05); }
+        .faq-question:hover { background: rgba(255,255,255,0.1); color: var(--primary); }
+        .faq-toggle { font-size: 1.2rem; transition: transform 0.3s; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        .faq-item.active .faq-toggle { transform: rotate(180deg); color: var(--primary); background: rgba(96,165,250,0.2); }
+        .faq-answer { padding: 0 25px; max-height: 0; opacity: 0; overflow: hidden; transition: all 0.3s; color: var(--text-secondary); line-height: 1.6; }
+        .faq-item.active .faq-answer { padding: 20px 25px; max-height: 300px; opacity: 1; }
+        .fafa {margin-left: 300px;}
+        
+        /* Права тарифов */
+        .plan-rights { 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 15px; 
+            padding: 15px; 
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+        .plan-rights h4 { 
+            margin: 0 0 10px 0; 
+            font-size: 0.95rem; 
+            color: var(--primary);
+            text-align: center;
+        }
+        .rights-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        .rights-list li { 
+            padding: 5px 0; 
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rights-list li::before { 
+            content: "✓"; 
+            color: var(--success); 
+            font-weight: bold;
+        }
+        .rights-list li.disabled::before { 
+            content: "✗"; 
+            color: var(--danger); 
+        }
+        .rights-list li.disabled { 
+            color: var(--text-muted);
+        }
+        @media (max-width: 768px) { .pricing-header h1 { font-size: 2rem; } .pricing-grid { grid-template-columns: 1fr; } .faq-grid { grid-template-columns: 1fr; } .comparison-table { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="logo-container"><span class="logo">💰</span>                <a href="/" class="site-title">LinkSnap</a></div>
+            <div class="user-nav">
+                <div class="user-info"><div class="user-avatar" id="userAvatar"></div><span class="user-name" id="username">Загрузка...</span></div>
+                <div class="theme-switch-wrapper">
+    <span class="theme-icon">🌙</span>
+    <label class="theme-switch">
+        <input type="checkbox" id="themeToggle">
+        <span class="theme-slider"></span>
+    </label>
+    <span class="theme-icon">☀️</span>
+</div>
+                <a href="/profile" class="nav-btn">Профиль</a>
+                <a href="/dashboard" class="nav-btn">Аналитика</a>
+                <a href="/batch" class="nav-btn">Массовое</a>
+                <a href="/converter" class="nav-btn">Конвертер</a>
+                <a href="/image-editor" class="nav-btn">Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+            </div>
+        </header>
+    
+
+        <div class="pricing-header">
+            <h1>Выберите подходящий тариф</h1>
+            <div class="subtitle">Используйте LinkSnap бесплатно или получите больше возможностей с премиум-планами</div>
+            <div class="currency-selector"><label for="currencySelect">💰 Валюта:</label><select id="currencySelect" onchange="updateCurrency()"><option value="RUB">🇷🇺 RUB (₽)</option><option value="USD">🇺🇸 USD ($)</option><option value="EUR">🇪🇺 EUR (€)</option></select></div>
+        </div>
+
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="plan-name">Бесплатный</div>
+                <div class="plan-price"><span class="currency" id="freeCurrency">₽</span><span class="price-number" id="freePrice">0</span><span class="period" id="freePeriod">/месяц</span></div>
+                <div class="plan-description">Идеально для начала работы</div>
+                <ul class="features-list">
+                    <li>До 100 ссылок в месяц</li>
+                    <li>До 50 QR-кодов в месяц</li>
+                    <li>Базовая аналитика</li>
+                    <li class="disabled">Кастомные алиасы</li>
+                    <li class="disabled">Расширенная аналитика</li>
+                    <li class="disabled">Приоритетная поддержка</li>
+                    <li class="disabled">API доступ</li>
+                </ul>
+                <div class="plan-rights">
+                    <h4>📋 Права доступа</h4>
+                    <ul class="rights-list">
+                        <li>Создание ссылок (100/мес)</li>
+                        <li>Создание QR-кодов (50/мес)</li>
+                        <li>Просмотр базовой статистики</li>
+                        <li class="disabled">Кастомные алиасы</li>
+                        <li class="disabled">Массовое создание</li>
+                        <li class="disabled">API доступ</li>
+                        <li class="disabled">Экспорт данных</li>
+                    </ul>
+                </div>
+                <button class="cta-button secondary" onclick="selectPlan('free')" id="freePlanBtn">Выбрать бесплатный</button>
+            </div>
+            <div class="pricing-card popular">
+                <div class="popular-badge">✨ САМЫЙ ПОПУЛЯРНЫЙ ✨</div>
+                <div class="plan-name">Премиум</div>
+                <div class="plan-price"><span class="currency" id="premiumCurrency">₽</span><span class="price-number" id="premiumPrice">299</span><span class="period" id="premiumPeriod">/месяц</span></div>
+                <div class="plan-description">Для активных пользователей и малого бизнеса</div>
+                <ul class="features-list">
+                    <li>Безлимитные ссылки</li>
+                    <li>Безлимитные QR-коды</li>
+                    <li>Кастомные алиасы</li>
+                    <li>Расширенная аналитика</li>
+                    <li>Приоритетная поддержка</li>
+                    <li>Стилизованные QR-коды</li>
+                    <li class="disabled">API доступ</li>
+                </ul>
+                <div class="plan-rights">
+                    <h4>📋 Права доступа</h4>
+                    <ul class="rights-list">
+                        <li>Безлимитные ссылки</li>
+                        <li>Безлимитные QR-коды</li>
+                        <li>Кастомные алиасы</li>
+                        <li>Расширенная аналитика</li>
+                        <li>Стилизованные QR-коды</li>
+                        <li>Приоритетная поддержка</li>
+                        <li>Экспорт данных</li>
+                    </ul>
+                </div>
+                <button class="cta-button" onclick="selectPlan('premium')" id="premiumPlanBtn">Выбрать Премиум</button>
+            </div>
+            <div class="pricing-card">
+                <div class="plan-name">Бизнес</div>
+                <div class="plan-price"><span class="currency" id="businessCurrency">₽</span><span class="price-number" id="businessPrice">999</span><span class="period" id="businessPeriod">/месяц</span></div>
+                <div class="plan-description">Для компаний и разработчиков</div>
+                <ul class="features-list">
+                    <li>Все функции Премиум</li>
+                    <li>API доступ</li>
+                    <li>Массовое создание</li>
+                    <li>Лимиты увеличены в 10 раз</li>
+                    <li>Поддержка 24/7</li>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+
+                </ul>
+                <div class="plan-rights">
+                    <h4>📋 Права доступа</h4>
+                    <ul class="rights-list">
+                        <li>Все права Премиум</li>
+                        <li>Массовое создание (до 100 за раз)</li>
+                        <li>API доступ (10K запросов/мес)</li>
+                        <li>Увеличенные лимиты</li>
+                        <li>Поддержка 24/7</li>
+                        <li>Приоритет в очереди</li>
+                    </ul>
+                </div>
+                <button class="cta-button" onclick="selectPlan('business')" id="businessPlanBtn">Выбрать Бизнес</button>
+            </div>
+        </div>
+
+        <div class="comparison-table">
+            <h2>Сравнение тарифов</h2>
+            <table>
+                <thead>
+                    <tr class="fafa">
+                        <th>Функция</th>
+                        <th>Бесплатный</th>
+                        <th>Премиум</th>
+                        <th>Бизнес</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="feature-name">Ссылки в месяц</td>
+                        <td class="plan-column"><span class="checkmark">100</span></td>
+                        <td class="plan-column"><span class="checkmark">Безлимитно</span></td>
+                        <td class="plan-column"><span class="checkmark">Безлимитно</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">QR-коды в месяц</td>
+                        <td class="plan-column"><span class="checkmark">50</span></td>
+                        <td class="plan-column"><span class="checkmark">Безлимитно</span></td>
+                        <td class="plan-column"><span class="checkmark">Безлимитно</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Кастомные алиасы</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Расширенная аналитика</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Стилизованные QR-коды</td>
+                        <td class="plan-column"><span class="checkmark">Базовые</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Массовое создание</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓ (100 за раз)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">API доступ</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓ (10K запросов)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Приоритетная поддержка</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                        <td class="plan-column"><span class="checkmark">✓ 24/7</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Экспорт данных</td>
+                        <td class="plan-column"><span class="xmark">✗</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                        <td class="plan-column"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Стоимость в месяц</td>
+                        <td class="plan-column"><span class="checkmark" id="tableFreePrice">₽0</span></td>
+                        <td class="plan-column"><span class="checkmark" id="tablePremiumPrice">₽299</span></td>
+                        <td class="plan-column"><span class="checkmark" id="tableBusinessPrice">₽999</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="faq-section">
+            <h2>Часто задаваемые вопросы</h2>
+            <div class="faq-grid">
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Какой лимит на количество ссылок в бесплатном тарифе?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>В бесплатном тарифе вы можете создавать до 100 коротких ссылок в месяц. QR-кодов — до 50 в месяц. Если вам нужно больше, рекомендуем перейти на Премиум тариф с безлимитными возможностями.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Что такое кастомные алиасы?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Кастомные алиасы позволяют создавать запоминающиеся короткие ссылки с вашим текстом вместо случайных символов. Например: <strong>linksnap.com/my-link</strong> вместо <strong>linksnap.com/abc123</strong>. Доступно в Премиум и Бизнес тарифах.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Что включает API доступ в Бизнес тарифе?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>API доступ позволяет интегрировать LinkSnap в ваши приложения и автоматизировать создание ссылок и QR-кодов. Включает REST API с документацией, лимит 10 000 запросов в месяц и техническую поддержку для разработчиков.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Какие способы оплаты принимаются?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Способы оплаты будут подключены на этапе внедрения платёжного шлюза. Сейчас вы можете сменить тариф бесплатно в любой момент через личный кабинет.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Что такое белая метка (White-label)?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Белая метка позволяет использовать ваш бренд вместо нашего. Вы получите доступ к брендированным страницам статистики, кастомным доменам и возможность убрать упоминания LinkSnap из интерфейса. Доступно только в Бизнес тарифе.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Как работает поддержка?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Бесплатные пользователи получают поддержку по email в течение 48 часов. Премиум пользователи — приоритетную поддержку с ответом в течение 12 часов. Бизнес клиенты — выделенного менеджера и поддержку 24/7.</p></div></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Можно ли поменять тариф позже?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Да, вы можете изменить тариф в любой момент в разделе «Настройки» личного кабинета или на этой странице. При переходе на более дорогой план новые функции становятся доступны сразу. При переходе на более дешёвый план изменения вступят в силу в начале следующего расчётного периода.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Есть ли пробный период для премиум-тарифов?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>На данный момент пробный период не предусмотрен, но вы можете в любой момент перейти на Премиум или Бизнес-план через личный кабинет. Изменение тарифа происходит мгновенно.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Как отменить подписку?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Отменить подписку можно в любой момент в разделе «Настройки» вашего профиля. Там же вы можете сменить тарифный план. После отмены подписка остаётся активной до конца оплаченного периода, затем вы автоматически перейдёте на бесплатный тариф.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Есть ли скидки при годовой оплате?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>В настоящее время оплата производится помесячно. Годовая подписка со скидкой будет добавлена в ближайших обновлениях.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Можно ли экспортировать данные?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Да, все пользователи могут экспортировать статистику в CSV формате. Премиум и Бизнес пользователи получают доступ к расширенным отчётам и автоматическому экспорту по расписанию.</p></div></div>
+                    <div class="faq-item"><div class="faq-question" onclick="toggleFAQ(this)">Есть ли ограничения по трафику?<span class="faq-toggle">▼</span></div><div class="faq-answer"><p>Ограничений по трафику нет ни в одном тарифе. Все ссылки работают безлимитно, и вы платите только за количество создаваемых ссылок, а не за переходы по ним.</p></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) { window.location.href = '/login'; return false; }
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                await loadCurrentPlan();
+                return true;
+            } catch(e) { window.location.href = '/login'; return false; }
+        }
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
+        async function loadCurrentPlan() {
+            try {
+                const resp = await fetch('/api/user/plan');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const current = data.plan;
+                ['free','premium','business'].forEach(p => {
+                    const btn = document.getElementById(`${p}PlanBtn`);
+                    btn.classList.remove('current-plan');
+                    btn.classList.add('secondary');
+                    if (p === current) {
+                        btn.textContent = 'Текущий план';
+                        btn.classList.remove('secondary');
+                        btn.classList.add('current-plan');
+                    } else {
+                        btn.textContent = p === 'free' ? 'Выбрать бесплатный' : p === 'premium' ? 'Выбрать Премиум' : 'Выбрать Бизнес';
+                    }
+                });
+            } catch(e) {}
+        }
+        let isSelecting = false;
+        async function selectPlan(planId) {
+            if (isSelecting) return;
+            isSelecting = true;
+            try {
+                const resp = await fetch('/api/user/plan');
+                const current = await resp.json();
+                if (current.plan === planId) { alert('Это ваш текущий тарифный план'); return; }
+                let priceText = '';
+                if (planId === 'premium') priceText = document.getElementById('premiumPrice').textContent + ' ' + document.getElementById('premiumCurrency').textContent;
+                else if (planId === 'business') priceText = document.getElementById('businessPrice').textContent + ' ' + document.getElementById('businessCurrency').textContent;
+                const confirmMsg = planId === 'free' ? 'Вы уверены, что хотите перейти на бесплатный тариф? Это ограничит ваши возможности.' : `Перейти на ${planId === 'premium' ? 'Премиум' : 'Бизнес'} тариф за ${priceText}/месяц?`;
+                if (confirm(confirmMsg)) {
+                    const upResp = await fetch('/api/user/upgrade-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planId }) });
+                    const data = await upResp.json();
+                    if (upResp.ok) { alert(data.message); await loadCurrentPlan(); } else alert('Ошибка: ' + data.error);
+                }
+            } catch(e) { alert('Ошибка'); } finally { isSelecting = false; }
+        }
+        function updateCurrency() {
+            const currency = document.getElementById('currencySelect').value;
+            let symbol = '₽', premium = 299, business = 999;
+            if (currency === 'USD') { symbol = '$'; premium = 4; business = 12; }
+            else if (currency === 'EUR') { symbol = '€'; premium = 3.5; business = 10; }
+            ['free','premium','business'].forEach(p => {
+                document.getElementById(`${p}Currency`).textContent = symbol;
+                if (p === 'free') document.getElementById('freePrice').textContent = 0;
+                else if (p === 'premium') document.getElementById('premiumPrice').textContent = premium;
+                else if (p === 'business') document.getElementById('businessPrice').textContent = business;
+            });
+            document.getElementById('tableFreePrice').innerHTML = `${symbol}0`;
+            document.getElementById('tablePremiumPrice').innerHTML = `${symbol}${premium}`;
+            document.getElementById('tableBusinessPrice').innerHTML = `${symbol}${business}`;
+        }
+        function toggleFAQ(el) { el.closest('.faq-item').classList.toggle('active'); }
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        (function() {
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('linksnap-theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            if (themeToggle) themeToggle.checked = true;
+        }
+        if (themeToggle) {
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    document.body.classList.add('dark-theme');
+                    localStorage.setItem('linksnap-theme', 'dark');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    localStorage.setItem('linksnap-theme', 'light');
+                }
+            });
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+npm-debug.log
+yarn.lock
+package-lock.json
+.env
+data/*.db
+data/*.db-journal
+qrcodes/*
+!qrcodes/.gitkeep
+.DS_Store
+Thumbs.db

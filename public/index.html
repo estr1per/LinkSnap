@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkSnap — короткие ссылки и QR-коды</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dark-theme.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23grad)'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔗</text></svg>">
+    <style>
+        .hero { 
+            text-align: center; 
+            margin: 48px 0 64px; 
+        }
+        .hero h1 { 
+            font-size: 3.5rem; 
+            margin-bottom: 16px; 
+        }
+        .hero p { 
+            font-size: 1.25rem; 
+            color: var(--text-secondary); 
+            max-width: 600px; 
+            margin: 0 auto 32px; 
+        }
+        .feature-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 24px; 
+            margin: 48px 0; 
+        }
+        .feature-card { 
+            background: var(--surface); 
+            border-radius: var(--radius-lg); 
+            padding: 32px; 
+            text-align: center; 
+            transition: all 0.3s ease; 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            cursor: pointer; 
+        }
+        .feature-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: var(--shadow-xl); 
+            border-color: var(--primary); 
+        }
+        .feature-icon { 
+            font-size: 3rem; 
+            margin-bottom: 16px; 
+        }
+        .feature-card h3 { 
+            font-size: 1.5rem; 
+            margin-bottom: 12px; 
+        }
+        .feature-card p { 
+            color: var(--text-secondary); 
+            margin-bottom: 16px; 
+        }
+        .badge { 
+            background: var(--gradient-primary); 
+            color: white; 
+            font-size: 0.75rem; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            display: inline-block; 
+            font-weight: 600;
+        }
+        .tabs { 
+            display: flex; 
+            justify-content: center; 
+            gap: 12px; 
+            margin: 32px 0; 
+        }
+        .tablink { 
+            background: transparent; 
+            border: none; 
+            padding: 12px 32px; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            border-radius: var(--radius-full); 
+            transition: all 0.2s; 
+            cursor: pointer; 
+            color: var(--text-secondary);
+        }
+        .tablink.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+        .tablink:not(.active):hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .qr-container { 
+            text-align: center; 
+            margin-top: 24px; 
+        }
+        .qr-container img { 
+            max-width: 250px; 
+            border-radius: var(--radius-lg); 
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25); 
+            margin: 16px auto;
+            border: 4px solid white;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .qr-container img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+        }
+        .download-buttons { 
+            display: flex; 
+            gap: 12px; 
+            justify-content: center; 
+            margin-top: 16px; 
+        }
+        .qr-result-card {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            animation: qrSlideIn 0.4s ease;
+            margin-top: 20px;
+        }
+        @keyframes qrSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .qr-url {
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--gray-100);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+        .url-input-group {
+            margin-bottom: 16px;
+        }
+        .url-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .tabs { flex-direction: column; align-items: center; }
+            .tablink { width: 100%; max-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="logo-container">
+                <span class="logo">🔗</span>
+                <a href="/" class="site-title">LinkSnap</a>
+            </div>
+            <div class="user-nav">
+                <div id="authButtons" class="nav-buttons">
+                    <a href="/login" class="nav-btn">Вход</a>
+                    <a href="/register" class="nav-btn">Регистрация</a>
+                </div>
+                <div id="authorizedBlock" style="display: none; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar"></div>
+                        <span class="user-name" id="userGreeting"></span>
+                    </div>
+                    <div class="theme-switch-wrapper">
+                        <span class="theme-icon">🌙</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="theme-slider"></span>
+                        </label>
+                        <span class="theme-icon">☀️</span>
+                    </div>
+                    <a href="/dashboard" class="nav-btn">Аналитика</a>
+                    <a href="/profile" class="nav-btn">Профиль</a>
+                    <a href="/batch" class="nav-btn">Массовое</a>
+                    <a href="/pricing" class="nav-btn">Тарифы</a>
+                    <a href="/converter" class="nav-btn">Конвертер</a>
+                    <a href="/image-editor" class="nav-btn">Редактор</a>
+                    <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="hero">
+            <h1>Короткие ссылки, мощные инструменты</h1>
+            <p>Сокращайте ссылки, создавайте QR‑коды, конвертируйте файлы и редактируйте изображения — всё в одном сервисе.</p>
+            <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn">Начать бесплатно →</a>
+        </div>
+
+        <div class="tabs">
+            <button class="tablink active" onclick="openTab('shorten-tab')">🔗 Сократить ссылку</button>
+            <button class="tablink" onclick="openTab('qrcode-tab')">📱 QR‑код</button>
+        </div>
+
+        <!-- Вкладка сокращения ссылок -->
+        <div id="shorten-tab" class="tab-content active">
+            <div class="card">
+                <div class="card-body">
+                    <div class="url-input-group">
+                        <label>🔗 Введите длинную ссылку</label>
+                        <input type="url" id="urlInput" class="form-control form-control-lg" placeholder="https://example.com/very/long/url">
+                    </div>
+                    <div class="url-input-group">
+                        <label>✏️ Кастомный алиас (необязательно)</label>
+                        <input type="text" id="customAlias" class="form-control" placeholder="my-link">
+                        <small style="color: var(--text-muted);">Только латиница, цифры, дефис и подчеркивание</small>
+                    </div>
+                    <button onclick="shortenUrl()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 20px;">
+                        🚀 Сократить!
+                    </button>
+                    <div id="result"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка QR-кода -->
+        <div id="qrcode-tab" class="tab-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="url-input-group">
+                        <label>📱 Введите ссылку для QR-кода</label>
+                        <input type="url" id="qrcodeInput" class="form-control form-control-lg" placeholder="https://example.com">
+                    </div>
+                    <button onclick="generateQRCode()" class="btn btn-primary btn-lg" style="width: 100%;">
+                        ⚡ Сгенерировать QR-код
+                    </button>
+                    <div id="qrcodeResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточки функций -->
+        <div class="feature-grid">
+            <div class="feature-card" onclick="window.location.href='/batch'">
+                <div class="feature-icon">📦</div>
+                <h3>Массовое создание</h3>
+                <p>Создавайте до 100 ссылок за раз из CSV или списка URL.</p>
+                <span class="badge">Популярное</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/dashboard'">
+                <div class="feature-icon">📊</div>
+                <h3>Аналитика</h3>
+                <p>Отслеживайте переходы, устройства и источники трафика.</p>
+                <span class="badge">Новое</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/converter'">
+                <div class="feature-icon">🔄</div>
+                <h3>Конвертер файлов</h3>
+                <p>Конвертируйте изображения и документы в нужный формат.</p>
+                <span class="badge">Бесплатно</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/image-editor'">
+                <div class="feature-icon">✂️</div>
+                <h3>Редактор изображений</h3>
+                <p>Изменяйте размер, формат и применяйте фильтры.</p>
+                <span class="badge">Удобно</span>
+            </div>
+        </div>
+
+        <footer style="text-align: center; margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--gray-300); color: var(--text-muted);">
+            <p>LinkSnap © 2024 — всё для работы со ссылками и файлами.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Функция экранирования HTML (защита от XSS)
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Проверка авторизации
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.ok) {
+                    const user = await res.json();
+                    showUserPanel(user.username);
+                    return true;
+                } else {
+                    showAuthButtons();
+                    return false;
+                }
+            } catch(e) {
+                console.error('Ошибка проверки авторизации:', e);
+                showAuthButtons();
+                return false;
+            }
+        }
+
+        function showUserPanel(username) {
+            document.getElementById('authButtons').style.display = 'none';
+            const authorizedBlock = document.getElementById('authorizedBlock');
+            authorizedBlock.style.display = 'flex';
+            document.getElementById('userGreeting').textContent = username;
+            document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+            
+            const getStartedBtn = document.getElementById('getStartedBtn');
+            if (getStartedBtn) getStartedBtn.style.display = 'none';
+        }
+
+        function showAuthButtons() {
+            document.getElementById('authButtons').style.display = 'flex';
+            document.getElementById('authorizedBlock').style.display = 'none';
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+            } catch(e) {
+                console.error('Ошибка выхода:', e);
+            }
+            window.location.href = '/';
+        }
+
+        // Переключение вкладок
+        function openTab(tabId) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Убираем active со всех кнопок
+            document.querySelectorAll('.tablink').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Показываем выбранную вкладку
+            document.getElementById(tabId).classList.add('active');
+            
+            // Активируем нажатую кнопку
+            event.currentTarget.classList.add('active');
+        }
+
+        // Сокращение ссылки
+        async function shortenUrl() {
+            const urlInput = document.getElementById('urlInput');
+            const customAliasInput = document.getElementById('customAlias');
+            const url = urlInput.value.trim();
+            const customAlias = customAliasInput.value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
+                return;
+            }
+            
+            // Проверка авторизации
+            const auth = await checkAuth();
+            if (!auth) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для сокращения ссылок <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Создание короткой ссылки...</span></div>';
+            
+            try {
+                const body = { originalUrl: url };
+                if (customAlias) body.customAlias = customAlias;
+                
+                const resp = await fetch('/api/shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Ссылка готова!<br>
+                            <a href="${escapeHtml(data.shortUrl)}" target="_blank" style="font-size: 1.2rem; font-weight: bold; word-break: break-all;">
+                                ${escapeHtml(data.shortUrl)}
+                            </a><br>
+                            <small style="color: var(--text-muted); word-break: break-all;">${escapeHtml(data.originalUrl)}</small>
+                            <div style="margin-top: 16px;">
+                                <button onclick="copyToClipboard('${escapeHtml(data.shortUrl)}')" class="btn btn-sm btn-secondary">📋 Копировать</button>
+                                <button onclick="window.open('${escapeHtml(data.shortUrl)}', '_blank')" class="btn btn-sm btn-primary">🔗 Перейти</button>
+                            </div>
+                        </div>
+                    `;
+                    urlInput.value = '';
+                    customAliasInput.value = '';
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
+                }
+            } catch(e) {
+                console.error('Ошибка:', e);
+                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка соединения с сервером</div>';
+            }
+        }
+
+        // Генерация QR-кода
+        async function generateQRCode() {
+            const urlInput = document.getElementById('qrcodeInput');
+            const url = urlInput.value.trim();
+            const resultDiv = document.getElementById('qrcodeResult');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
+                return;
+            }
+            
+            // Проверка авторизации
+            const auth = await checkAuth();
+            if (!auth) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для создания QR-кода <a href="/login">войдите</a>.</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация QR-кода...</span></div>';
+            
+            try {
+                const resp = await fetch('/api/qrcode?url=' + encodeURIComponent(url));
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="qr-result-card">
+                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code">
+                            <div class="qr-url">${escapeHtml(url)}</div>
+                            <div class="download-buttons">
+                                <button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-sm btn-secondary">📥 PNG</button>
+                                <button onclick="copyQRCode('${escapeHtml(data.qrImageData)}')" class="btn btn-sm btn-secondary">📋 Копировать</button>
+                            </div>
+                        </div>
+                    `;
+                    urlInput.value = '';
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
+                }
+            } catch(e) {
+                console.error('Ошибка:', e);
+                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка генерации QR-кода</div>';
+            }
+        }
+
+        // Скачать QR-код
+        function downloadQR(dataUrl, format) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `qrcode-${Date.now()}.${format}`;
+            link.click();
+        }
+
+        // Копировать QR-код
+        async function copyQRCode(dataUrl) {
+            try {
+                const blob = await (await fetch(dataUrl)).blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                alert('✅ QR-код скопирован в буфер обмена!');
+            } catch(e) {
+                alert('❌ Не удалось скопировать QR-код');
+            }
+        }
+
+        // Копировать текст в буфер
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('✅ Ссылка скопирована!');
+            } catch(e) {
+                // Fallback для старых браузеров
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('✅ Ссылка скопирована!');
+            }
+        }
+
+        // Тёмная тема
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('linksnap-theme');
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                if (themeToggle) themeToggle.checked = true;
+            }
+            
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.body.classList.add('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'dark');
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'light');
+                    }
+                });
+            }
+        })();
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            
+            // Обработка Enter в полях ввода
+            document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') shortenUrl();
+            });
+            
+            document.getElementById('qrcodeInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') generateQRCode();
+            });
+        });
+
+        // Глобальные функции для onclick
+        window.openTab = openTab;
+        window.shortenUrl = shortenUrl;
+        window.generateQRCode = generateQRCode;
+        window.downloadQR = downloadQR;
+        window.copyQRCode = copyQRCode;
+        window.copyToClipboard = copyToClipboard;
+        window.logout = logout;
+    </script>
+
+    <!-- Виджет чата поддержки -->
+    <script src="/chat-widget.js?v=5" defer></script>
+</body>
+</html>

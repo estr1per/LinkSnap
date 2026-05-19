@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор изображений - LinkSnap</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dark-theme.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <style>
+        .editor-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        .preview-area { background: #f5f5f5; border-radius: var(--radius-lg); padding: 20px; position: relative; min-height: 400px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-area img { max-width: 100%; max-height: 500px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); transition: filter 0.2s ease; }
+        .preview-area .drop-zone { text-align: center; padding: 60px 40px; border: 3px dashed #ccc; border-radius: var(--radius-lg); cursor: pointer; transition: all 0.3s ease; background: white; }
+        .preview-area .drop-zone:hover, .preview-area .drop-zone.dragover { border-color: var(--primary); background: rgba(102, 126, 234, 0.05); }
+        .preview-area .drop-zone .icon { font-size: 4em; margin-bottom: 15px; }
+        .controls { display: flex; flex-direction: column; gap: 15px; max-height: 80vh; overflow-y: auto; padding-right: 10px; }
+        .control-group { background: var(--surface); border: 1px solid var(--surface-dark); border-radius: var(--radius-lg); padding: 15px; }
+        .control-group h4 { margin: 0 0 12px 0; color: var(--primary); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .control-group h4 .icon { font-size: 16px; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .input-row label { font-size: 13px; color: var(--gray-600); min-width: 70px; }
+        .input-row input, .input-row select { flex: 1; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--bg-light); color: var(--text); font-size: 13px; }
+        .input-row input:focus, .input-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .slider-group { margin-bottom: 12px; }
+        .slider-group label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+        .slider-group input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: var(--gray-300); appearance: none; cursor: pointer; }
+        .slider-group input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .filter-btn { padding: 10px 5px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--bg-light); cursor: pointer; font-size: 11px; transition: all 0.2s; text-align: center; }
+        .filter-btn:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.05); }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-apply-all { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 15px; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-apply-all:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .btn-apply-all:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-reset { width: 100%; padding: 10px; background: var(--surface-dark); color: var(--text); border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 13px; cursor: pointer; margin-top: 10px; transition: all 0.2s; }
+        .btn-reset:hover { background: var(--gray-300); }
+        .image-info { background: var(--surface); border-radius: var(--radius-md); padding: 12px; font-size: 12px; margin-top: 15px; }
+        .image-info .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .image-info .row:last-child { margin-bottom: 0; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .checkbox-row label { font-size: 13px; cursor: pointer; }
+        .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: none; align-items: center; justify-content: center; border-radius: var(--radius-lg); z-index: 10; }
+        .loading-overlay.show { display: flex; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--gray-300); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 900px) { .editor-container { grid-template-columns: 1fr; } .controls { max-height: none; overflow: visible; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="logo-container"><span class="logo">🎨</span><a href="/" class="site-title">LinkSnap</a></div>
+            <div class="user-nav">
+                <div class="user-info"><div class="user-avatar" id="userAvatar"></div><span class="user-name" id="username">Загрузка...</span></div>
+                <div class="theme-switch-wrapper">
+                    <span class="theme-icon">🌙</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="theme-slider"></span>
+                    </label>
+                    <span class="theme-icon">☀️</span>
+                </div>
+                <a href="/profile" class="nav-btn">Профиль</a>
+                <a href="/dashboard" class="nav-btn">Аналитика</a>
+                <a href="/batch" class="nav-btn">Массовое</a>
+                <a href="/pricing" class="nav-btn">Тарифы</a>
+                <a href="/converter" class="nav-btn">Конвертер</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+            </div>
+        </header>
+
+        <h2>🎨 Редактор изображений</h2>
+        <p>Профессиональная обработка: изменение размера, поворот, фильтры, яркость, контраст и многое другое.</p>
+
+        <div class="editor-container">
+            <div class="preview-area" id="previewArea">
+                <div class="drop-zone" id="dropZone">
+                    <div class="icon">📸</div>
+                    <h3>Перетащите изображение</h3>
+                    <p style="color: var(--gray-600); margin-top: 10px;">или нажмите для выбора файла</p>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+                <img id="previewImage" alt="Preview" style="display: none;">
+                <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <h4><span class="icon">📏</span> Размер</h4>
+                    <div class="input-row">
+                        <label>Ширина:</label>
+                        <input type="number" id="resizeWidth" placeholder="Авто" min="1">
+                    </div>
+                    <div class="input-row">
+                        <label>Высота:</label>
+                        <input type="number" id="resizeHeight" placeholder="Авто" min="1">
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="maintainAspect" checked>
+                        <label for="maintainAspect">Сохранить пропорции</label>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4><span class="icon">🎯</span> Яркость и Контраст</h4>
+                    <div class="slider-group">
+                        <label><span>Яркость</span><span id="brightnessValue">100%</span></label>
+                        <input type="range" id="brightness" min="0" max="200" value="100">
+                    </div>
+                    <div class="slider-group">
+                        <label><span>Контраст</span><span id="contrastValue">100%</span></label>
+                        <input type="range" id="contrast" min="0" max="200" value="100">
+                    </div>
+                    <div class="slider-group">
+                        <label><span>Насыщенность</span><span id="saturateValue">100%</span></label>
+                        <input type="range" id="saturate" min="0" max="200" value="100">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4><span class="icon">🎨</span> Цвета</h4>
+                    <div class="slider-group">
+                        <label><span>Оттенок (Hue)</span><span id="hueValue">0°</span></label>
+                        <input type="range" id="hue" min="0" max="360" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label><span>Сепия</span><span id="sepiaValue">0%</span></label>
+                        <input type="range" id="sepia" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label><span>Инверсия</span><span id="invertValue">0%</span></label>
+                        <input type="range" id="invert" min="0" max="100" value="0">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4><span class="icon">🔄</span> Поворот и Отражение</h4>
+                    <div class="input-row">
+                        <label>Градусы:</label>
+                        <select id="rotateDegrees">
+                            <option value="0">0°</option>
+                            <option value="90">90°</option>
+                            <option value="180">180°</option>
+                            <option value="270">270°</option>
+                        </select>
+                    </div>
+                    <div class="input-row">
+                        <label>Отразить:</label>
+                        <select id="flip">
+                            <option value="none">Нет</option>
+                            <option value="horizontal">Горизонтально</option>
+                            <option value="vertical">Вертикально</option>
+                            <option value="both">Оба</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4><span class="icon">✨</span> Эффекты</h4>
+                    <div class="slider-group">
+                        <label><span>Размытие</span><span id="blurValue">0px</span></label>
+                        <input type="range" id="blur" min="0" max="20" value="0" step="0.5">
+                    </div>
+                    <div class="slider-group">
+                        <label><span>Резкость</span><span id="sharpenValue">0</span></label>
+                        <input type="range" id="sharpen" min="0" max="2" value="0" step="0.1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4><span class="icon">💾</span> Формат</h4>
+                    <div class="input-row">
+                        <label>Формат:</label>
+                        <select id="formatSelect">
+                            <option value="jpeg">JPG</option>
+                            <option value="png">PNG</option>
+                            <option value="webp">WEBP</option>
+                            <option value="avif">AVIF</option>
+                            <option value="bmp">BMP</option>
+                            <option value="gif">GIF</option>
+                            <option value="tiff">TIFF</option>
+                        </select>
+                    </div>
+                    <div class="slider-group" id="qualityGroup">
+                        <label><span>Качество</span><span id="qualityValue">90%</span></label>
+                        <input type="range" id="quality" min="10" max="100" value="90">
+                    </div>
+                </div>
+
+                <button onclick="applyAll()" class="btn-apply-all" id="btnApply" disabled>💾 Применить и Скачать</button>
+                <button onclick="resetAll()" class="btn-reset">🔄 Сбросить всё</button>
+
+                <div class="image-info" id="imageInfo" style="display: none;">
+                    <div class="row"><span>📁 Имя:</span><strong id="infoName">-</strong></div>
+                    <div class="row"><span>📐 Размер:</span><strong id="infoDimensions">-</strong></div>
+                    <div class="row"><span>💾 Формат:</span><strong id="infoFormat">-</strong></div>
+                    <div class="row"><span>⚖️ Вес:</span><strong id="infoSize">-</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalImage = null, currentFile = null, originalAspectRatio = 1;
+        const defaultSettings = {
+            width: '', height: '', maintainAspect: true,
+            brightness: 100, contrast: 100, saturate: 100,
+            hue: 0, sepia: 0, invert: 0,
+            rotate: 0, flip: 'none',
+            blur: 0, sharpen: 0,
+            format: 'jpeg', quality: 90
+        };
+        let settings = { ...defaultSettings };
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) window.location.href = '/login';
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            } catch(e) { window.location.href = '/login'; }
+        }
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
+
+        const dropZone = document.getElementById('dropZone'),
+              fileInput = document.getElementById('fileInput'),
+              previewImage = document.getElementById('previewImage'),
+              loadingOverlay = document.getElementById('loadingOverlay'),
+              imageInfo = document.getElementById('imageInfo');
+
+        // Обработка клика по dropZone
+        dropZone.addEventListener('click', (e) => {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+
+        // Drag & Drop события
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Изменение файла через input
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Пожалуйста, выберите изображение');
+                return;
+            }
+            currentFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImage = e.target.result;
+                previewImage.src = originalImage;
+                previewImage.style.display = 'block';
+                previewImage.style.transform = '';
+                dropZone.style.display = 'none';
+                document.getElementById('btnApply').disabled = false;
+                
+                const img = new Image();
+                img.onload = () => {
+                    originalAspectRatio = img.width / img.height;
+                    document.getElementById('infoName').textContent = file.name;
+                    document.getElementById('infoDimensions').textContent = `${img.width} × ${img.height} px`;
+                    document.getElementById('infoFormat').textContent = file.type.split('/')[1].toUpperCase();
+                    document.getElementById('infoSize').textContent = formatFileSize(file.size);
+                    imageInfo.style.display = 'block';
+                    updateAspectRatioInputs(img.width, img.height);
+                };
+                img.src = originalImage;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Live preview функция
+        function updatePreview() {
+            if (!previewImage.style.display || previewImage.style.display === 'none') return;
+            
+            const brightness = document.getElementById('brightness').value;
+            const contrast = document.getElementById('contrast').value;
+            const saturate = document.getElementById('saturate').value;
+            const hue = document.getElementById('hue').value;
+            const sepia = document.getElementById('sepia').value;
+            const invert = document.getElementById('invert').value;
+            const blur = document.getElementById('blur').value;
+            
+            previewImage.style.filter = `
+                brightness(${brightness}%) 
+                contrast(${contrast}%) 
+                saturate(${saturate}%) 
+                hue-rotate(${hue}deg) 
+                sepia(${sepia}%) 
+                invert(${invert}%) 
+                blur(${blur}px)
+            `;
+            
+            // Поворот и отражение
+            let transform = '';
+            if (settings.rotate === 90 || settings.rotate === 270) {
+                transform += `rotate(${settings.rotate}deg)`;
+            } else if (settings.rotate === 180) {
+                transform += `rotate(${settings.rotate}deg)`;
+            }
+            
+            if (settings.flip === 'horizontal' || settings.flip === 'both') {
+                transform += ` scaleX(-1)`;
+            }
+            if (settings.flip === 'vertical' || settings.flip === 'both') {
+                transform += ` scaleY(-1)`;
+            }
+            
+            previewImage.style.transform = transform.trim();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' Б';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' МБ';
+        }
+
+        function updateAspectRatioInputs(w, h) {
+            if (settings.maintainAspect) {
+                originalAspectRatio = w / h;
+            }
+        }
+
+        // Slider value displays и live preview
+        const sliders = ['brightness', 'contrast', 'saturate', 'hue', 'sepia', 'invert', 'blur', 'sharpen', 'quality'];
+        sliders.forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const suffix = id === 'blur' ? 'px' : id === 'hue' ? '°' : id === 'sharpen' ? '' : '%';
+                document.getElementById(id + 'Value').textContent = e.target.value + suffix;
+                settings[id] = parseFloat(e.target.value);
+                updatePreview(); // Live preview
+            });
+        });
+
+        document.getElementById('resizeWidth').addEventListener('input', (e) => {
+            settings.width = e.target.value;
+            if (settings.maintainAspect && e.target.value) {
+                document.getElementById('resizeHeight').value = Math.round(e.target.value / originalAspectRatio);
+                settings.height = document.getElementById('resizeHeight').value;
+            }
+        });
+        document.getElementById('resizeHeight').addEventListener('input', (e) => {
+            settings.height = e.target.value;
+            if (settings.maintainAspect && e.target.value) {
+                document.getElementById('resizeWidth').value = Math.round(e.target.value * originalAspectRatio);
+                settings.width = document.getElementById('resizeWidth').value;
+            }
+        });
+        document.getElementById('maintainAspect').addEventListener('change', (e) => {
+            settings.maintainAspect = e.target.checked;
+        });
+        document.getElementById('rotateDegrees').addEventListener('change', (e) => {
+            settings.rotate = parseInt(e.target.value);
+            updatePreview(); // Live preview
+        });
+        document.getElementById('flip').addEventListener('change', (e) => {
+            settings.flip = e.target.value;
+            updatePreview(); // Live preview
+        });
+        document.getElementById('formatSelect').addEventListener('change', (e) => {
+            settings.format = e.target.value;
+            document.getElementById('qualityGroup').style.display = ['png', 'bmp', 'gif'].includes(e.target.value) ? 'none' : 'block';
+        });
+
+        function resetAll() {
+            settings = { ...defaultSettings };
+            document.getElementById('resizeWidth').value = '';
+            document.getElementById('resizeHeight').value = '';
+            document.getElementById('maintainAspect').checked = true;
+            sliders.forEach(id => {
+                document.getElementById(id).value = defaultSettings[id];
+                const suffix = id === 'blur' ? 'px' : id === 'hue' ? '°' : id === 'sharpen' ? '' : '%';
+                document.getElementById(id + 'Value').textContent = defaultSettings[id] + suffix;
+            });
+            document.getElementById('rotateDegrees').value = '0';
+            document.getElementById('flip').value = 'none';
+            document.getElementById('formatSelect').value = 'jpeg';
+            if (originalImage) {
+                previewImage.src = originalImage;
+                previewImage.style.filter = '';
+                previewImage.style.transform = '';
+            }
+            updatePreview();
+        }
+
+        async function applyAll() {
+            if (!currentFile) { alert('Сначала выберите изображение'); return; }
+            loadingOverlay.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('image', currentFile);
+            formData.append('width', settings.width || '');
+            formData.append('height', settings.height || '');
+            formData.append('brightness', settings.brightness);
+            formData.append('contrast', settings.contrast);
+            formData.append('saturate', settings.saturate);
+            formData.append('hue', settings.hue);
+            formData.append('sepia', settings.sepia);
+            formData.append('invert', settings.invert);
+            formData.append('rotate', settings.rotate);
+            formData.append('flip', settings.flip);
+            formData.append('blur', settings.blur);
+            formData.append('sharpen', settings.sharpen);
+            formData.append('format', settings.format);
+            formData.append('quality', settings.quality);
+
+            try {
+                const resp = await fetch('/api/image/edit', { method: 'POST', body: formData });
+                if (!resp.ok) { const err = await resp.json(); throw new Error(err.error); }
+                
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const ext = settings.format === 'jpeg' ? 'jpg' : settings.format;
+                a.download = `edited_${Date.now()}.${ext}`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+            } finally {
+                loadingOverlay.classList.remove('show');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('linksnap-theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                if (themeToggle) themeToggle.checked = true;
+            }
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.body.classList.add('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'dark');
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'light');
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

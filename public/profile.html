@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - LinkSnap</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dark-theme.css">
+    <link rel="icon" type="image/x-icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
+    <style>
+        .settings-section {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--surface-light);
+        }
+
+        .settings-section h3 {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+            display: inline-block;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--surface-light);
+        }
+
+        .info-label {
+            width: 150px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .info-value {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: var(--surface-light);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            transform: translateX(5px);
+            background: var(--primary-light);
+        }
+
+        .history-item img {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .history-item img:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .history-url {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            margin-top: 0.25rem;
+        }
+
+        .history-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box .btn-secondary,
+        .btn-group .btn-secondary {
+            background: #f3f4f6 !important;
+            color: #374151 !important;
+            border: 1px solid #d1d5db;
+            font-weight: 600;
+        }
+
+        .search-box .btn-secondary:hover,
+        .btn-group .btn-secondary:hover {
+            background: var(--primary) !important;
+            color: white !important;
+            border-color: var(--primary);
+        }
+
+        .history-item .btn-sm {
+            background: #f3f4f6;
+            color: #374151 !important;
+            border: 1px solid #d1d5db;
+            font-weight: 600;
+        }
+
+        .history-item .btn-sm:hover {
+            background: var(--primary);
+            color: white !important;
+            border-color: var(--primary);
+        }
+
+        .plan-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .limit-progress {
+            background: var(--surface-dark);
+            border-radius: 999px;
+            height: 8px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .limit-progress-fill {
+            background: var(--gradient-primary);
+            height: 100%;
+            width: 0%;
+        }
+
+        .api-key {
+            background: var(--surface-dark);
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            font-family: monospace;
+            word-break: break-all;
+            margin: 1rem 0;
+        }
+
+        .search-box {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--surface-light);
+            border-radius: var(--radius-md);
+        }
+
+        .tag {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .tag .count {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 999px;
+            padding: 0.1rem 0.4rem;
+            margin-left: 0.3rem;
+            font-size: 0.7rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .pagination button {
+            padding: 0.25rem 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-label {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="logo-container">
+                <span class="logo">👤</span>
+                <a href="/" class="site-title">LinkSnap</a>
+            </div>
+            <div class="user-nav">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <span class="user-name" id="username">Загрузка...</span>
+                </div>
+                <div class="theme-switch-wrapper">
+                    <span class="theme-icon">🌙</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="theme-slider"></span>
+                    </label>
+                    <span class="theme-icon">☀️</span>
+                </div>
+                <a href="/dashboard" class="nav-btn">Аналитика</a>
+                <a href="/batch" class="nav-btn">Массовое</a>
+                <a href="/pricing" class="nav-btn">Тарифы</a>
+                <a href="/converter" class="nav-btn">Конвертер</a>
+                <a href="/image-editor" class="nav-btn">Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+            </div>
+        </header>
+
+
+        <h2>👤 Мой профиль</h2>
+        <p>Управление аккаунтом, тарифом и историей</p>
+
+        <!-- Информация об аккаунте -->
+        <div class="settings-section">
+            <h3>📋 Информация об аккаунте</h3>
+            <div id="userInfo">
+                <div class="loading">
+                    <div class="loading-spinner"></div><span>Загрузка...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тарифный план -->
+        <div class="settings-section">
+            <h3>💎 Тарифный план</h3>
+            <div id="planInfo">
+                <div class="loading">
+                    <div class="loading-spinner"></div><span>Загрузка...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Облако тегов -->
+        <div class="settings-section">
+            <h3>🏷️ Облако тегов</h3>
+            <div id="tagCloud" class="tag-cloud">
+                <div class="loading">
+                    <div class="loading-spinner"></div><span>Загрузка тегов...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- История ссылок -->
+        <div class="settings-section">
+            <h3>🔗 История ссылок</h3>
+            <div class="search-box">
+                <input type="text" id="searchInput" class="form-control" placeholder="🔍 Поиск по ссылкам...">
+                <button onclick="searchLinks()" class="btn btn-primary">Найти</button>
+                <button onclick="clearSearch()" class="btn btn-secondary">Сбросить</button>
+            </div>
+            <div class="btn-group" style="margin-bottom: 1rem;">
+                <button onclick="loadLinksHistory(1)" class="btn btn-sm btn-secondary">🔄 Обновить</button>
+                <button onclick="clearLinksHistory()" class="btn btn-sm btn-danger">🗑️ Очистить все ссылки</button>
+                <button onclick="exportData('links')" class="btn btn-sm btn-success">📥 Экспорт CSV</button>
+            </div>
+            <div id="linksHistory" class="history-list">
+                <div class="loading">
+                    <div class="loading-spinner"></div><span>Загрузка...</span>
+                </div>
+            </div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+
+        <!-- История QR-кодов -->
+        <div class="settings-section">
+            <h3>📱 История QR-кодов</h3>
+            <div class="btn-group" style="margin-bottom: 1rem;">
+                <button onclick="loadQRCodesHistory()" class="btn btn-sm btn-secondary">🔄 Обновить</button>
+                <button onclick="clearQRCodesHistory()" class="btn btn-sm btn-danger">🗑️ Очистить QR-коды</button>
+                <button onclick="exportData('qrcodes')" class="btn btn-sm btn-success">📥 Экспорт CSV</button>
+            </div>
+            <div id="qrcodesHistory" class="history-list">
+                <div class="loading">
+                    <div class="loading-spinner"></div><span>Загрузка...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentSearchQuery = '';
+        let totalPages = 1;
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) { window.location.href = '/login'; return false; }
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                await loadUserInfo();
+                await loadPlanInfo();
+                await loadTagCloud();
+                await loadLinksHistory(1);
+                await loadQRCodesHistory();
+                return true;
+            } catch (e) { window.location.href = '/login'; return false; }
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        async function loadUserInfo() {
+            try {
+                const res = await fetch('/api/user');
+                const user = await res.json();
+                document.getElementById('userInfo').innerHTML = `
+                    <div class="info-row"><div class="info-label">Имя пользователя:</div><div class="info-value">${escapeHtml(user.username)}</div></div>
+                    <div class="info-row"><div class="info-label">Email:</div><div class="info-value">${escapeHtml(user.email)}</div></div>
+                    <div class="info-row"><div class="info-label">Дата регистрации:</div><div class="info-value">${new Date(user.created_at).toLocaleDateString()}</div></div>
+                `;
+            } catch (e) {
+                document.getElementById('userInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadPlanInfo() {
+            try {
+                const res = await fetch('/api/user/plan');
+                const data = await res.json();
+                const planNames = { free: 'Бесплатный', premium: 'Премиум', business: 'Бизнес' };
+                const maxLinks = data.limits.maxLinks === 999999 ? '∞' : data.limits.maxLinks;
+                const maxQR = data.limits.maxQR === 999999 ? '∞' : data.limits.maxQR;
+                const linksPercent = data.limits.maxLinks === 999999 ? 0 : (data.limits.currentLinks / data.limits.maxLinks) * 100;
+                const qrPercent = data.limits.maxQR === 999999 ? 0 : (data.limits.currentQR / data.limits.maxQR) * 100;
+
+                let apiHtml = '';
+                if (data.plan === 'business') {
+                    apiHtml = `<div style="margin-top: 1rem;"><button onclick="generateApiKey()" class="btn btn-primary">🔑 Сгенерировать API ключ</button><div id="apiKeyDisplay" class="api-key" style="display:none;"></div></div>`;
+                }
+
+                document.getElementById('planInfo').innerHTML = `
+                    <div class="info-row"><div class="info-label">Текущий тариф:</div><div class="info-value"><span class="plan-badge">${planNames[data.plan]}</span></div></div>
+                    <div class="info-row"><div class="info-label">Ссылки в этом месяце:</div><div class="info-value">${data.limits.currentLinks} из ${maxLinks}</div></div>
+                    <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, linksPercent)}%;"></div></div>
+                    <div class="info-row"><div class="info-label">QR-коды в этом месяце:</div><div class="info-value">${data.limits.currentQR} из ${maxQR}</div></div>
+                    <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, qrPercent)}%;"></div></div>
+                    <div class="info-row" style="margin-top: 1rem;"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm">🔄 Сменить тариф</a></div></div>
+                    ${apiHtml}
+                `;
+            } catch (e) {
+                document.getElementById('planInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadTagCloud() {
+            try {
+                const res = await fetch('/api/tags/cloud');
+                const tags = await res.json();
+                const container = document.getElementById('tagCloud');
+
+                if (!tags || tags.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">Нет тегов. Добавьте теги при создании ссылок!</p>';
+                    return;
+                }
+
+                const maxCount = Math.max(...tags.map(t => t.count));
+                container.innerHTML = tags.map(tag => {
+                    const size = 0.8 + (tag.count / maxCount) * 1.2;
+                    return `<span class="tag" style="font-size: ${size}rem;" onclick="searchByTag('${escapeHtml(tag.name)}')">
+                        ${escapeHtml(tag.name)}<span class="count">${tag.count}</span>
+                    </span>`;
+                }).join('');
+            } catch (e) {
+                document.getElementById('tagCloud').innerHTML = '<p class="alert alert-error">Ошибка загрузки тегов</p>';
+            }
+        }
+
+        async function searchByTag(tag) {
+            document.getElementById('searchInput').value = tag;
+            await searchLinks();
+        }
+
+        async function searchLinks() {
+            currentSearchQuery = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            await loadLinksHistory(1);
+        }
+
+        async function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentSearchQuery = '';
+            currentPage = 1;
+            await loadLinksHistory(1);
+        }
+
+        async function loadLinksHistory(page = 1) {
+            const container = document.getElementById('linksHistory');
+            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>';
+
+            try {
+                let url;
+                if (currentSearchQuery) {
+                    url = `/api/links/search?query=${encodeURIComponent(currentSearchQuery)}`;
+                    const res = await fetch(url);
+                    const links = await res.json();
+                    renderLinks(Array.isArray(links) ? links : []);
+                    document.getElementById('pagination').innerHTML = '';
+                } else {
+                    url = `/api/links?page=${page}&limit=10`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    renderLinks(data.data);
+                    renderPagination(data.pagination);
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
+            }
+        }
+
+        function renderLinks(links) {
+            const container = document.getElementById('linksHistory');
+            if (!links || !links.length) {
+                container.innerHTML = '<div class="empty-state">📭 Нет созданных ссылок</div>';
+                return;
+            }
+            container.innerHTML = links.map(link => `
+                <div class="history-item">
+                    <div><strong>🔗 ${escapeHtml(link.short_code)}</strong> <span class="history-date">${new Date(link.created_at).toLocaleDateString()}</span></div>
+                    <div class="history-url">${escapeHtml(link.original_url)}</div>
+                    ${link.tags ? `<div style="margin-top: 0.25rem;">🏷️ ${escapeHtml(link.tags)}</div>` : ''}
+                    <div style="margin-top: 0.5rem;">
+                        <a href="/${link.short_code}" target="_blank" class="btn btn-sm btn-secondary">Перейти</a>
+                        <span style="margin-left: 0.5rem;">👆 Кликов: ${link.clicks || 0}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            totalPages = pagination.pages;
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            if (currentPage > 1) {
+                html += `<button onclick="goToPage(${currentPage - 1})" class="btn btn-sm btn-secondary">← Назад</button>`;
+            }
+            html += `<span style="padding: 0.25rem 1rem;">Стр. ${currentPage} из ${totalPages}</span>`;
+            if (currentPage < totalPages) {
+                html += `<button onclick="goToPage(${currentPage + 1})" class="btn btn-sm btn-secondary">Вперед →</button>`;
+            }
+            container.innerHTML = html;
+        }
+
+        async function goToPage(page) {
+            currentPage = page;
+            await loadLinksHistory(page);
+        }
+
+        async function loadQRCodesHistory() {
+            const container = document.getElementById('qrcodesHistory');
+            try {
+                const res = await fetch('/api/qrcodes');
+                const qrcodes = await res.json();
+                if (!qrcodes || !qrcodes.length) {
+                    container.innerHTML = '<div class="empty-state">📭 Нет созданных QR-кодов</div>';
+                    return;
+                }
+                container.innerHTML = qrcodes.map(qr => `
+                    <div class="history-item">
+                        <div style="display: flex; gap: 15px; align-items: flex-start;">
+                            <div style="background: white; padding: 12px; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                <img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm); border: 2px solid var(--primary);">
+                            </div>
+                            <div style="flex: 1;">
+                                <div><strong>📱 QR-код</strong> <span class="history-date">${new Date(qr.created_at).toLocaleDateString()}</span></div>
+                                <div class="history-url" style="margin: 8px 0;">${escapeHtml(qr.original_url)}</div>
+                                <div style="margin-top: 10px;">
+                                    <button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-sm btn-secondary">📥 Скачать PNG</button>
+                                    <a href="${escapeHtml(qr.original_url)}" target="_blank" class="btn btn-sm btn-primary" style="margin-left: 8px;">🔗 Открыть ссылку</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
+            }
+        }
+
+        function downloadQR(qrData, format) {
+            const link = document.createElement('a');
+            link.href = qrData;
+            link.download = `qrcode-${Date.now()}.${format}`;
+            link.click();
+        }
+
+        async function clearLinksHistory() {
+            if (!confirm('Удалить все ссылки? Это действие нельзя отменить.')) return;
+            const res = await fetch('/api/links', { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            await loadLinksHistory(1);
+            await loadPlanInfo();
+            await loadTagCloud();
+        }
+
+        async function clearQRCodesHistory() {
+            if (!confirm('Удалить все QR-коды? Это действие нельзя отменить.')) return;
+            const res = await fetch('/api/qrcodes', { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            await loadQRCodesHistory();
+            await loadPlanInfo();
+        }
+
+        async function exportData(type) {
+            try {
+                const res = await fetch(`/api/export/csv?type=${type}`);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `linksnap-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Ошибка экспорта');
+            }
+        }
+
+        async function generateApiKey() {
+            try {
+                const res = await fetch('/api/user/generate-api-key', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    const apiDiv = document.getElementById('apiKeyDisplay');
+                    apiDiv.textContent = `Ваш API ключ: ${data.apiKey}`;
+                    apiDiv.style.display = 'block';
+                    setTimeout(() => apiDiv.style.display = 'none', 10000);
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (e) {
+                alert('Ошибка соединения');
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
+        }
+
+        // Тёмная тема
+        (function () {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('linksnap-theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                if (themeToggle) themeToggle.checked = true;
+            }
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function () {
+                    if (this.checked) {
+                        document.body.classList.add('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'dark');
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'light');
+                    }
+                });
+            }
+        })();
+
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+
+</html>

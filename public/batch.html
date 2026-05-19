@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Массовое создание - LinkSnap</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dark-theme.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+    <style>
+        .file-upload {
+            border: 2px dashed var(--gray-400);
+            border-radius: var(--radius-md);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--surface);
+        }
+        .file-upload:hover, .file-upload.dragover { border-color: var(--primary); background: var(--primary-light); }
+        .result-item {
+            padding: 15px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            background: var(--gray-100);
+            border-left: 4px solid var(--success);
+        }
+        .result-item.error { border-left-color: var(--danger); }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: stretch; }
+        .card { min-height: 500px; }
+        .card-body { min-height: 400px; }
+        @media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="logo-container"><span class="logo">📦</span><a href="/" class="site-title">LinkSnap</a></div>
+            <div class="user-nav">
+                <div class="user-info"><div class="user-avatar" id="userAvatar"></div><span class="user-name" id="username">Загрузка...</span></div>
+                <div class="theme-switch-wrapper">
+                    <span class="theme-icon">🌙</span>
+                    <label class="theme-switch"><input type="checkbox" id="themeToggle"><span class="theme-slider"></span></label>
+                    <span class="theme-icon">☀️</span>
+                </div>
+                <a href="/profile" class="nav-btn">Профиль</a>
+                <a href="/dashboard" class="nav-btn">Аналитика</a>
+                <a href="/pricing" class="nav-btn">Тарифы</a>
+                <a href="/converter" class="nav-btn">Конвертер</a>
+                <a href="/image-editor" class="nav-btn">Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+            </div>
+        </header>
+        
+        <h2>⚡ Массовое создание ссылок</h2>
+        <p>Создайте несколько коротких ссылок за один раз из списка URL или CSV файла</p>
+
+        <div class="row">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">📥 Входные данные</h3></div>
+                <div class="card-body">
+                    <div class="btn-group" style="margin-bottom:20px;">
+                        <button class="btn btn-primary" onclick="setInputMethod('text')" id="textBtn">Текст</button>
+                        <button class="btn btn-secondary" onclick="setInputMethod('csv')" id="csvBtn">CSV</button>
+                    </div>
+                    <div id="textInput">
+                        <textarea id="urlList" class="form-control" rows="8" placeholder="Вставьте список URL (по одному на строку)"></textarea>
+                    </div>
+                    <div id="csvInput" style="display:none;">
+                        <div class="file-upload" id="dropZone">
+                            <span style="font-size:3em;">📁</span>
+                            <p>Перетащите CSV файл сюда или нажмите для выбора</p>
+                            <input type="file" id="csvFile" accept=".csv,.txt" hidden>
+                            <div id="fileName" style="margin-top:10px;">Файл не выбран</div>
+                        </div>
+                    </div>
+                    <button onclick="processBatch()" class="btn btn-primary" style="width:100%; margin-top:20px;">🚀 Начать массовое создание</button>
+                    <div class="progress-bar" id="progressBar" style="display:none;"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">📊 Результаты</h3></div>
+                <div class="card-body">
+                    <div class="stats-grid" id="statsBar" style="display:none;">
+                        <div class="stat-card"><div class="stat-number" id="totalProcessed">0</div><div class="stat-label">Всего</div></div>
+                        <div class="stat-card"><div class="stat-number" id="successCount">0</div><div class="stat-label">Успешно</div></div>
+                        <div class="stat-card"><div class="stat-number" id="errorCount">0</div><div class="stat-label">Ошибок</div></div>
+                    </div>
+                    <div id="resultsContainer" style="max-height:400px; overflow-y:auto;"><p class="empty-state">📋 Здесь появятся результаты</p></div>
+                    <div class="btn-group" id="copyButtons" style="display:none; margin-top:20px;">
+                        <button onclick="copyAllLinks()" class="btn btn-success">📋 Копировать все</button>
+                        <button onclick="downloadResults()" class="btn btn-info">📥 Скачать CSV</button>
+                        <button onclick="clearResults()" class="btn btn-secondary">🗑️ Очистить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) window.location.href = '/login';
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                return true;
+            } catch(e) { window.location.href = '/login'; return false; }
+        }
+        
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
+        
+        function setInputMethod(method) {
+            if (method === 'text') {
+                document.getElementById('textInput').style.display = 'block';
+                document.getElementById('csvInput').style.display = 'none';
+                document.getElementById('textBtn').className = 'btn btn-primary';
+                document.getElementById('csvBtn').className = 'btn btn-secondary';
+            } else {
+                document.getElementById('textInput').style.display = 'none';
+                document.getElementById('csvInput').style.display = 'block';
+                document.getElementById('csvBtn').className = 'btn btn-primary';
+                document.getElementById('textBtn').className = 'btn btn-secondary';
+            }
+        }
+        
+        function initFileUpload() {
+            const dropZone = document.getElementById('dropZone'), fileInput = document.getElementById('csvFile');
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => { 
+                e.preventDefault(); 
+                dropZone.classList.remove('dragover'); 
+                if (e.dataTransfer.files.length) { 
+                    fileInput.files = e.dataTransfer.files; 
+                    updateFileName(); 
+                } 
+            });
+            fileInput.addEventListener('change', updateFileName);
+        }
+        
+        function updateFileName() { 
+            const file = document.getElementById('csvFile').files[0]; 
+            document.getElementById('fileName').textContent = file ? `${file.name} (${(file.size/1024).toFixed(1)} KB)` : 'Файл не выбран'; 
+        }
+        
+        async function parseInputData() {
+            if (document.getElementById('textInput').style.display !== 'none') return parseTextInput();
+            else return await parseCSVInput();
+        }
+        
+        function parseTextInput() { 
+            const text = document.getElementById('urlList').value.trim(); 
+            if (!text) return []; 
+            return text.split('\n').map(l => l.trim()).filter(l => l).map(l => { 
+                const parts = l.split(',').map(p => p.trim()); 
+                return { url: parts[0], customAlias: parts[1] || null }; 
+            }); 
+        }
+        
+        async function parseCSVInput() {
+            const file = document.getElementById('csvFile').files[0]; 
+            if (!file) { alert('Выберите CSV файл'); return []; }
+            const text = await file.text(); 
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            let startIndex = 0;
+            if (lines.length) { 
+                const first = lines[0].toLowerCase(); 
+                const hasHeader = first.includes('url') || first.includes('link'); 
+                const isUrl = first.startsWith('http://') || first.startsWith('https://'); 
+                if (hasHeader && !isUrl) startIndex = 1; 
+            }
+            const urls = [];
+            for (let i = startIndex; i < lines.length; i++) {
+                const parts = lines[i].split(',').map(p => p.trim());
+                const url = parts[0] || ''; 
+                const alias = parts[1] || null;
+                if (url) urls.push({ url, customAlias: alias });
+            }
+            return urls;
+        }
+        
+        async function processBatch() {
+            const urls = await parseInputData();
+            if (!urls.length) { alert('Введите хотя бы один URL'); return; }
+            
+            const BATCH_SIZE = 10; // ИСПРАВЛЕНО: фиксированный размер
+            
+            document.getElementById('progressBar').style.display = 'block';
+            document.getElementById('resultsContainer').innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Обработка...</span></div>';
+            
+            let allResults = [], allErrors = [], processed = 0;
+            
+            for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+                const batch = urls.slice(i, i + BATCH_SIZE);
+                try {
+                    const resp = await fetch('/api/batch/shorten', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ urls: batch }) 
+                    });
+                    const data = await resp.json();
+                    if (data.success) { 
+                        allResults = allResults.concat(data.results || []); 
+                        allErrors = allErrors.concat(data.errors || []); 
+                    }
+                    const progress = Math.min(((i + BATCH_SIZE) / urls.length) * 100, 100);
+                    document.getElementById('progressFill').style.width = progress + '%';
+                } catch(e) { 
+                    allErrors.push({ error: e.message, url: 'Ошибка сети' }); 
+                }
+            }
+            
+            displayResults(allResults, allErrors);
+            document.getElementById('totalProcessed').textContent = allResults.length + allErrors.length;
+            document.getElementById('successCount').textContent = allResults.length;
+            document.getElementById('errorCount').textContent = allErrors.length;
+            document.getElementById('statsBar').style.display = 'grid';
+            if (allResults.length) document.getElementById('copyButtons').style.display = 'flex';
+            setTimeout(() => { document.getElementById('progressBar').style.display = 'none'; }, 1000);
+        }
+        
+        function displayResults(results, errors) {
+            let html = '';
+            results.forEach(r => { 
+                html += `<div class="result-item">
+                    <div>${escapeHtml(r.originalUrl)}</div>
+                    <a href="${escapeHtml(r.shortUrl)}" target="_blank">${escapeHtml(r.shortUrl)}</a>
+                </div>`; 
+            });
+            errors.forEach(e => { 
+                html += `<div class="result-item error">
+                    <div>${escapeHtml(e.url || 'Ошибка')}</div>
+                    <div style="color:var(--danger);">❌ ${escapeHtml(e.error)}</div>
+                </div>`; 
+            });
+            document.getElementById('resultsContainer').innerHTML = html || '<p class="empty-state">Нет результатов</p>';
+        }
+        
+        function copyAllLinks() { 
+            const links = Array.from(document.querySelectorAll('.result-item:not(.error) a')).map(a => a.textContent); 
+            if (links.length) navigator.clipboard.writeText(links.join('\n')).then(() => alert(`Скопировано ${links.length} ссылок`)); 
+        }
+        
+        function downloadResults() { 
+            const items = Array.from(document.querySelectorAll('.result-item:not(.error)')); 
+            if (!items.length) return; 
+            let csv = '\uFEFFОригинальный URL,Короткая ссылка\n'; 
+            items.forEach(i => { 
+                const url = i.querySelector('div:first-child').textContent; 
+                const short = i.querySelector('a').textContent; 
+                csv += `"${url.replace(/"/g,'""')}","${short.replace(/"/g,'""')}"\n`; 
+            }); 
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }); 
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(blob); 
+            a.download = `batch-results-${new Date().toISOString().slice(0,10)}.csv`; 
+            a.click(); 
+            URL.revokeObjectURL(a.href); 
+        }
+        
+        function clearResults() { 
+            document.getElementById('resultsContainer').innerHTML = '<p class="empty-state">📋 Здесь появятся результаты</p>'; 
+            document.getElementById('statsBar').style.display = 'none'; 
+            document.getElementById('copyButtons').style.display = 'none'; 
+            document.getElementById('progressFill').style.width = '0%'; 
+        }
+        
+        // Тёмная тема
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('linksnap-theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                if (themeToggle) themeToggle.checked = true;
+            }
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.body.classList.add('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'dark');
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                        localStorage.setItem('linksnap-theme', 'light');
+                    }
+                });
+            }
+        })();
+
+        document.addEventListener('DOMContentLoaded', async () => { await checkAuth(); initFileUpload(); });
+    </script>
+</body>
+</html>
