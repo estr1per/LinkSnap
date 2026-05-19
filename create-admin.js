@@ -1,5 +1,7 @@
 // Скрипт для создания админа по умолчанию
 // Запускается один раз при старте сервера
+const dotenv = require('dotenv');
+dotenv.config();
 
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');

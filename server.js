@@ -1,4 +1,6 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const { Pool } = require('pg');
 const QRCode = require('qrcode');
@@ -184,10 +186,13 @@ const db = {
 pool.connect((err, client, release) => {
     if (err) {
         console.error('❌ Ошибка подключения к PostgreSQL:', err.message);
-        process.exit(1);
+        console.error('DB_HOST:', process.env.DB_HOST);
+        console.error('DB_USER:', process.env.DB_USER);
+        console.error('DB_NAME:', process.env.DB_NAME);
+    } else {
+        console.log('💾 PostgreSQL база данных подключена');
+        release();
     }
-    console.log('💾 PostgreSQL база данных подключена');
-    release();
 });
 
 // ========== MULTER НАСТРОЙКА ==========
