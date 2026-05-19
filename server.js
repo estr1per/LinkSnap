@@ -451,10 +451,11 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,  // В production всегда true (HTTPS)
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        sameSite: 'lax'
+        sameSite: 'none',  // Важно для кросс-доменных запросов
+        domain: '.twc1.net'  // Домен для всех поддоменов
     }
 }));
 
