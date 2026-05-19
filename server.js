@@ -71,7 +71,8 @@ try {
     console.log('📁 Папки data и uploads готовы');
 } catch (error) {
     console.error('❌ Ошибка создания папок:', error);
-    process.exit(1);
+    // НЕ ВЫХОДИМ, а продолжаем — папки могут быть уже созданы
+    // process.exit(1);  // ← ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ!
 }
 
 // ========== БАЗА ДАННЫХ POSTGRESQL ==========
