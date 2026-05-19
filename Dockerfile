@@ -5,9 +5,11 @@ WORKDIR /app
 # Создаём непривилегированного пользователя
 RUN addgroup -g 2000 -S app && adduser -u 2000 -S app -G app
 
-# Копируем package.json и устанавливаем зависимости
+# Копируем package.json и package-lock.json
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Устанавливаем зависимости (используем npm install вместо npm ci)
+RUN npm install --omit=dev
 
 # Копируем весь проект
 COPY . .
