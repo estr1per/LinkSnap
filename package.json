@@ -9,6 +9,7 @@
     "install-deps": "npm install"
   },
   "dependencies": {
+    "dotenv": "^16.4.0",
     "archiver": "^7.0.1",
     "bcrypt": "^5.1.0",
     "compression": "^1.8.1",
