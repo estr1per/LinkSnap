@@ -445,6 +445,7 @@ app.use((req, res, next) => {
     }
     next();
 });
+app.set('trust proxy', 1); 
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'linksnap-secret-key-2024-secure',
