@@ -16,14 +16,20 @@ const PDFDocument = require('pdfkit');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const compression = require('compression');
-const crypto = require('crypto'); // ДОБАВЛЕНО для безопасной генерации ключей
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// ========== ЛОГИРОВАНИЕ ВСЕХ ЗАПРОСОВ (ДЛЯ ОТЛАДКИ) ==========
+app.use((req, res, next) => {
+    console.log(`📝 ${req.method} ${req.url} - Session userId: ${req.session?.userId || 'none'}`);
+    next();
+});
+
 // ========== БЕЗОПАСНОСТЬ ==========
 app.use(helmet({
-    hsts: process.env.NODE_ENV === 'production', // Отключаем HSTS в dev для работы по HTTP
+    hsts: process.env.NODE_ENV === 'production',
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
@@ -40,7 +46,7 @@ app.use(compression());
 // ========== RATE LIMITING ==========
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,  // УВЕЛИЧЕНО для разработки
+    max: 1000,
     message: { error: 'Слишком много запросов. Попробуйте позже.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -48,11 +54,10 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,  // УВЕЛИЧЕНО для разработки
+    max: 100,
     message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
 });
 
-// PWA заголовки
 app.use((req, res, next) => {
     if (req.url === '/sw.js') {
         res.setHeader('Content-Type', 'application/javascript');
@@ -70,9 +75,7 @@ try {
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     console.log('📁 Папки data и uploads готовы');
 } catch (error) {
-    console.error('❌ Ошибка создания папок:', error);
-    // НЕ ВЫХОДИМ, а продолжаем — папки могут быть уже созданы
-    // process.exit(1);  // ← ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ!
+    console.error('❌ Ошибка создания папок:', error.message);
 }
 
 // ========== БАЗА ДАННЫХ POSTGRESQL ==========
@@ -82,15 +85,12 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true' ? {
-        rejectUnauthorized: false,
-    } : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
 });
 
-// Безопасная обертка для БД
 const db = {
     run: (query, params = [], callback) => {
         if (typeof params === 'function') {
@@ -183,7 +183,6 @@ const db = {
     }
 };
 
-// Проверка подключения
 pool.connect((err, client, release) => {
     if (err) {
         console.error('❌ Ошибка подключения к PostgreSQL:', err.message);
@@ -196,7 +195,7 @@ pool.connect((err, client, release) => {
     }
 });
 
-// ========== MULTER НАСТРОЙКА ==========
+// ========== MULTER ==========
 const uploadSingle = multer({ 
     dest: uploadDir, 
     limits: { fileSize: 50 * 1024 * 1024 },
@@ -211,10 +210,7 @@ const uploadSingle = multer({
 
 const uploadMultiple = multer({ 
     dest: uploadDir, 
-    limits: { 
-        fileSize: 50 * 1024 * 1024,
-        files: 10  // ДОБАВЛЕНО: ограничение на количество файлов
-    } 
+    limits: { fileSize: 50 * 1024 * 1024, files: 10 } 
 });
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
@@ -222,7 +218,6 @@ async function cleanupTempFile(filePath) {
     try { 
         if (fs.existsSync(filePath)) await fs.promises.unlink(filePath); 
     } catch(e) {
-        // В production не логируем пути
         if (process.env.NODE_ENV !== 'production') {
             console.error('Ошибка удаления файла:', e.message);
         }
@@ -245,14 +240,12 @@ function escapeHtml(text) {
     }[m] || m));
 }
 
-// ИСПРАВЛЕНО: безопасная генерация случайных кодов
 function generateRandomCode(length) {
     return crypto.randomBytes(Math.ceil(length / 2))
         .toString('hex')
         .slice(0, length);
 }
 
-// ДОБАВЛЕНО: безопасная генерация API ключей
 function generateApiKey() {
     return 'ln_' + crypto.randomBytes(32).toString('hex');
 }
@@ -357,13 +350,11 @@ const createTables = async () => {
             tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
             PRIMARY KEY (link_id, tag_id)
         )`,
-        // ДОБАВЛЕНО: таблица для сессий
         `CREATE TABLE IF NOT EXISTS session (
             sid VARCHAR PRIMARY KEY,
             sess JSON NOT NULL,
             expire TIMESTAMP(6) NOT NULL
         )`,
-        // ДОБАВЛЕНО: таблица для чата поддержки (прямые сообщения)
         `CREATE TABLE IF NOT EXISTS support_chats (
             id SERIAL PRIMARY KEY,
             user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -380,7 +371,6 @@ const createTables = async () => {
             is_read INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
-        // ДОБАВЛЕНО: таблица для админов
         `CREATE TABLE IF NOT EXISTS admins (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
@@ -402,7 +392,6 @@ const createTables = async () => {
     console.log('✅ Все таблицы созданы успешно');
 };
 
-// ========== СОЗДАНИЕ ИНДЕКСОВ ==========
 const createIndexes = async () => {
     const indexes = [
         `CREATE INDEX IF NOT EXISTS idx_links_short_code ON links(short_code)`,
@@ -410,7 +399,7 @@ const createIndexes = async () => {
         `CREATE INDEX IF NOT EXISTS idx_clicks_link_id ON link_clicks(link_id)`,
         `CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_qrcodes_user_id ON qrcodes(user_id)`,
-        `CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire)` // ДОБАВЛЕНО
+        `CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire)`
     ];
     
     for (const sql of indexes) {
@@ -434,7 +423,6 @@ app.use(express.static('public', {
     lastModified: true 
 }));
 
-// ИСПРАВЛЕНО: динамический CORS — в dev разрешаем любой origin (для тестирования по IP)
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     
@@ -445,7 +433,6 @@ app.use((req, res, next) => {
             res.header('Access-Control-Allow-Credentials', 'true');
         }
     } else {
-        // В dev разрешаем любой origin для тестирования на мобильных устройствах по IP
         res.header('Access-Control-Allow-Origin', origin || '*');
         res.header('Access-Control-Allow-Credentials', 'true');
     }
@@ -459,7 +446,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Сессии
 app.use(session({
     secret: process.env.SESSION_SECRET || 'linksnap-secret-key-2024-secure',
     resave: false,
@@ -472,22 +458,12 @@ app.use(session({
     }
 }));
 
-// ДОБАВЛЕНО: автоматическая очистка старых сессий
 setInterval(async () => {
     try {
-        await pool.query(`
-            DELETE FROM session 
-            WHERE expire < NOW()
-        `);
-        if (process.env.NODE_ENV !== 'production') {
-            console.log('🧹 Очистка старых сессий выполнена');
-        }
-    } catch(e) {
-        // Игнорируем ошибки очистки
-    }
+        await pool.query(`DELETE FROM session WHERE expire < NOW()`);
+    } catch(e) {}
 }, 6 * 60 * 60 * 1000);
     
-// Применяем rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
@@ -638,7 +614,6 @@ app.get('/api/links/search', requireAuth, (req, res) => {
     const { query } = req.query;
     const userId = req.session.userId;
     
-    // ДОБАВЛЕНО: защита от XSS
     if (query && (query.includes('<') || query.includes('>'))) {
         return res.status(400).json({ error: 'Недопустимые символы в поиске' });
     }
@@ -807,7 +782,6 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Некорректный URL' });
         }
         
-        // ПРОВЕРКА ТАРИФА для кастомных алиасов
         if (customAlias && customAlias.trim() !== '') {
             const user = await pool.query('SELECT plan_type FROM users WHERE id = $1', [userId]);
             if (user.rows[0]?.plan_type === 'free') {
@@ -917,7 +891,6 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
     }
 });
 
-// ========== API ИСТОРИЯ QR-КОДОВ ==========
 app.get('/api/qrcodes', requireAuth, (req, res) => {
     db.all('SELECT * FROM qrcodes WHERE user_id = $1 ORDER BY created_at DESC',
         [req.session.userId],
@@ -927,7 +900,6 @@ app.get('/api/qrcodes', requireAuth, (req, res) => {
         });
 });
 
-// ========== API УДАЛЕНИЕ ==========
 app.delete('/api/links', requireAuth, (req, res) => {
     db.run('DELETE FROM links WHERE user_id = $1', [req.session.userId], function(err) {
         if (err) return res.status(500).json({ error: err.message });
@@ -942,7 +914,6 @@ app.delete('/api/qrcodes', requireAuth, (req, res) => {
     });
 });
 
-// ========== API АНАЛИТИКА ==========
 app.get('/api/analytics/summary', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
@@ -987,8 +958,6 @@ app.get('/api/analytics/summary', requireAuth, (req, res) => {
     });
 });
 
-// ========== API МАССОВОЕ СОЗДАНИЕ ==========
-// ИСПРАВЛЕНО: с использованием транзакций
 app.post('/api/batch/shorten', requireAuth, async (req, res) => {
     const client = await pool.connect();
     
@@ -996,7 +965,6 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
         const { urls } = req.body;
         const userId = req.session.userId;
         
-        // ПРОВЕРКА ТАРИФА - только Business
         const user = await pool.query('SELECT plan_type FROM users WHERE id = $1', [userId]);
         if (user.rows[0]?.plan_type !== 'business') {
             return res.status(403).json({ error: 'Массовое создание доступно только для тарифа Бизнес' });
@@ -1078,7 +1046,6 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
     }
 });
 
-// ========== API ПРОВЕРКА АЛИАСА ==========
 app.get('/api/alias/check', requireAuth, (req, res) => {
     const { alias } = req.query;
     
@@ -1098,7 +1065,6 @@ app.get('/api/alias/check', requireAuth, (req, res) => {
         });
 });
 
-// ========== API ЭКСПОРТ CSV ==========
 app.get('/api/export/csv', requireAuth, (req, res) => {
     const { type } = req.query;
     const userId = req.session.userId;
@@ -1140,7 +1106,6 @@ app.get('/api/export/csv', requireAuth, (req, res) => {
     }
 });
 
-// ========== API ТАРИФЫ ==========
 app.get('/api/user/plan', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
@@ -1211,7 +1176,6 @@ app.post('/api/user/generate-api-key', requireAuth, (req, res) => {
             return res.status(403).json({ error: 'API доступен только для Бизнес тарифа' });
         }
         
-        // ИСПРАВЛЕНО: использование безопасной генерации
         const apiKey = generateApiKey();
         db.run('UPDATE users SET api_key = $1 WHERE id = $2', [apiKey, userId], function(err) {
             if (err) return res.status(500).json({ error: err.message });
@@ -1220,7 +1184,6 @@ app.post('/api/user/generate-api-key', requireAuth, (req, res) => {
     });
 });
 
-// ========== API ПУБЛИЧНЫЙ ДОСТУП ==========
 app.post('/api/v1/shorten', requireApiKey, (req, res) => {
     const { url, customAlias } = req.body;
     
@@ -1269,9 +1232,7 @@ app.post('/api/v1/shorten', requireApiKey, (req, res) => {
     });
 });
 
-// ========== ЧАТ ПОДДЕРЖКИ (REAL-TIME) ==========
-
-// Получить или создать чат пользователя
+// ========== ЧАТ ПОДДЕРЖКИ ==========
 app.get('/api/support/chat', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
@@ -1283,7 +1244,6 @@ app.get('/api/support/chat', requireAuth, (req, res) => {
         if (chat) {
             res.json({ success: true, chat, exists: true });
         } else {
-            // Создаём новый чат
             db.run(
                 'INSERT INTO support_chats (user_id) VALUES ($1) RETURNING id',
                 [userId],
@@ -1301,13 +1261,11 @@ app.get('/api/support/chat', requireAuth, (req, res) => {
     });
 });
             
-// Получить сообщения чата (для polling)
 app.get('/api/support/chat/:chatId/messages', requireAuth, (req, res) => {
     const { chatId } = req.params;
     const userId = req.session.userId;
-    const since = req.query.since; // Получать сообщения после указанного времени
+    const since = req.query.since;
     
-    // Проверяем, что чат принадлежит пользователю
     db.get('SELECT * FROM support_chats WHERE id = $1 AND user_id = $2', 
         [chatId, userId],
         (err, chat) => {
@@ -1330,7 +1288,6 @@ app.get('/api/support/chat/:chatId/messages', requireAuth, (req, res) => {
                     return res.status(500).json({ error: 'Ошибка получения сообщений' });
                 }
                 
-                // Помечаем сообщения админа как прочитанные
                 db.run('UPDATE support_chat_messages SET is_read = 1 WHERE chat_id = $1 AND sender_type = \'admin\'', [chatId]);
                 
                 res.json({ 
@@ -1343,7 +1300,6 @@ app.get('/api/support/chat/:chatId/messages', requireAuth, (req, res) => {
     );
 });
 
-// Отправить сообщение в чат (пользователь)
 app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     const { chatId } = req.params;
     const { message } = req.body;
@@ -1353,7 +1309,6 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Сообщение не может быть пустым' });
     }
     
-    // Проверяем, что чат принадлежит пользователю
     db.get('SELECT id, is_closed FROM support_chats WHERE id = $1 AND user_id = $2', 
         [chatId, userId],
         (err, chat) => {
@@ -1373,7 +1328,6 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
                         return res.status(500).json({ error: 'Ошибка отправки сообщения' });
                     }
                     
-                    // Обновляем время чата
                     db.run('UPDATE support_chats SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [chatId]);
                     
                     res.json({ success: true, messageId: this.lastID });
@@ -1383,9 +1337,7 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-// ========== АДМИН ПАНЕЛЬ - ЧАТЫ ==========
-
-// Админ логин
+// ========== АДМИН ПАНЕЛЬ ==========
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -1404,13 +1356,11 @@ app.post('/api/admin/login', async (req, res) => {
                 return res.status(401).json({ error: 'Неверный логин или пароль' });
             }
             
-            // Сохраняем userId если был (чтобы восстановить при выходе)
             if (req.session.userId) {
                 req.session.previousUserId = req.session.userId;
                 req.session.previousUsername = req.session.username;
             }
             
-            // Очищаем пользовательскую сессию для админки
             req.session.userId = null;
             req.session.username = null;
             
@@ -1428,9 +1378,7 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
-// Админ logout
 app.post('/api/admin/logout', (req, res) => {
-    // Восстанавливаем userId если был
     if (req.session.previousUserId) {
         req.session.userId = req.session.previousUserId;
         req.session.username = req.session.previousUsername;
@@ -1444,7 +1392,6 @@ app.post('/api/admin/logout', (req, res) => {
     res.json({ success: true, message: 'Выход выполнен' });
 });
 
-// Проверка админ авторизации
 app.get('/api/admin/me', (req, res) => {
     if (!req.session.adminId) {
         return res.status(401).json({ error: 'Не авторизован' });
@@ -1467,9 +1414,8 @@ function requireAdminAuth(req, res, next) {
     else res.status(401).json({ error: 'Требуется авторизация администратора' });
 }
 
-// Получить все чаты (админ)
 app.get('/api/admin/chats', requireAdminAuth, (req, res) => {
-    const { status } = req.query; // all, active, closed
+    const { status } = req.query;
     
     let query = `
         SELECT 
@@ -1501,7 +1447,6 @@ app.get('/api/admin/chats', requireAdminAuth, (req, res) => {
     });
 });
 
-// Получить сообщения чата (админ)
 app.get('/api/admin/chat/:chatId', requireAdminAuth, (req, res) => {
     const { chatId } = req.params;
     
@@ -1521,7 +1466,6 @@ app.get('/api/admin/chat/:chatId', requireAdminAuth, (req, res) => {
                         return res.status(500).json({ error: 'Ошибка получения сообщений' });
                     }
                     
-                    // Помечаем сообщения пользователя как прочитанные
                     db.run('UPDATE support_chat_messages SET is_read = 1 WHERE chat_id = $1 AND sender_type = \'user\'', [chatId]);
                     
                     res.json({ 
@@ -1536,7 +1480,6 @@ app.get('/api/admin/chat/:chatId', requireAdminAuth, (req, res) => {
     });
 });
 
-// Отправить сообщение в чат (админ)
 app.post('/api/admin/chat/:chatId/message', requireAdminAuth, (req, res) => {
     const { chatId } = req.params;
     const { message } = req.body;
@@ -1562,7 +1505,6 @@ app.post('/api/admin/chat/:chatId/message', requireAdminAuth, (req, res) => {
                     return res.status(500).json({ error: 'Ошибка отправки сообщения' });
                 }
                 
-                // Обновляем время чата и открываем если закрыт
                 db.run('UPDATE support_chats SET updated_at = CURRENT_TIMESTAMP, is_closed = 0 WHERE id = $1', [chatId]);
                 
                 res.json({ success: true, messageId: this.lastID });
@@ -1571,7 +1513,6 @@ app.post('/api/admin/chat/:chatId/message', requireAdminAuth, (req, res) => {
     });
 });
 
-// Закрыть/открыть чат (админ)
 app.patch('/api/admin/chat/:chatId/status', requireAdminAuth, (req, res) => {
     const { chatId } = req.params;
     const { isClosed } = req.body;
@@ -1588,7 +1529,6 @@ app.patch('/api/admin/chat/:chatId/status', requireAdminAuth, (req, res) => {
     );
 });
 
-// Получить статистику (админ)
 app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     db.all(`
         SELECT 
@@ -1601,7 +1541,6 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
             return res.status(500).json({ error: 'Ошибка получения статистики' });
         }
         
-        // Считаем непрочитанные
         db.get('SELECT COUNT(*) as unread FROM support_chat_messages WHERE is_read = 0 AND sender_type = \'user\'', [], (err, unreadResult) => {
             res.json({ 
                 success: true, 
@@ -1616,11 +1555,8 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     });
 });
 
-// ========== АДМИН - УПРАВЛЕНИЕ ТАРИФАМИ ==========
-
-// Получить всех пользователей с тарифами
 app.get('/api/admin/users', requireAdminAuth, (req, res) => {
-    const { plan } = req.query; // filter by plan
+    const { plan } = req.query;
     
     let query = `
         SELECT 
@@ -1648,7 +1584,6 @@ app.get('/api/admin/users', requireAdminAuth, (req, res) => {
     });
 });
 
-// Изменить тариф пользователя (админ)
 app.patch('/api/admin/users/:userId/plan', requireAdminAuth, (req, res) => {
     const { userId } = req.params;
     const { planType } = req.body;
@@ -1666,7 +1601,6 @@ app.patch('/api/admin/users/:userId/plan', requireAdminAuth, (req, res) => {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
         
-        // Записываем в историю подписок
         db.run(`
             INSERT INTO subscriptions (user_id, plan_type, status, amount, start_date) 
             VALUES ($1, $2, 'admin_changed', 0, CURRENT_TIMESTAMP)
@@ -1865,7 +1799,6 @@ app.post('/api/convert/batch', requireAuth, uploadMultiple.array('files', 10), a
 });
 
 // ========== РЕДАКТОР ИЗОБРАЖЕНИЙ ==========
-// Универсальный endpoint для всех операций
 app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (req, res) => {
     try {
         const {
@@ -1886,77 +1819,54 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
         
         let pipeline = sharp(inputPath);
 
-        // Поворот
         const rotateAngle = parseInt(rotate) || 0;
         if (rotateAngle !== 0) {
             pipeline = pipeline.rotate(rotateAngle);
         }
 
-        // Отражение
         if (flip === 'horizontal' || flip === 'both') {
             pipeline = pipeline.flop();
         }
         if (flip === 'vertical' || flip === 'both') {
             pipeline = pipeline.flip();
         }
-
-        // Применение фильтров через composite для brightness, contrast, saturate
-        const filters = [];
         
-        // Яркость
         const brightnessVal = parseFloat(brightness) || 100;
         if (brightnessVal !== 100) {
-            pipeline = pipeline.modulate({
-                brightness: brightnessVal / 100
-            });
+            pipeline = pipeline.modulate({ brightness: brightnessVal / 100 });
         }
 
-        // Контраст
         const contrastVal = parseFloat(contrast) || 100;
         if (contrastVal !== 100) {
-            pipeline = pipeline.modulate({
-                contrast: contrastVal / 100
-            });
+            pipeline = pipeline.modulate({ contrast: contrastVal / 100 });
         }
 
-        // Насыщенность
         const saturateVal = parseFloat(saturate) || 100;
         if (saturateVal !== 100) {
-            pipeline = pipeline.modulate({
-                saturation: saturateVal / 100
-            });
+            pipeline = pipeline.modulate({ saturation: saturateVal / 100 });
         }
 
-        // Оттенок (hue)
         const hueVal = parseFloat(hue) || 0;
         if (hueVal !== 0) {
-            pipeline = pipeline.modulate({
-                hue: hueVal
-            });
+            pipeline = pipeline.modulate({ hue: hueVal });
         }
 
-        // Сепия
         const sepiaVal = parseFloat(sepia) || 0;
         if (sepiaVal > 0) {
-            pipeline = pipeline.modulate({
-                saturation: 0.2
-            });
+            pipeline = pipeline.modulate({ saturation: 0.2 });
             pipeline = pipeline.tint({ r: 112, g: 66, b: 20, alpha: sepiaVal / 100 });
         }
 
-        // Инверсия
         const invertVal = parseFloat(invert) || 0;
         if (invertVal > 0) {
             pipeline = pipeline.negate();
         }
 
-        // Размытие
         const blurVal = parseFloat(blur) || 0;
         if (blurVal > 0) {
             pipeline = pipeline.blur(blurVal);
         }
 
-        // Резкость
         const sharpenVal = parseFloat(sharpen) || 0;
         if (sharpenVal > 0) {
             pipeline = pipeline.sharpen({
@@ -1966,7 +1876,6 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
             });
         }
 
-        // Изменение размера
         const resizeWidth = parseInt(width) || null;
         const resizeHeight = parseInt(height) || null;
         if (resizeWidth || resizeHeight) {
@@ -1980,7 +1889,6 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
             pipeline = pipeline.resize(options);
         }
 
-        // Формат и качество
         const qualityVal = parseInt(quality) || 90;
         switch (format.toLowerCase()) {
             case 'jpeg':
@@ -2020,7 +1928,6 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
     }
 });
 
-// Устаревшие endpoint'ы (для обратной совместимости)
 app.post('/api/image/resize', requireAuth, uploadSingle.single('image'), async (req, res) => {
     try {
         const { width, height, maintainAspectRatio = 'true' } = req.body;
@@ -2172,7 +2079,6 @@ app.get('/:shortCode', (req, res) => {
         });
 });
 
-// 404 для API
 app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
