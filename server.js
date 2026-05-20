@@ -1389,33 +1389,74 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
 // ========== АДМИН ПАНЕЛЬ ==========
 
 
-app.post('/api/admin/login', (req, res) => {
-    console.log('📝 Админ вход (упрощенный):', req.body);
-    
-    // Просто устанавливаем сессию админа
-    req.session.adminId = 1;
-    req.session.adminUsername = 'admin';
-    
-    res.json({ 
-        success: true, 
-        admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } 
-    });
+app.post('/api/admin/login', adminAuthLimiter, async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Логин и пароль обязательны' });
+        }
+        
+        db.get('SELECT * FROM admins WHERE username = $1', [username], async (err, admin) => {
+            if (err || !admin) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            const isValid = await bcrypt.compare(password, admin.password);
+            if (!isValid) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            if (req.session.userId) {
+                req.session.previousUserId = req.session.userId;
+                req.session.previousUsername = req.session.username;
+            }
+            
+            req.session.userId = null;
+            req.session.username = null;
+            req.session.adminId = admin.id;
+            req.session.adminUsername = admin.username;
+            
+            res.json({ 
+                success: true, 
+                admin: { id: admin.id, username: admin.username, email: admin.email } 
+            });
+        });
+    } catch (error) {
+        console.error('Ошибка админ входа:', error.message);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
 
-// Выход
 app.post('/api/admin/logout', (req, res) => {
+    if (req.session.previousUserId) {
+        req.session.userId = req.session.previousUserId;
+        req.session.username = req.session.previousUsername;
+    }
+    
     req.session.adminId = null;
     req.session.adminUsername = null;
+    req.session.previousUserId = null;
+    req.session.previousUsername = null;
+    
     res.json({ success: true, message: 'Выход выполнен' });
 });
 
-// Проверка авторизации - всегда true
 app.get('/api/admin/me', (req, res) => {
-    // Всегда возвращаем админа
-    res.json({ 
-        success: true, 
-        admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } 
-    });
+    if (!req.session.adminId) {
+        return res.status(401).json({ error: 'Не авторизован' });
+    }
+    
+    db.get('SELECT id, username, email FROM admins WHERE id = $1', 
+        [req.session.adminId],
+        (err, admin) => {
+            if (err || !admin) {
+                req.session.adminId = null;
+                return res.status(401).json({ error: 'Не авторизован' });
+            }
+            res.json({ success: true, admin: { id: admin.id, username: admin.username, email: admin.email } });
+        }
+    );
 });
 
 function requireAdminAuth(req, res, next) {
