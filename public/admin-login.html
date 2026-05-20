@@ -7,6 +7,45 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/admin.css">
     <link rel="stylesheet" href="/dark-theme.css">
+    <style>
+        /* Дополнительные стили на всякий случай */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
 </head>
 <body>
     <div class="floating-shapes">
@@ -24,7 +63,7 @@
                 <p>Вход для администратора</p>
             </div>
 
-            <form onsubmit="login(event); return false;" autocomplete="off">
+            <form id="loginForm" autocomplete="off">
                 <div class="form-group">
                     <label for="username">Имя пользователя</label>
                     <div class="input-wrapper username">
@@ -37,7 +76,7 @@
                         <input type="password" id="password" required placeholder="••••••••" autocomplete="new-password">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary login-btn">
+                <button type="button" class="btn btn-primary login-btn" onclick="login()">
                     🔐 Войти
                 </button>
             </form>
@@ -49,12 +88,15 @@
     </div>
 
     <script>
-        async function login(event) {
-            if (event) event.preventDefault();
-            
+        async function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const btn = document.querySelector('.login-btn');
+            
+            if (!username || !password) {
+                alert('Введите логин и пароль');
+                return;
+            }
             
             if (btn) {
                 btn.disabled = true;
@@ -73,7 +115,7 @@
                 if (data && data.success) {
                     window.location.href = '/admin';
                 } else {
-                    alert('Ошибка: ' + (data?.error || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (data?.error || 'Неверный логин или пароль'));
                     if (btn) {
                         btn.disabled = false;
                         btn.textContent = '🔐 Войти';
@@ -89,18 +131,28 @@
             }
         }
 
-        // Проверка, не авторизован ли уже
+        // Проверка при загрузке - если уже авторизован
         (async function() {
             try {
                 const res = await fetch('/api/admin/me');
                 if (res && res.ok) {
-                    window.location.href = '/admin';
+                    const data = await res.json();
+                    if (data && data.success) {
+                        window.location.href = '/admin';
+                    }
                 }
             } catch(e) {
-                // Не авторизован, это нормально
-                console.log('Не авторизован');
+                // Не авторизован, остаемся на странице
+                console.log('Требуется вход');
             }
         })();
+
+        // Добавляем обработчик Enter
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
     </script>
 </body>
 </html>
