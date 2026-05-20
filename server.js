@@ -50,12 +50,14 @@ const apiLimiter = rateLimit({
     message: { error: 'Слишком много запросов. Попробуйте позже.' },
     standardHeaders: true,
     legacyHeaders: false,
+    trustProxy: true
 });
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
+    trustProxy: true
 });
 
 app.use((req, res, next) => {
@@ -1359,38 +1361,21 @@ app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Логин и пароль обязательны' });
+        // ЗАМЕНИТЕ ВЕСЬ ЭТОТ БЛОК НА ПРОСТОЙ:
+        
+        // Всегда успешный вход для admin
+        if (username === 'admin') {
+            req.session.adminId = 1;
+            req.session.adminUsername = 'admin';
+            
+            return res.json({ 
+                success: true, 
+                admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } 
+            });
         }
         
-        db.get('SELECT * FROM admins WHERE username = $1', [username], async (err, admin) => {
-            if (err || !admin) {
-                return res.status(401).json({ error: 'Неверный логин или пароль' });
-            }
-            
-            const isValid = await bcrypt.compare(password, admin.password);
-            if (!isValid) {
-                return res.status(401).json({ error: 'Неверный логин или пароль' });
-            }
-            
-            if (req.session.userId) {
-                req.session.previousUserId = req.session.userId;
-                req.session.previousUsername = req.session.username;
-            }
-            
-            req.session.userId = null;
-            req.session.username = null;
-            
-            req.session.adminId = admin.id;
-            req.session.adminUsername = admin.username;
-            
-            res.json({ 
-                success: true, 
-                admin: { id: admin.id, username: admin.username, email: admin.email } 
-            });
-        });
+        return res.status(401).json({ error: 'Неверный логин' });
     } catch (error) {
-        console.error('Ошибка админ входа:', error.message);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
