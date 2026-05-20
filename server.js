@@ -18,9 +18,6 @@ const helmet = require('helmet');
 const compression = require('compression');
 const crypto = require('crypto');
 
-// Добавляем хранилище сессий в PostgreSQL
-const pgSession = require('connect-pg-simple')(session);
-
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -32,11 +29,7 @@ app.use((req, res, next) => {
 
 // ========== БЕЗОПАСНОСТЬ ==========
 app.use(helmet({
-    hsts: process.env.NODE_ENV === 'production' ? {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-    } : false,
+    hsts: process.env.NODE_ENV === 'production',
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
@@ -45,7 +38,6 @@ app.use(helmet({
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", `https://${process.env.DOMAIN || 'estr1per-linksnap-85ab.twc1.net'}`]
         },
     },
 }));
@@ -58,21 +50,12 @@ const apiLimiter = rateLimit({
     message: { error: 'Слишком много запросов. Попробуйте позже.' },
     standardHeaders: true,
     legacyHeaders: false,
-    trustProxy: true
 });
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
-    trustProxy: true
-});
-
-const adminAuthLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: { error: 'Слишком много попыток входа в админку' },
-    trustProxy: true
 });
 
 app.use((req, res, next) => {
@@ -105,10 +88,9 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
 });
 
-// Обертка для совместимости со старым кодом (callback стиль)
 const db = {
     run: (query, params = [], callback) => {
         if (typeof params === 'function') {
@@ -441,17 +423,11 @@ app.use(express.static('public', {
     lastModified: true 
 }));
 
-// CORS настройки
-const allowedOrigins = [
-    'https://estr1per-linksnap-85ab.twc1.net',
-    'https://www.estr1per-linksnap-85ab.twc1.net',
-    'http://localhost:3000'
-];
-
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     
     if (process.env.NODE_ENV === 'production') {
+        const allowedOrigins = ['https://yourdomain.com', 'https://www.yourdomain.com'];
         if (allowedOrigins.includes(origin)) {
             res.header('Access-Control-Allow-Origin', origin);
             res.header('Access-Control-Allow-Credentials', 'true');
@@ -469,25 +445,18 @@ app.use((req, res, next) => {
     }
     next();
 });
-
 app.set('trust proxy', 1); 
 
-// Настройка сессий с PostgreSQL хранилищем
 app.use(session({
-    store: new pgSession({
-        pool: pool,
-        tableName: 'session',
-        createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
+    secret: process.env.SESSION_SECRET || 'linksnap-secret-key-2024-secure',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,  // В production всегда true (HTTPS)
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        sameSite: 'lax',
-        domain: process.env.NODE_ENV === 'production' ? '.twc1.net' : undefined
+        sameSite: 'none',  // Важно для кросс-доменных запросов
+        domain: '.twc1.net'  // Домен для всех поддоменов
     }
 }));
 
@@ -500,7 +469,6 @@ setInterval(async () => {
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
-app.use('/api/admin/login', adminAuthLimiter);
 
 // ========== ПРОВЕРКА АВТОРИЗАЦИИ ==========
 function requireAuth(req, res, next) {
@@ -557,23 +525,15 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Некорректный email адрес' });
         }
         
-        // Проверка существования пользователя
-        const existing = await new Promise((resolve) => {
-            db.get('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username], (err, result) => {
-                resolve(result);
-            });
-        });
-        
-        if (existing) {
-            return res.status(400).json({ error: 'Пользователь с таким именем или email уже существует' });
-        }
-        
         const hashedPassword = await bcrypt.hash(password, 10);
         
         db.run('INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id',
             [username, email, hashedPassword],
             function(err) {
                 if (err) {
+                    if (err.message.includes('UNIQUE')) {
+                        return res.status(400).json({ error: 'Пользователь с таким именем или email уже существует' });
+                    }
                     return res.status(500).json({ error: 'Ошибка сервера' });
                 }
                 
@@ -863,7 +823,7 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             
             const shortCode = customAlias || generateRandomCode(6);
             const host = req.get('host') || `localhost:${port}`;
-            const protocol = req.protocol || 'https';
+            const protocol = req.protocol || 'http';
             
             db.run(
                 'INSERT INTO links (user_id, original_url, short_code, custom_alias, title, tags) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
@@ -1010,15 +970,14 @@ app.get('/api/analytics/summary', requireAuth, (req, res) => {
 });
 
 app.post('/api/batch/shorten', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    
     try {
         const { urls } = req.body;
         const userId = req.session.userId;
         
-        const user = await new Promise((resolve) => {
-            db.get('SELECT plan_type FROM users WHERE id = $1', [userId], (err, user) => resolve(user));
-        });
-        
-        if (user?.plan_type !== 'business') {
+        const user = await pool.query('SELECT plan_type FROM users WHERE id = $1', [userId]);
+        if (user.rows[0]?.plan_type !== 'business') {
             return res.status(403).json({ error: 'Массовое создание доступно только для тарифа Бизнес' });
         }
         
@@ -1042,6 +1001,8 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
             });
         }
         
+        await client.query('BEGIN');
+        
         const results = [];
         const errors = [];
         
@@ -1062,26 +1023,24 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
             
             const shortCode = customAlias || generateRandomCode(6);
             
-            await new Promise((resolve) => {
-                db.run(
+            try {
+                await client.query(
                     'INSERT INTO links (user_id, original_url, short_code, custom_alias) VALUES ($1, $2, $3, $4)',
-                    [userId, validatedUrl, shortCode, customAlias || null],
-                    function(err) {
-                        if (err) {
-                            errors.push({ index: i, error: err.message, url: validatedUrl });
-                        } else {
-                            results.push({
-                                index: i,
-                                originalUrl: validatedUrl,
-                                shortCode,
-                                shortUrl: `${req.protocol}://${req.get('host')}/${shortCode}`
-                            });
-                        }
-                        resolve();
-                    }
+                    [userId, validatedUrl, shortCode, customAlias || null]
                 );
-            });
+                
+                results.push({
+                    index: i,
+                    originalUrl: validatedUrl,
+                    shortCode,
+                    shortUrl: `${req.protocol}://${req.get('host')}/${shortCode}`
+                });
+            } catch (err) {
+                errors.push({ index: i, error: err.message, url: validatedUrl });
+            }
         }
+        
+        await client.query('COMMIT');
         
         res.json({ 
             success: true, 
@@ -1091,7 +1050,10 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
             errors
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
     }
 });
 
@@ -1386,10 +1348,14 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
+app.post('/api/admin/login', (req, res) => {
+    console.log('📝 Тело запроса:', req.body);
+    console.log('📝 Заголовки:', req.headers['content-type']);
+    res.json({ test: true, body: req.body });
+});
+
 // ========== АДМИН ПАНЕЛЬ ==========
-
-
-app.post('/api/admin/login', adminAuthLimiter, async (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
@@ -1414,6 +1380,7 @@ app.post('/api/admin/login', adminAuthLimiter, async (req, res) => {
             
             req.session.userId = null;
             req.session.username = null;
+            
             req.session.adminId = admin.id;
             req.session.adminUsername = admin.username;
             
@@ -2133,36 +2100,15 @@ app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
 
+
+
+
 // ========== ЗАПУСК СЕРВЕРА ==========
 createTables()
     .then(() => createIndexes())
-    .then(async () => {
-        // Проверяем и создаем админа если нет
-        await new Promise((resolve) => {
-            db.get('SELECT COUNT(*) as count FROM admins', [], (err, result) => {
-                if (!err && result && parseInt(result.count) === 0) {
-                    console.log('⚠️ Админ не найден, создаем дефолтного...');
-                    bcrypt.hash(process.env.ADMIN_PASSWORD || 'ChangeMe123!', 10, (err, hash) => {
-                        if (!err) {
-                            db.run('INSERT INTO admins (username, password, email) VALUES ($1, $2, $3)',
-                                [process.env.ADMIN_USERNAME || 'admin', hash, 'admin@linksnap.local'],
-                                () => {
-                                    console.log('✅ Дефолтный админ создан');
-                                    resolve();
-                                });
-                        } else {
-                            resolve();
-                        }
-                    });
-                } else {
-                    resolve();
-                }
-            });
-        });
-        
+    .then(() => {
         const server = app.listen(port, '0.0.0.0', () => {
             console.log(`\n🚀 Сервер LinkSnap запущен: http://localhost:${port}`);
-            console.log(`🌐 Домен: https://${process.env.DOMAIN || 'estr1per-linksnap-85ab.twc1.net'}`);
             console.log(`🔒 Режим: ${process.env.NODE_ENV || 'development'}`);
             console.log(`💾 База данных: PostgreSQL\n`);
         });
