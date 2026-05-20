@@ -50,14 +50,12 @@ const apiLimiter = rateLimit({
     message: { error: 'Слишком много запросов. Попробуйте позже.' },
     standardHeaders: true,
     legacyHeaders: false,
-    trustProxy: true
 });
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
-    trustProxy: true
 });
 
 app.use((req, res, next) => {
@@ -780,19 +778,10 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             validatedUrl = 'https://' + validatedUrl;
         }
         
-        let urlObj;
         try {
-            urlObj = new URL(validatedUrl);
+            new URL(validatedUrl);
         } catch {
             return res.status(400).json({ error: 'Некорректный URL' });
-        }
-        
-        // Запрещаем сокращать ссылки на этот же сервер
-        const host = req.get('host');
-        if (urlObj.host === host) {
-            return res.status(400).json({ 
-                error: '❌ Нельзя сокращать ссылки на этот сервис. Это не имеет смысла! Сокращайте ссылки на другие сайты.'
-            });
         }
         
         if (customAlias && customAlias.trim() !== '') {
@@ -1350,32 +1339,43 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-app.post('/api/admin/login', (req, res) => {
-    console.log('📝 Тело запроса:', req.body);
-    console.log('📝 Заголовки:', req.headers['content-type']);
-    res.json({ test: true, body: req.body });
-});
-
 // ========== АДМИН ПАНЕЛЬ ==========
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
-        // ЗАМЕНИТЕ ВЕСЬ ЭТОТ БЛОК НА ПРОСТОЙ:
-        
-        // Всегда успешный вход для admin
-        if (username === 'admin') {
-            req.session.adminId = 1;
-            req.session.adminUsername = 'admin';
-            
-            return res.json({ 
-                success: true, 
-                admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } 
-            });
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Логин и пароль обязательны' });
         }
         
-        return res.status(401).json({ error: 'Неверный логин' });
+        db.get('SELECT * FROM admins WHERE username = $1', [username], async (err, admin) => {
+            if (err || !admin) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            const isValid = await bcrypt.compare(password, admin.password);
+            if (!isValid) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            if (req.session.userId) {
+                req.session.previousUserId = req.session.userId;
+                req.session.previousUsername = req.session.username;
+            }
+            
+            req.session.userId = null;
+            req.session.username = null;
+            
+            req.session.adminId = admin.id;
+            req.session.adminUsername = admin.username;
+            
+            res.json({ 
+                success: true, 
+                admin: { id: admin.id, username: admin.username, email: admin.email } 
+            });
+        });
     } catch (error) {
+        console.error('Ошибка админ входа:', error.message);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
@@ -2084,9 +2084,6 @@ app.get('/:shortCode', (req, res) => {
 app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
-
-
-
 
 // ========== ЗАПУСК СЕРВЕРА ==========
 createTables()
