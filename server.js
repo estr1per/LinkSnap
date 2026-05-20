@@ -427,7 +427,7 @@ app.use((req, res, next) => {
     const origin = req.headers.origin;
     
     if (process.env.NODE_ENV === 'production') {
-        const allowedOrigins = ['https://yourdomain.com', 'https://www.yourdomain.com'];
+        const allowedOrigins = ['https://estr1per-linksnap-85ab.twc1.net', 'https://www.estr1per-linksnap-85ab.twc1.net'];
         if (allowedOrigins.includes(origin)) {
             res.header('Access-Control-Allow-Origin', origin);
             res.header('Access-Control-Allow-Credentials', 'true');
