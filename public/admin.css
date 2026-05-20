@@ -474,8 +474,7 @@ body::before {
     transition: opacity var(--transition-normal);
 }
 
-.input-wrapper.username::before { content: '👤'; }
-.input-wrapper.password::before { content: '🔒'; }
+
 
 .form-group input {
     width: 100%;
