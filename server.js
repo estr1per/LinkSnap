@@ -1348,6 +1348,12 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
+app.post('/api/admin/login', (req, res) => {
+    console.log('📝 Тело запроса:', req.body);
+    console.log('📝 Заголовки:', req.headers['content-type']);
+    res.json({ test: true, body: req.body });
+});
+
 // ========== АДМИН ПАНЕЛЬ ==========
 app.post('/api/admin/login', async (req, res) => {
     try {
@@ -2095,39 +2101,7 @@ app.use('/api/*', (req, res) => {
 });
 
 
-// ВРЕМЕННЫЙ ENDPOINT - УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ
-app.get('/fix-admin', async (req, res) => {
-    const bcrypt = require('bcrypt');
-    try {
-        // Создаём таблицу если нет
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS admins (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                email TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        
-        // Удаляем старого и создаём нового
-        await pool.query(`DELETE FROM admins WHERE username = 'admin'`);
-        const hashedPassword = await bcrypt.hash('admin123', 10);
-        await pool.query(
-            `INSERT INTO admins (username, password, email) VALUES ($1, $2, $3)`,
-            ['admin', hashedPassword, 'admin@linksnap.local']
-        );
-        
-        res.send(`
-            <h2>✅ Админ создан!</h2>
-            <p><strong>Логин:</strong> admin</p>
-            <p><strong>Пароль:</strong> admin123</p>
-            <a href="/admin/login">➡️ Войти в админ-панель</a>
-        `);
-    } catch (err) {
-        res.send(`❌ Ошибка: ${err.message}`);
-    }
-});
+
 
 // ========== ЗАПУСК СЕРВЕРА ==========
 createTables()
