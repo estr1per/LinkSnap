@@ -778,10 +778,19 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             validatedUrl = 'https://' + validatedUrl;
         }
         
+        let urlObj;
         try {
-            new URL(validatedUrl);
+            urlObj = new URL(validatedUrl);
         } catch {
             return res.status(400).json({ error: 'Некорректный URL' });
+        }
+        
+        // Запрещаем сокращать ссылки на этот же сервер
+        const host = req.get('host');
+        if (urlObj.host === host) {
+            return res.status(400).json({ 
+                error: '❌ Нельзя сокращать ссылки на этот сервис. Это не имеет смысла! Сокращайте ссылки на другие сайты.'
+            });
         }
         
         if (customAlias && customAlias.trim() !== '') {
