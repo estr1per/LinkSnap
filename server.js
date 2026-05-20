@@ -46,7 +46,7 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// ========== RATE LIMITING (БЕЗ trustProxy) ==========
+// ========== RATE LIMITING ==========
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
@@ -449,7 +449,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// ========== НАСТРОЙКА СЕССИЙ (MemoryStore) ==========
+// ========== НАСТРОЙКА СЕССИЙ ==========
 app.use(session({
     secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
     resave: false,
@@ -462,7 +462,6 @@ app.use(session({
     }
 }));
 
-// Очистка старых сессий из БД
 setInterval(async () => {
     try {
         await pool.query(`DELETE FROM session WHERE expire < NOW()`);
@@ -528,7 +527,6 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Некорректный email адрес' });
         }
         
-        // Проверка на существование пользователя
         const existing = await new Promise((resolve) => {
             db.get('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username], (err, result) => {
                 resolve(result);
@@ -1356,7 +1354,7 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-// ========== АДМИН ПАНЕЛЬ (УПРОЩЕННАЯ) ==========
+// ========== АДМИН ПАНЕЛЬ ==========
 app.post('/api/admin/login', (req, res) => {
     console.log('📝 Админ вход (упрощенный):', req.body);
     req.session.adminId = 1;
@@ -1371,11 +1369,16 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 app.get('/api/admin/me', (req, res) => {
-    res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+    if (req.session.adminId) {
+        res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+    } else {
+        res.status(401).json({ error: 'Не авторизован' });
+    }
 });
 
 function requireAdminAuth(req, res, next) {
-    next();
+    if (req.session.adminId) next();
+    else res.status(401).json({ error: 'Требуется авторизация администратора' });
 }
 
 app.get('/api/admin/chats', requireAdminAuth, (req, res) => {
