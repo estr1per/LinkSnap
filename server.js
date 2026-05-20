@@ -2094,6 +2094,22 @@ app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
 
+
+// ВРЕМЕННЫЙ ENDPOINT ДЛЯ СОЗДАНИЯ АДМИНА
+app.get('/admin/setup', async (req, res) => {
+    const bcrypt = require('bcrypt');
+    try {
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        await pool.query(
+            'INSERT INTO admins (username, password, email) VALUES ($1, $2, $3) ON CONFLICT (username) DO NOTHING',
+            ['admin', hashedPassword, 'admin@linksnap.local']
+        );
+        res.send('✅ Админ создан! <a href="/admin/login">Войти</a>');
+    } catch (err) {
+        res.send('❌ Ошибка: ' + err.message);
+    }
+});
+
 // ========== ЗАПУСК СЕРВЕРА ==========
 createTables()
     .then(() => createIndexes())
