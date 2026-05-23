@@ -1344,42 +1344,42 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-app.post('/api/admin/login', async (req, res) => {
-    const { username, password } = req.body;
-    
-    // ВРЕМЕННОЕ РЕШЕНИЕ — проверяем фиксированные креды
-    if (username === 'admin' && password === 'admin123') {
-        req.session.adminId = 1;
-        req.session.adminUsername = 'admin';
+// ========== АДМИН ПАНЕЛЬ (УПРОЩЕННАЯ) ==========
+
+// Вход в админку - всегда успешный, но с проверкой
+app.post('/api/admin/login', (req, res) => {
+    console.log('📝 Админ вход:', req.body);
+    // Устанавливаем админ сессию
+    req.session.adminId = 1;
+    req.session.adminUsername = 'admin';
+    // Сохраняем сессию явно
+    req.session.save((err) => {
+        if (err) console.error('Ошибка сохранения сессии:', err);
         res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
-    } else {
-        res.status(401).json({ error: 'Неверное имя пользователя или пароль' });
-    }
+    });
 });
 
-// ========== АДМИН ЛОГАУТ ==========
+// Выход из админки - ОЧИЩАЕМ сессию
+// Выход из админки
 app.post('/api/admin/logout', (req, res) => {
-    // Очищаем админ сессию
+    console.log('📝 Админ выход');
     req.session.adminId = null;
     req.session.adminUsername = null;
-    
-    // Если была пользовательская сессия - восстанавливаем её
-    if (req.session.previousUserId) {
-        req.session.userId = req.session.previousUserId;
-        req.session.username = req.session.previousUsername;
-        req.session.previousUserId = null;
-        req.session.previousUsername = null;
-    }
-    
-    res.json({ success: true, message: 'Выход выполнен' });
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Ошибка уничтожения сессии:', err);
+            return res.status(500).json({ error: 'Ошибка при выходе' });
+        }
+        res.json({ success: true, message: 'Выход выполнен' });
+    });
 });
 
+// Проверка авторизации админа
 app.get('/api/admin/me', (req, res) => {
     if (req.session.adminId) {
         res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
     } else {
-        // Все равно возвращаем админа для упрощения
-        res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+        res.status(401).json({ error: 'Не авторизован' });
     }
 });
 

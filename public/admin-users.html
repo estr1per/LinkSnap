@@ -242,18 +242,14 @@
         }
 
         async function logout() {
+    console.log('Выход из админки...');
     try {
-        const res = await fetch('/api/admin/logout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        // Даже если ошибка - все равно перенаправляем
-        window.location.href = '/admin/login';
+        await fetch('/api/admin/logout', { method: 'POST' });
     } catch(e) {
         console.error('Ошибка выхода:', e);
-        window.location.href = '/admin/login';
     }
+    // Всегда перенаправляем
+    window.location.href = '/admin/login';
 }
 
         function escapeHtml(text) {
