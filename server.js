@@ -1344,12 +1344,17 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-// ========== АДМИН ПАНЕЛЬ (УПРОЩЕННАЯ - БЕЗ ПРОВЕРКИ) ==========
-app.post('/api/admin/login', (req, res) => {
-    console.log('📝 Админ вход (упрощенный):', req.body);
-    req.session.adminId = 1;
-    req.session.adminUsername = 'admin';
-    res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+app.post('/api/admin/login', async (req, res) => {
+    const { username, password } = req.body;
+    
+    // ВРЕМЕННОЕ РЕШЕНИЕ — проверяем фиксированные креды
+    if (username === 'admin' && password === 'admin123') {
+        req.session.adminId = 1;
+        req.session.adminUsername = 'admin';
+        res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+    } else {
+        res.status(401).json({ error: 'Неверное имя пользователя или пароль' });
+    }
 });
 
 app.post('/api/admin/logout', (req, res) => {
