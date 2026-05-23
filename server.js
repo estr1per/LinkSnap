@@ -1716,15 +1716,11 @@ app.post('/api/image/filter', requireAuth, uploadSingle.single('image'), async (
     }
 });
 // ========== РАБОЧИЙ КОНВЕРТЕР ФАЙЛОВ ==========
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
-ffmpeg.setFfmpegPath(ffmpegPath);
+
 
 // Поддерживаемые форматы
 const imageFormats = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'avif'];
 const documentFormats = ['pdf', 'docx', 'txt', 'md', 'html'];
-const audioFormats = ['mp3', 'wav', 'ogg', 'aac', 'm4a'];
-const videoFormats = ['mp4', 'webm', 'avi', 'mov'];
 
 // Конвертация ИЗОБРАЖЕНИЙ (работает через sharp)
 app.post('/api/convert/images', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
@@ -1994,7 +1990,6 @@ app.post('/api/convert/documents', requireAuth, uploadMultiple.array('files', 10
     }
 });
 
-// Конвертация АУДИО (через ffmpeg)
 
 // ========== РЕДИРЕКТ ==========
 app.get('/:shortCode', (req, res) => {
