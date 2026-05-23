@@ -18,12 +18,12 @@
             <div class="admin-nav">
                 <a href="/admin">💬 Чаты</a>
                 <a href="/admin/users">👥 Пользователи</a>
-                <button id="logoutBtn" class="logout-btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">🚪 Выйти</button>
+                <button id="logoutBtn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">🚪 Выйти</button>
             </div>
         </div>
     </div>
 
-    <div class="container" id="adminPanel">
+    <div class="container" id="adminPanel" style="display: none;">
         <div class="stats-grid">
             <div class="stat-card unread">
                 <h3 id="statUnread">0</h3>
@@ -46,9 +46,7 @@
                     <button class="refresh-btn" onclick="loadChats()">🔄</button>
                 </div>
                 <div class="chats-list-items" id="chatsList">
-                    <div style="padding: 40px; text-align: center; color: var(--gray-500);">
-                        Загрузка чатов...
-                    </div>
+                    <div style="padding: 40px; text-align: center;">Загрузка чатов...</div>
                 </div>
             </div>
 
@@ -59,13 +57,11 @@
                         <p id="chatUserEmail">email@example.com</p>
                     </div>
                 </div>
-                <div class="messages-container" id="messagesContainer">
-                    <!-- Сообщения будут здесь -->
-                </div>
+                <div class="messages-container" id="messagesContainer"></div>
                 <div class="reply-form">
                     <textarea id="replyMessage" placeholder="Введите ответ..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply();}"></textarea>
                     <div class="reply-form-actions">
-                        <span style="font-size: 0.85rem; color: var(--gray-500);">Enter для отправки, Shift+Enter для новой строки</span>
+                        <span>Enter для отправки</span>
                         <button class="btn btn-primary" onclick="sendReply()">📤 Отправить</button>
                     </div>
                 </div>
@@ -75,59 +71,44 @@
                 <div class="empty-state">
                     <div class="empty-state-icon">💬</div>
                     <h3>Выберите чат</h3>
-                    <p>Выберите чат из списка слева для просмотра сообщений</p>
+                    <p>Выберите чат из списка слева</p>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="container" id="loadingPanel" style="text-align: center; padding: 50px;">
+        <div class="loading"><div class="loading-spinner"></div><span>Проверка авторизации...</span></div>
     </div>
 
     <script>
         let currentChatId = null;
         let messagesInterval = null;
 
-        // Функция выхода - ОБЯЗАТЕЛЬНО ДОБАВЬ
+        // Выход
         async function logout() {
-            console.log('Выход из админки...');
             try {
-                const res = await fetch('/api/admin/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await res.json();
-                console.log('Ответ сервера:', data);
-                // Всегда перенаправляем на страницу входа
-                window.location.href = '/admin/login';
-            } catch(e) {
-                console.error('Ошибка выхода:', e);
-                // Даже при ошибке перенаправляем
-                window.location.href = '/admin/login';
-            }
-        }
-
-        // Привязываем кнопку выхода
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', logout);
+                await fetch('/api/admin/logout', { method: 'POST' });
+            } catch(e) {}
+            window.location.href = '/admin/login';
         }
 
         // Проверка авторизации
         async function checkAuth() {
             try {
                 const res = await fetch('/api/admin/me');
-                if (res.status === 401) {
+                if (res.ok) {
+                    document.getElementById('loadingPanel').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'block';
+                    loadStats();
+                    loadChats();
+                    startPolling();
+                } else {
                     window.location.href = '/admin/login';
-                    return false;
                 }
-                const data = await res.json();
-                if (!data.success) {
-                    window.location.href = '/admin/login';
-                    return false;
-                }
-                return true;
             } catch(e) {
-                console.error('Ошибка проверки авторизации:', e);
+                console.error('Ошибка:', e);
                 window.location.href = '/admin/login';
-                return false;
             }
         }
 
@@ -140,9 +121,7 @@
                     document.getElementById('statActive').textContent = data.stats.active || 0;
                     document.getElementById('statTotal').textContent = data.stats.total || 0;
                 }
-            } catch(e) {
-                console.error('Ошибка загрузки статистики:', e);
-            }
+            } catch(e) {}
         }
 
         async function loadChats() {
@@ -152,13 +131,12 @@
                 const container = document.getElementById('chatsList');
                 
                 if (!data.success || !data.chats || data.chats.length === 0) {
-                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--gray-500);">Нет чатов</div>';
+                    container.innerHTML = '<div style="padding: 40px; text-align: center;">Нет чатов</div>';
                     return;
                 }
 
                 container.innerHTML = data.chats.map(chat => `
-                    <div class="chat-item ${chat.unread_count > 0 ? 'unread' : ''} ${currentChatId === chat.id ? 'active' : ''}" 
-                         onclick="openChat(${chat.id})">
+                    <div class="chat-item ${chat.unread_count > 0 ? 'unread' : ''} ${currentChatId === chat.id ? 'active' : ''}" onclick="openChat(${chat.id})">
                         <div class="chat-item-header">
                             <span class="chat-item-name">${escapeHtml(chat.user_name || 'Аноним')}</span>
                             <span class="chat-item-time">${formatTime(chat.updated_at)}</span>
@@ -166,91 +144,65 @@
                         <div class="chat-item-last-message">${escapeHtml(chat.last_message || 'Нет сообщений')}</div>
                         <span class="chat-item-status status-${chat.is_closed ? 'closed' : 'active'}">
                             ${chat.is_closed ? '🔒 Закрыт' : '🟢 Активен'}
-                            ${chat.unread_count > 0 ? ` • <strong>${chat.unread_count} новых</strong>` : ''}
+                            ${chat.unread_count > 0 ? ` • ${chat.unread_count} новых` : ''}
                         </span>
                     </div>
                 `).join('');
-            } catch(e) {
-                console.error('Ошибка загрузки чатов:', e);
-                document.getElementById('chatsList').innerHTML = 
-                    '<div style="padding: 40px; text-align: center; color: var(--gray-500);">Ошибка загрузки</div>';
-            }
+            } catch(e) {}
         }
 
         function formatTime(dateStr) {
-            if (!dateStr) return 'неизвестно';
+            if (!dateStr) return '';
             const date = new Date(dateStr);
             const now = new Date();
             const diff = now - date;
             if (diff < 60000) return 'только что';
-            if (diff < 3600000) return Math.floor(diff / 60000) + ' мин назад';
-            if (diff < 86400000) return Math.floor(diff / 3600000) + ' ч назад';
-            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+            if (diff < 3600000) return Math.floor(diff / 60000) + ' мин';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + ' ч';
+            return date.toLocaleDateString();
         }
 
         async function openChat(chatId, isPolling = false) {
             currentChatId = chatId;
-            
             try {
                 const res = await fetch(`/api/admin/chat/${chatId}`);
                 const data = await res.json();
-                
                 if (!data.success) return;
 
                 if (!isPolling) {
                     document.getElementById('chatUserName').textContent = data.user?.username || 'Неизвестно';
-                    document.getElementById('chatUserEmail').textContent = data.user?.email || 'Нет email';
-                    
-                    const messagesContainer = document.getElementById('messagesContainer');
-                    messagesContainer.innerHTML = '';
-                    
-                    (data.messages || []).forEach(msg => {
-                        addMessage(msg.message, msg.sender_type, msg.created_at, msg.id);
-                    });
-                    
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    document.getElementById('chatUserEmail').textContent = data.user?.email || '';
+                    document.getElementById('messagesContainer').innerHTML = '';
+                    (data.messages || []).forEach(msg => addMessage(msg.message, msg.sender_type, msg.created_at, msg.id));
                     document.getElementById('emptyState').style.display = 'none';
                     document.getElementById('chatDetail').style.display = 'flex';
+                    document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
                 } else {
-                    const messagesContainer = document.getElementById('messagesContainer');
                     const existingIds = new Set();
-                    Array.from(messagesContainer.children).forEach(child => {
-                        if (child.id) existingIds.add(child.id.replace('msg-', ''));
+                    document.querySelectorAll('#messagesContainer .message').forEach(el => {
+                        if (el.id) existingIds.add(el.id.replace('msg-', ''));
                     });
-                    
                     const newMessages = (data.messages || []).filter(msg => !existingIds.has(msg.id.toString()));
-                    newMessages.forEach(msg => {
-                        addMessage(msg.message, msg.sender_type, msg.created_at, msg.id);
-                    });
-                    
+                    newMessages.forEach(msg => addMessage(msg.message, msg.sender_type, msg.created_at, msg.id));
                     if (newMessages.length > 0) {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
                     }
                 }
-                
                 loadChats();
-            } catch(e) {
-                console.error('Ошибка открытия чата:', e);
-            }
+            } catch(e) {}
         }
 
         function addMessage(text, type, timestamp, id) {
-            const messagesContainer = document.getElementById('messagesContainer');
             if (document.getElementById(`msg-${id}`)) return;
-            
             const msgDiv = document.createElement('div');
             msgDiv.className = `message message-${type}`;
             msgDiv.id = `msg-${id}`;
-            const escapedText = escapeHtml(text);
             const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-            
             msgDiv.innerHTML = `
-                <div class="message-meta">
-                    ${type === 'user' ? '👤 Пользователь' : '🛡️ Вы'} • ${timeStr}
-                </div>
-                <p class="message-text">${escapedText}</p>
+                <div class="message-meta">${type === 'user' ? '👤 Пользователь' : '🛡️ Вы'} • ${timeStr}</div>
+                <p class="message-text">${escapeHtml(text)}</p>
             `;
-            messagesContainer.appendChild(msgDiv);
+            document.getElementById('messagesContainer').appendChild(msgDiv);
         }
 
         function startPolling() {
@@ -262,19 +214,10 @@
 
         async function sendReply() {
             const message = document.getElementById('replyMessage').value.trim();
-            if (!message) {
-                alert('Введите сообщение');
-                return;
-            }
-            if (!currentChatId) {
-                alert('Чат не выбран');
-                return;
-            }
-
+            if (!message || !currentChatId) return;
             const btn = document.querySelector('.reply-form .btn');
             btn.disabled = true;
-            btn.textContent = '⏳ Отправка...';
-
+            btn.textContent = '⏳...';
             try {
                 const res = await fetch(`/api/admin/chat/${currentChatId}/message`, {
                     method: 'POST',
@@ -286,11 +229,10 @@
                     document.getElementById('replyMessage').value = '';
                     await openChat(currentChatId, false);
                 } else {
-                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + data.error);
                 }
             } catch(e) {
-                console.error('Ошибка отправки:', e);
-                alert('Ошибка отправки ответа');
+                alert('Ошибка отправки');
             } finally {
                 btn.disabled = false;
                 btn.textContent = '📤 Отправить';
@@ -299,24 +241,12 @@
 
         function escapeHtml(text) {
             if (!text) return '';
-            return String(text).replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-            }[m]));
+            return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
         }
 
-        // Инициализация
-        (async function() {
-            const ok = await checkAuth();
-            if (ok) {
-                loadStats();
-                loadChats();
-                startPolling();
-            }
-        })();
-
-        window.addEventListener('beforeunload', () => {
-            if (messagesInterval) clearInterval(messagesInterval);
-        });
+        document.getElementById('logoutBtn')?.addEventListener('click', logout);
+        checkAuth();
+        window.addEventListener('beforeunload', () => { if (messagesInterval) clearInterval(messagesInterval); });
     </script>
 </body>
 </html>

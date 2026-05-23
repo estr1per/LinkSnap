@@ -1344,47 +1344,73 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-// ========== АДМИН ПАНЕЛЬ (УПРОЩЕННАЯ) ==========
 
-// Вход в админку - всегда успешный, но с проверкой
-app.post('/api/admin/login', (req, res) => {
-    console.log('📝 Админ вход:', req.body);
-    // Устанавливаем админ сессию
-    req.session.adminId = 1;
-    req.session.adminUsername = 'admin';
-    // Сохраняем сессию явно
-    req.session.save((err) => {
-        if (err) console.error('Ошибка сохранения сессии:', err);
-        res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
-    });
+
+// ========== АДМИН ПАНЕЛЬ ==========
+
+// Вход в админку - проверяем пароль из БД
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Логин и пароль обязательны' });
+        }
+        
+        // Проверяем в базе данных
+        db.get('SELECT * FROM admins WHERE username = $1', [username], async (err, admin) => {
+            if (err || !admin) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            const isValid = await bcrypt.compare(password, admin.password);
+            if (!isValid) {
+                return res.status(401).json({ error: 'Неверный логин или пароль' });
+            }
+            
+            // Сохраняем админ сессию
+            req.session.adminId = admin.id;
+            req.session.adminUsername = admin.username;
+            
+            res.json({ 
+                success: true, 
+                admin: { id: admin.id, username: admin.username, email: admin.email } 
+            });
+        });
+    } catch (error) {
+        console.error('Ошибка админ входа:', error.message);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
 
-// Выход из админки - ОЧИЩАЕМ сессию
 // Выход из админки
 app.post('/api/admin/logout', (req, res) => {
-    console.log('📝 Админ выход');
     req.session.adminId = null;
     req.session.adminUsername = null;
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Ошибка уничтожения сессии:', err);
-            return res.status(500).json({ error: 'Ошибка при выходе' });
-        }
-        res.json({ success: true, message: 'Выход выполнен' });
-    });
+    res.json({ success: true, message: 'Выход выполнен' });
 });
 
 // Проверка авторизации админа
 app.get('/api/admin/me', (req, res) => {
     if (req.session.adminId) {
-        res.json({ success: true, admin: { id: 1, username: 'admin', email: 'admin@linksnap.local' } });
+        db.get('SELECT id, username, email FROM admins WHERE id = $1', [req.session.adminId], (err, admin) => {
+            if (err || !admin) {
+                req.session.adminId = null;
+                return res.status(401).json({ error: 'Не авторизован' });
+            }
+            res.json({ success: true, admin });
+        });
     } else {
         res.status(401).json({ error: 'Не авторизован' });
     }
 });
 
 function requireAdminAuth(req, res, next) {
-    next();
+    if (req.session.adminId) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Требуется авторизация администратора' });
+    }
 }
 
 app.get('/api/admin/chats', requireAdminAuth, (req, res) => {

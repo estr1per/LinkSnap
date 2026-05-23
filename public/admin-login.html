@@ -7,27 +7,6 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/admin.css">
     <link rel="stylesheet" href="/dark-theme.css">
-    <style>
-        .auto-login {
-            text-align: center;
-            padding: 60px 40px;
-        }
-        .auto-login .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 30px auto;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .login-form {
-            display: none;
-        }
-    </style>
 </head>
 <body>
     <div class="login-container">
@@ -35,26 +14,21 @@
             <div class="login-header">
                 <span class="logo">🛡️</span>
                 <h1>LinkSnap Admin</h1>
-                <p>Автоматический вход...</p>
+                <p>Вход для администратора</p>
             </div>
-            <div class="auto-login" id="autoLogin">
-                <div class="spinner"></div>
-                <h2>Вход в админ-панель</h2>
-                <p>Пожалуйста, подождите...</p>
-            </div>
-            <div class="login-form" id="loginForm" style="display: none;">
-                <form onsubmit="manualLogin(event); return false;">
-                    <div class="form-group">
-                        <label for="username">Имя пользователя</label>
-                        <input type="text" id="username" class="form-control" placeholder="admin">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Пароль</label>
-                        <input type="password" id="password" class="form-control" placeholder="пароль">
-                    </div>
-                    <button type="submit" class="btn btn-primary login-btn">🔐 Войти</button>
-                </form>
-            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" class="form-control" placeholder="admin" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary login-btn">🔐 Войти</button>
+            </form>
+
             <div class="back-link">
                 <a href="/"><span>←</span> На главную</a>
             </div>
@@ -62,7 +36,7 @@
     </div>
 
     <script>
-        // Сначала делаем принудительный выход (сбрасываем старую сессию)
+        // Сначала делаем принудительный выход, чтобы сбросить старую сессию
         async function forceLogout() {
             try {
                 await fetch('/api/admin/logout', { method: 'POST' });
@@ -71,35 +45,11 @@
             }
         }
 
-        // Автоматический вход
-        async function autoLogin() {
-            try {
-                const res = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: 'admin', password: 'any' })
-                });
-                
-                const data = await res.json();
-                
-                if (data && data.success) {
-                    window.location.href = '/admin';
-                } else {
-                    // Если автоматический вход не сработал, показываем форму
-                    document.getElementById('autoLogin').style.display = 'none';
-                    document.getElementById('loginForm').style.display = 'block';
-                }
-            } catch(e) {
-                console.error('Ошибка авто входа:', e);
-                document.getElementById('autoLogin').style.display = 'none';
-                document.getElementById('loginForm').style.display = 'block';
-            }
-        }
-
-        async function manualLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value || 'admin';
-            const password = document.getElementById('password').value || 'any';
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
             const btn = document.querySelector('.login-btn');
             
             btn.disabled = true;
@@ -114,28 +64,23 @@
                 
                 const data = await res.json();
                 
-                if (data && data.success) {
+                if (data.success) {
                     window.location.href = '/admin';
                 } else {
-                    alert('Ошибка входа: ' + (data?.error || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (data.error || 'Неверный логин или пароль'));
                     btn.disabled = false;
                     btn.textContent = '🔐 Войти';
                 }
             } catch(e) {
-                console.error('Ошибка:', e);
+                console.error('Ошибка входа:', e);
                 alert('Ошибка соединения с сервером');
                 btn.disabled = false;
                 btn.textContent = '🔐 Войти';
             }
-        }
+        });
 
-        // Запускаем процесс
-        (async function() {
-            // Сначала сбрасываем старую сессию
-            await forceLogout();
-            // Затем пробуем войти
-            await autoLogin();
-        })();
+        // При загрузке страницы сбрасываем сессию
+        forceLogout();
     </script>
 </body>
 </html>
