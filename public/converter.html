@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конвертерт файлов - LinkSnap</title>
+    <title>Конвертер файлов - LinkSnap</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>">
@@ -56,7 +56,7 @@
         .result-area { margin-top: 20px; padding: 15px; background: #d1fae5; border-radius: var(--radius-md); display: none; align-items: center; gap: 10px; }
         .result-area.show { display: flex; }
         .result-area.error { background: #fee2e2; }
-        .category-tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
+        .category-tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; flex-wrap: wrap; }
         .category-tab { padding: 12px 30px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 16px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; min-width: 160px; }
         .category-tab:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.1); }
         .category-tab.active { border-color: var(--primary); background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
@@ -121,10 +121,10 @@
                 <h4><span>⚙️</span> Настройки конвертации</h4>
                 
                 <div class="category-tabs" id="categoryTabs">
-                    <div class="category-tab active" data-category="images" onclick="switchCategory('images')">
+                    <div class="category-tab active" data-category="images">
                         <span class="icon">🖼️</span> Изображения
                     </div>
-                    <div class="category-tab" data-category="documents" onclick="switchCategory('documents')">
+                    <div class="category-tab" data-category="documents">
                         <span class="icon">📄</span> Документы
                     </div>
                 </div>
@@ -244,7 +244,11 @@
         function switchCategory(category) {
             currentCategory = category;
             document.querySelectorAll('.category-tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.category === category);
+                if (tab.dataset.category === category) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
             });
             updateFormats();
             updateDropZone();
@@ -454,8 +458,18 @@
             }
         }
 
+        // ИНИЦИАЛИЗАЦИЯ - ВАЖНО!
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
+            
+            // Привязываем обработчики к кнопкам категорий
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchCategory(tab.dataset.category);
+                });
+            });
+            
             updateFormats();
             updateDropZone();
             initDropZone();
