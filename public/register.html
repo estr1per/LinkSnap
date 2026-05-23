@@ -65,11 +65,16 @@
                 const response = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 const result = await response.json();
                 if (response.ok) {
-                    showMessage('✅ Регистрация успешна! Выполняем вход...', 'success');
-                    const loginResponse = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: data.email, password: data.password }) });
-                    if (loginResponse.ok) { setTimeout(() => { window.location.href = '/dashboard'; }, 1500); }
-                    else { setTimeout(() => { window.location.href = '/login'; }, 1500); }
-                } else { showMessage(result.error || 'Ошибка регистрации', 'error'); }
+    showMessage('✅ Регистрация успешна! Выполняем вход...', 'success');
+    const loginResponse = await fetch('/api/login', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ email: data.email, password: data.password }) 
+    });
+    if (loginResponse.ok) { 
+        setTimeout(() => { window.location.href = '/'; }, 1500); 
+    }
+} else { showMessage(result.error || 'Ошибка регистрации', 'error'); }
             } catch (error) { showMessage('Ошибка соединения с сервером', 'error'); }
             finally { submitButton.disabled = false; submitButton.textContent = 'Зарегистрироваться'; }
         });

@@ -1,12 +1,10 @@
-// Виджет чата поддержки LinkSnap (Real-time)
-
+// Виджет чата поддержки LinkSnap (исправленный)
 (function() {
     let chatId = null;
     let isClosed = false;
-    let lastMessageTime = null;
     let pollInterval = null;
-    let isConnected = false;
-    let existingMessageIds = new Set(); // IDs уже показанных сообщений
+    let existingMessageIds = new Set();
+    let isInitialized = false;
 
     // Создаём контейнер
     const container = document.createElement('div');
@@ -20,9 +18,8 @@
             <div id="chatStatus" class="chat-status" style="display: none;"></div>
             <div class="chat-body" id="chatBody">
                 <div class="chat-messages" id="chatMessages">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        <span>Подключение...</span>
+                    <div class="chat-message system" id="initialMessage">
+                        👋 Здравствуйте! Напишите нам, и мы ответим в ближайшее время.
                     </div>
                 </div>
             </div>
@@ -38,11 +35,6 @@
                     <button class="chat-send" id="chatSend" onclick="window.sendMessage()">📤</button>
                 </div>
             </div>
-            <div class="chat-new-chat" id="chatNewChat" style="display: none;">
-                <div class="chat-message system">
-                    👋 Здравствуйте! Напишите нам, и мы ответим в ближайшее время.
-                </div>
-            </div>
         </div>
         <button class="chat-button" id="chatButton" onclick="window.toggleChat()" title="Чат поддержки">
             💬
@@ -54,20 +46,19 @@
     // Подключаем стили
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/chat-widget.css?v=2';
+    link.href = '/chat-widget.css?v=3';
     document.head.appendChild(link);
 
-    // Инициализация
-    initChat();
-
     async function initChat() {
+        if (isInitialized) return;
+        isInitialized = true;
+        
         console.log('[Chat] Инициализация...');
         
         try {
             const res = await fetch('/api/support/chat');
             
             if (!res.ok) {
-                // Не авторизован
                 showNotAuthorized();
                 return;
             }
@@ -80,7 +71,7 @@
                 isClosed = data.chat.is_closed === 1;
                 
                 showChatInterface();
-                loadMessages();
+                await loadMessages();
                 startPolling();
             } else {
                 showNewChat();
@@ -92,21 +83,23 @@
     }
 
     function showNotAuthorized() {
-        document.getElementById('chatMessages').innerHTML = `
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = `
             <div class="chat-message system">
                 🔐 Для общения с поддержкой необходимо <a href="/login" style="color: var(--primary);">войти</a> или <a href="/register" style="color: var(--primary);">зарегистрироваться</a>.
             </div>
         `;
+        document.getElementById('initialMessage')?.remove();
     }
 
     function showNewChat() {
-        document.getElementById('chatNewChat').style.display = 'block';
+        document.getElementById('initialMessage')?.remove();
         document.getElementById('chatInputArea').style.display = 'none';
         document.getElementById('chatStatus').style.display = 'none';
     }
 
     function showChatInterface() {
-        document.getElementById('chatNewChat').style.display = 'none';
+        document.getElementById('initialMessage')?.remove();
         document.getElementById('chatInputArea').style.display = 'block';
         updateChatInputState();
     }
@@ -130,21 +123,15 @@
         if (!chatId) return;
 
         try {
-            const url = lastMessageTime 
-                ? `/api/support/chat/${chatId}/messages?since=${encodeURIComponent(lastMessageTime)}`
-                : `/api/support/chat/${chatId}/messages`;
-            
-            const res = await fetch(url);
+            const res = await fetch(`/api/support/chat/${chatId}/messages`);
             const data = await res.json();
 
             if (data.success) {
                 const messagesContainer = document.getElementById('chatMessages');
                 
-                // Если это первая загрузка - показываем все сообщения
-                if (!lastMessageTime && data.messages.length > 0) {
-                    messagesContainer.innerHTML = '';
-                    existingMessageIds.clear();
-                }
+                // Убираем сообщение о загрузке если оно есть
+                const loadingMsg = messagesContainer.querySelector('.loading');
+                if (loadingMsg) loadingMsg.remove();
                 
                 // Добавляем только новые сообщения
                 const newMessages = (data.messages || []).filter(msg => {
@@ -156,10 +143,8 @@
 
                 newMessages.forEach(msg => {
                     addMessage(msg.message, msg.sender_type, msg.created_at, msg.id);
-                    lastMessageTime = msg.created_at;
                 });
 
-                // Прокрутка вниз только для новых сообщений
                 if (newMessages.length > 0) {
                     scrollToBottom();
                 }
@@ -168,8 +153,6 @@
                     isClosed = data.isClosed;
                     updateChatInputState();
                 }
-                
-                isConnected = true;
             }
         } catch(e) {
             console.error('[Chat] Ошибка загрузки сообщений:', e);
@@ -180,7 +163,6 @@
         const messagesContainer = document.getElementById('chatMessages');
         
         const msgId = `msg-${id}`;
-        // Проверяем, нет ли уже такого сообщения
         if (document.getElementById(msgId)) return;
         
         const msgDiv = document.createElement('div');
@@ -192,7 +174,7 @@
         
         msgDiv.innerHTML = `
             <div class="message-text">${escapedText}</div>
-            ${timeStr ? `<div class="message-time">${timeStr}</div>` : ''}
+            ${timeStr ? `<div class="message-time" style="font-size: 0.7rem; opacity: 0.7; margin-top: 4px;">${timeStr}</div>` : ''}
         `;
         messagesContainer.appendChild(msgDiv);
         scrollToBottom();
@@ -225,10 +207,10 @@
             const data = await res.json();
 
             if (data.success) {
-                // Сообщение добавится через polling
                 input.value = '';
+                await loadMessages();
             } else {
-                alert('Ошибка: ' + data.error);
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 input.value = message;
             }
         } catch(e) {
@@ -244,15 +226,11 @@
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
         
-        // Первый запрос сразу
-        loadMessages();
-        
-        // Затем опрос каждые 2 секунды
         pollInterval = setInterval(() => {
-            loadMessages();
-        }, 2000);
+            if (chatId) loadMessages();
+        }, 5000);
         
-        console.log('[Chat] Polling запущен (2с)');
+        console.log('[Chat] Polling запущен (5с)');
     }
 
     window.toggleChat = function() {
@@ -287,8 +265,14 @@
         }[m]));
     }
 
-    // Очистка при закрытии страницы
     window.addEventListener('beforeunload', () => {
         if (pollInterval) clearInterval(pollInterval);
     });
+
+    // Запускаем инициализацию при загрузке страницы
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChat);
+    } else {
+        initChat();
+    }
 })();
