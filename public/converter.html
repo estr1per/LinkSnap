@@ -15,7 +15,7 @@
         .drop-area .icon { font-size: 4rem; margin-bottom: 15px; }
         .drop-area h3 { margin: 0 0 10px 0; color: var(--text); }
         .drop-area p { color: var(--gray-600); margin: 5px 0; font-size: 14px; }
-        .drop-area .formats { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; height: 60px; overflow: hidden; }
+        .drop-area .formats { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
         .format-badge { background: var(--gray-200); padding: 4px 10px; border-radius: 20px; font-size: 11px; color: var(--gray-700); font-weight: 500; }
         .settings-panel { background: var(--surface); border-radius: var(--radius-lg); padding: 25px; border: 1px solid var(--surface-light); height: 100%; min-height: 500px; }
         .settings-panel h4 { margin: 0 0 20px 0; color: var(--primary); font-size: 16px; display: flex; align-items: center; gap: 8px; }
@@ -56,19 +56,23 @@
         .result-area { margin-top: 20px; padding: 15px; background: #d1fae5; border-radius: var(--radius-md); display: none; align-items: center; gap: 10px; }
         .result-area.show { display: flex; }
         .result-area.error { background: #fee2e2; }
-        .category-tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
-        .category-tab { flex: 1; min-width: 100px; padding: 12px 10px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 13px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; }
-        .category-tab:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.15); }
-        .category-tab.active { border-color: var(--primary); background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); }
-        .category-tab .icon { font-size: 20px; display: block; margin-bottom: 4px; }
-        @media (max-width: 900px) { .converter-container { grid-template-columns: 1fr; } }
+        .category-tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
+        .category-tab { padding: 12px 30px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 16px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; min-width: 160px; }
+        .category-tab:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.1); }
+        .category-tab.active { border-color: var(--primary); background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+        .category-tab .icon { font-size: 20px; display: inline-block; margin-right: 8px; vertical-align: middle; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        @media (max-width: 900px) { 
+            .converter-container { grid-template-columns: 1fr; }
+            .category-tab { padding: 10px 20px; font-size: 14px; min-width: 120px; }
+        }
         
         body.dark-theme .drop-area { background: var(--surface-dark); border-color: var(--gray-600); }
         body.dark-theme .file-item { background: var(--surface-dark); border-color: var(--gray-600); }
         body.dark-theme .stat-item { background: var(--surface-dark); }
         body.dark-theme .format-badge { background: var(--gray-700); color: var(--text-secondary); }
         body.dark-theme .category-tab { background: var(--gray-800); border-color: var(--gray-600); color: var(--text-secondary); }
-        body.dark-theme .category-tab.active { background: var(--surface); border-color: var(--primary); color: var(--primary); }
+        body.dark-theme .category-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: transparent; }
     </style>
 </head>
 <body>
@@ -92,13 +96,13 @@
         </header>
 
         <h2>🔄 Конвертер файлов</h2>
-        <p>Конвертируйте изображения, документы и аудио между различными форматами</p>
+        <p>Конвертируйте изображения и документы между различными форматами</p>
 
         <div class="converter-container">
             <div>
                 <div class="drop-area" id="dropArea">
-                    <div class="icon" id="dropIcon">📄</div>
-                    <h3 id="dropTitle">Перетащите файлы сюда</h3>
+                    <div class="icon" id="dropIcon">🖼️</div>
+                    <h3 id="dropTitle">Перетащите изображения сюда</h3>
                     <p id="dropSubtitle">или нажмите для выбора</p>
                     <div class="formats" id="formatBadges"></div>
                     <input type="file" id="fileInput" multiple hidden>
@@ -116,7 +120,14 @@
             <div class="settings-panel">
                 <h4><span>⚙️</span> Настройки конвертации</h4>
                 
-                <div class="category-tabs" id="categoryTabs"></div>
+                <div class="category-tabs" id="categoryTabs">
+                    <div class="category-tab active" data-category="images" onclick="switchCategory('images')">
+                        <span class="icon">🖼️</span> Изображения
+                    </div>
+                    <div class="category-tab" data-category="documents" onclick="switchCategory('documents')">
+                        <span class="icon">📄</span> Документы
+                    </div>
+                </div>
 
                 <div class="settings-group">
                     <label>🎯 Целевой формат</label>
@@ -124,7 +135,7 @@
                     <div class="hint" id="formatHint"></div>
                 </div>
 
-                <div class="settings-group" id="qualityGroup" style="display: none;">
+                <div class="settings-group" id="qualityGroup">
                     <div class="slider-group">
                         <label><span>Качество</span><span id="qualityValue">90%</span></label>
                         <input type="range" id="quality" min="10" max="100" value="90">
@@ -132,22 +143,14 @@
                     <div class="hint">Выше качество = больше размер файла</div>
                 </div>
 
-                <div class="settings-group" id="bitrateGroup" style="display: none;">
-                    <div class="slider-group">
-                        <label><span>Битрейт</span><span id="bitrateValue">192 kbps</span></label>
-                        <input type="range" id="bitrate" min="64" max="320" step="32" value="192">
-                    </div>
-                    <div class="hint">Выше битрейт = лучше качество и больший размер</div>
-                </div>
-
-                <div class="settings-group" id="resizeGroup" style="display: none;">
-                    <label>📐 Изменить размер</label>
-                    <div class="input-row" style="display: flex; gap: 10px;">
+                <div class="settings-group" id="resizeGroup">
+                    <label>📐 Изменить размер (опционально)</label>
+                    <div class="input-row">
                         <input type="number" id="resizeWidth" placeholder="Ширина" style="flex:1;">
-                        <span style="align-self:center;">×</span>
+                        <span>×</span>
                         <input type="number" id="resizeHeight" placeholder="Высота" style="flex:1;">
                     </div>
-                    <div class="hint">Оставьте пустым для автоматического сохранения пропорций</div>
+                    <div class="hint">Оставьте пустым для сохранения пропорций</div>
                 </div>
 
                 <div class="stats-bar" id="statsBar" style="display: none;">
@@ -185,42 +188,44 @@
     <script>
         let files = [];
         
-        // Категории и поддерживаемые форматы
-        // Категории - убрал аудио
-const categories = {
-    images: {
-        name: '🖼️ Изображения',
-        icon: '🖼️',
-        endpoint: '/api/convert/images',
-        supportedInput: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'],
-        formats: {
-            jpg: { name: 'JPEG', hint: 'Универсальный формат для фотографий' },
-            png: { name: 'PNG', hint: 'Поддержка прозрачности, без потерь' },
-            webp: { name: 'WEBP', hint: 'Современный формат, хорошее сжатие' },
-            bmp: { name: 'BMP', hint: 'Без сжатия, большой размер' },
-            tiff: { name: 'TIFF', hint: 'Для печати и архивации' },
-            avif: { name: 'AVIF', hint: 'Максимальное сжатие' }
-        },
-        hasQuality: true,
-        hasResize: true
-    },
-    documents: {
-        name: '📄 Документы',
-        icon: '📄',
-        endpoint: '/api/convert/documents',
-        supportedInput: ['txt', 'docx', 'md', 'html'],
-        formats: {
-            pdf: { name: 'PDF', hint: 'Универсальный формат для документов' },
-            docx: { name: 'DOCX', hint: 'Microsoft Word формат' },
-            txt: { name: 'TXT', hint: 'Обычный текст' },
-            md: { name: 'MD', hint: 'Markdown разметка' },
-            html: { name: 'HTML', hint: 'Веб-страница' }
-        },
-        hasQuality: false,
-        hasResize: false
-    }
-    // АУДИО УДАЛЕН
-};
+        // ТОЛЬКО РАБОТАЮЩИЕ КАТЕГОРИИ
+        const categories = {
+            images: {
+                name: 'Изображения',
+                icon: '🖼️',
+                endpoint: '/api/convert/images',
+                supportedInput: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'],
+                formats: {
+                    jpg: { name: 'JPEG', hint: 'Универсальный формат для фотографий' },
+                    png: { name: 'PNG', hint: 'Поддержка прозрачности, без потерь' },
+                    webp: { name: 'WEBP', hint: 'Современный формат, хорошее сжатие' },
+                    bmp: { name: 'BMP', hint: 'Без сжатия, большой размер' },
+                    tiff: { name: 'TIFF', hint: 'Для печати и архивации' },
+                    avif: { name: 'AVIF', hint: 'Максимальное сжатие' }
+                },
+                hasQuality: true,
+                hasResize: true,
+                dropIcon: '🖼️',
+                dropTitle: 'Перетащите изображения сюда',
+                formatsList: ['JPG', 'PNG', 'WEBP', 'BMP', 'TIFF', 'GIF']
+            },
+            documents: {
+                name: 'Документы',
+                icon: '📄',
+                endpoint: '/api/convert/documents',
+                supportedInput: ['txt', 'docx', 'md', 'html'],
+                formats: {
+                    pdf: { name: 'PDF', hint: 'Универсальный формат для документов' },
+                    docx: { name: 'DOCX', hint: 'Microsoft Word формат' },
+                    txt: { name: 'TXT', hint: 'Обычный текст' }
+                },
+                hasQuality: false,
+                hasResize: false,
+                dropIcon: '📄',
+                dropTitle: 'Перетащите документы сюда',
+                formatsList: ['TXT', 'DOCX', 'MD', 'HTML']
+            }
+        };
 
         let currentCategory = 'images';
 
@@ -236,19 +241,7 @@ const categories = {
 
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
 
-        function initCategoryTabs() {
-            const tabsContainer = document.getElementById('categoryTabs');
-            tabsContainer.innerHTML = Object.entries(categories).map(([key, cat]) => 
-                `<div class="category-tab ${key === currentCategory ? 'active' : ''}" data-category="${key}" onclick="switchCategory('${key}')">
-                    <span class="icon">${cat.icon}</span>
-                    <span>${cat.name.split(' ')[1]}</span>
-                </div>`
-            ).join('');
-            updateFormats();
-            updateDropZone();
-        }
-
-        window.switchCategory = function(category) {
+        function switchCategory(category) {
             currentCategory = category;
             document.querySelectorAll('.category-tab').forEach(tab => {
                 tab.classList.toggle('active', tab.dataset.category === category);
@@ -256,14 +249,13 @@ const categories = {
             updateFormats();
             updateDropZone();
             clearAllFiles();
-        };
+        }
 
         function updateFormats() {
             const category = categories[currentCategory];
             const select = document.getElementById('targetFormat');
             const hint = document.getElementById('formatHint');
             const qualityGroup = document.getElementById('qualityGroup');
-            const bitrateGroup = document.getElementById('bitrateGroup');
             const resizeGroup = document.getElementById('resizeGroup');
 
             const formats = Object.keys(category.formats);
@@ -271,16 +263,15 @@ const categories = {
             hint.textContent = category.formats[formats[0]]?.hint || '';
 
             qualityGroup.style.display = category.hasQuality ? 'block' : 'none';
-            bitrateGroup.style.display = category.hasBitrate ? 'block' : 'none';
             resizeGroup.style.display = category.hasResize ? 'block' : 'none';
         }
 
         function updateDropZone() {
             const category = categories[currentCategory];
-            document.getElementById('dropIcon').textContent = category.icon;
-            document.getElementById('dropTitle').textContent = `Перетащите ${category.name.split(' ')[1]} сюда`;
+            document.getElementById('dropIcon').textContent = category.dropIcon;
+            document.getElementById('dropTitle').textContent = category.dropTitle;
             
-            const displayFormats = category.supportedInput.slice(0, 12).map(f => f.toUpperCase());
+            const displayFormats = category.formatsList.slice(0, 12);
             document.getElementById('formatBadges').innerHTML = displayFormats.map(f => 
                 `<span class="format-badge">${f}</span>`
             ).join('');
@@ -390,10 +381,6 @@ const categories = {
             document.getElementById('qualityValue').textContent = this.value + '%';
         });
 
-        document.getElementById('bitrate').addEventListener('input', function() {
-            document.getElementById('bitrateValue').textContent = this.value + ' kbps';
-        });
-
         async function convertFiles() {
             if (!files.length) return;
 
@@ -415,7 +402,6 @@ const categories = {
             
             const category = categories[currentCategory];
             if (category.hasQuality) formData.append('quality', document.getElementById('quality').value);
-            if (category.hasBitrate) formData.append('bitrate', document.getElementById('bitrate').value);
             if (category.hasResize) {
                 const width = document.getElementById('resizeWidth').value;
                 const height = document.getElementById('resizeHeight').value;
@@ -458,13 +444,6 @@ const categories = {
                 link.click();
                 setTimeout(() => URL.revokeObjectURL(link.href), 10000);
 
-                // Очищаем файлы после успешной конвертации
-                setTimeout(() => {
-                    if (confirm('Очистить список файлов?')) {
-                        clearAllFiles();
-                    }
-                }, 1000);
-
             } catch (err) {
                 resultArea.className = 'result-area error show';
                 document.getElementById('resultIcon').textContent = '❌';
@@ -477,9 +456,16 @@ const categories = {
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
-            initCategoryTabs();
+            updateFormats();
+            updateDropZone();
             initDropZone();
         });
+
+        window.switchCategory = switchCategory;
+        window.convertFiles = convertFiles;
+        window.removeFile = removeFile;
+        window.clearAllFiles = clearAllFiles;
+        window.logout = logout;
 
         (function() {
             const themeToggle = document.getElementById('themeToggle');
