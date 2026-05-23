@@ -1357,9 +1357,20 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
+// ========== АДМИН ЛОГАУТ ==========
 app.post('/api/admin/logout', (req, res) => {
+    // Очищаем админ сессию
     req.session.adminId = null;
     req.session.adminUsername = null;
+    
+    // Если была пользовательская сессия - восстанавливаем её
+    if (req.session.previousUserId) {
+        req.session.userId = req.session.previousUserId;
+        req.session.username = req.session.previousUsername;
+        req.session.previousUserId = null;
+        req.session.previousUsername = null;
+    }
+    
     res.json({ success: true, message: 'Выход выполнен' });
 });
 

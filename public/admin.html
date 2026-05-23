@@ -16,18 +16,14 @@
                 <span class="site-title">LinkSnap Admin — Чаты</span>
             </div>
             <div class="admin-nav">
+                <a href="/admin">💬 Чаты</a>
                 <a href="/admin/users">👥 Пользователи</a>
-                <a href="#" onclick="loadChats()">🔄 Обновить</a>
-                <a href="#" onclick="logout()">🚪 Выйти</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">🚪 Выйти</button>
             </div>
         </div>
     </div>
 
-    <div class="container" id="authCheck" style="text-align: center; padding: 50px;">
-        <div class="loading"><div class="loading-spinner"></div><span>Проверка авторизации...</span></div>
-    </div>
-
-    <div class="container" id="adminPanel" style="display: none;">
+    <div class="container" id="adminPanel">
         <div class="stats-grid">
             <div class="stat-card unread">
                 <h3 id="statUnread">0</h3>
@@ -56,7 +52,7 @@
                 </div>
             </div>
 
-                <div class="chat-detail" id="chatDetail" style="display: none;">
+            <div class="chat-detail" id="chatDetail" style="display: none;">
                 <div class="chat-detail-header">
                     <div class="chat-detail-user">
                         <h3 id="chatUserName">Пользователь</h3>
@@ -88,24 +84,41 @@
     <script>
         let currentChatId = null;
         let messagesInterval = null;
-        let adminUser = null;
-        let existingMessageIds = new Set(); // Для предотвращения мигания
 
-        async function checkAdminAuth() {
+        // Проверка авторизации и загрузка
+        (async function() {
             try {
                 const res = await fetch('/api/admin/me');
-                if (res.ok) {
-                    const data = await res.json();
-                    adminUser = data.admin;
-                    document.getElementById('authCheck').style.display = 'none';
-                    document.getElementById('adminPanel').style.display = 'block';
-                    loadStats();
-                    loadChats();
-                } else {
+                const data = await res.json();
+                if (!data.success) {
                     window.location.href = '/admin/login';
+                    return;
+                }
+                document.getElementById('adminPanel').style.display = 'block';
+                loadStats();
+                loadChats();
+                startPolling();
+            } catch(e) {
+                console.error('Ошибка:', e);
+                window.location.href = '/admin/login';
+            }
+        })();
+
+        async function logout() {
+            try {
+                const res = await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = '/admin/login';
+                } else {
+                    alert('Ошибка при выходе');
                 }
             } catch(e) {
-                console.error('Ошибка проверки авторизации:', e);
+                console.error('Ошибка выхода:', e);
+                // Даже при ошибке перенаправляем на страницу входа
                 window.location.href = '/admin/login';
             }
         }
@@ -128,7 +141,6 @@
             try {
                 const res = await fetch('/api/admin/chats');
                 const data = await res.json();
-                
                 const container = document.getElementById('chatsList');
                 
                 if (!data.success || !data.chats || data.chats.length === 0) {
@@ -158,10 +170,10 @@
         }
 
         function formatTime(dateStr) {
+            if (!dateStr) return 'неизвестно';
             const date = new Date(dateStr);
             const now = new Date();
             const diff = now - date;
-            
             if (diff < 60000) return 'только что';
             if (diff < 3600000) return Math.floor(diff / 60000) + ' мин назад';
             if (diff < 86400000) return Math.floor(diff / 3600000) + ' ч назад';
@@ -175,69 +187,54 @@
                 const res = await fetch(`/api/admin/chat/${chatId}`);
                 const data = await res.json();
                 
-                if (!data.success) {
-                    if (!isPolling) alert('Ошибка загрузки чата');
-                    return;
-                }
+                if (!data.success) return;
 
-                // При первом открытии — полная отрисовка
                 if (!isPolling) {
-                    const chat = data.chat;
-                    
                     document.getElementById('chatUserName').textContent = data.user?.username || 'Неизвестно';
                     document.getElementById('chatUserEmail').textContent = data.user?.email || 'Нет email';
                     
                     const messagesContainer = document.getElementById('messagesContainer');
                     messagesContainer.innerHTML = '';
-                    existingMessageIds.clear();
                     
                     (data.messages || []).forEach(msg => {
                         addMessage(msg.message, msg.sender_type, msg.created_at, msg.id);
                     });
                     
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    
                     document.getElementById('emptyState').style.display = 'none';
                     document.getElementById('chatDetail').style.display = 'flex';
                 } else {
-                    // При polling — только добавляем новые сообщения
                     const messagesContainer = document.getElementById('messagesContainer');
-                    const newMessages = (data.messages || []).filter(msg => {
-                        if (existingMessageIds.has(msg.id)) return false;
-                        existingMessageIds.add(msg.id);
-                        return true;
+                    const existingIds = new Set();
+                    Array.from(messagesContainer.children).forEach(child => {
+                        if (child.id) existingIds.add(child.id.replace('msg-', ''));
                     });
                     
+                    const newMessages = (data.messages || []).filter(msg => !existingIds.has(msg.id.toString()));
                     newMessages.forEach(msg => {
                         addMessage(msg.message, msg.sender_type, msg.created_at, msg.id);
                     });
                     
-                    // Прокрутка вниз только если есть новые сообщения
                     if (newMessages.length > 0) {
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     }
                 }
                 
-                loadChats(); // Обновить список (прочитанные)
-                
+                loadChats();
             } catch(e) {
                 console.error('Ошибка открытия чата:', e);
-                if (!isPolling) alert('Ошибка загрузки чата');
             }
         }
 
         function addMessage(text, type, timestamp, id) {
             const messagesContainer = document.getElementById('messagesContainer');
-            
-            // Проверяем, нет ли уже такого сообщения
             if (document.getElementById(`msg-${id}`)) return;
             
             const msgDiv = document.createElement('div');
             msgDiv.className = `message message-${type}`;
             msgDiv.id = `msg-${id}`;
-            
             const escapedText = escapeHtml(text);
-            const timeStr = new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
             
             msgDiv.innerHTML = `
                 <div class="message-meta">
@@ -250,24 +247,17 @@
 
         function startPolling() {
             if (messagesInterval) clearInterval(messagesInterval);
-            
-            // Опрос каждые 3 секунды для открытого чата
             messagesInterval = setInterval(() => {
-                if (currentChatId) {
-                    openChat(currentChatId, true); // true = это polling
-                    loadChats();
-                }
+                if (currentChatId) openChat(currentChatId, true);
             }, 3000);
         }
 
         async function sendReply() {
             const message = document.getElementById('replyMessage').value.trim();
-            
             if (!message) {
                 alert('Введите сообщение');
                 return;
             }
-            
             if (!currentChatId) {
                 alert('Чат не выбран');
                 return;
@@ -283,14 +273,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message })
                 });
-
                 const data = await res.json();
-                
                 if (data.success) {
                     document.getElementById('replyMessage').value = '';
-                    openChat(currentChatId, false); // Перезагрузить сообщения (полная отрисовка)
+                    await openChat(currentChatId, false);
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch(e) {
                 console.error('Ошибка отправки:', e);
@@ -301,26 +289,13 @@
             }
         }
 
-        async function logout() {
-            await fetch('/api/admin/logout', { method: 'POST' });
-            window.location.href = '/admin/login';
-        }
-
         function escapeHtml(text) {
             if (!text) return '';
             return String(text).replace(/[&<>"']/g, m => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
             }[m]));
         }
 
-        // Инициализация
-        checkAdminAuth();
-        
-        // Очистка при закрытии
         window.addEventListener('beforeunload', () => {
             if (messagesInterval) clearInterval(messagesInterval);
         });
