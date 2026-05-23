@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Универсальный конвертер - LinkSnap</title>
+    <title>Конвертер файлов - LinkSnap</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>">
@@ -17,11 +17,6 @@
         .drop-area p { color: var(--gray-600); margin: 5px 0; font-size: 14px; }
         .drop-area .formats { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; height: 60px; overflow: hidden; }
         .format-badge { background: var(--gray-200); padding: 4px 10px; border-radius: 20px; font-size: 11px; color: var(--gray-700); font-weight: 500; }
-        .format-badge.doc { background: #dbeafe; color: #1e40af; }
-        .format-badge.audio { background: #fce7f3; color: #9d174d; }
-        .format-badge.video { background: #ede9fe; color: #7c3aed; }
-        .format-badge.archive { background: #fef3c7; color: #92400e; }
-        .format-badge.code { background: #d1fae5; color: #065f46; }
         .settings-panel { background: var(--surface); border-radius: var(--radius-lg); padding: 25px; border: 1px solid var(--surface-light); height: 100%; min-height: 500px; }
         .settings-panel h4 { margin: 0 0 20px 0; color: var(--primary); font-size: 16px; display: flex; align-items: center; gap: 8px; }
         .settings-group { margin-bottom: 20px; }
@@ -62,11 +57,18 @@
         .result-area.show { display: flex; }
         .result-area.error { background: #fee2e2; }
         .category-tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
-        .category-tab { flex: 1; min-width: 90px; padding: 12px 10px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 12px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; }
+        .category-tab { flex: 1; min-width: 100px; padding: 12px 10px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 13px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; }
         .category-tab:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.15); }
         .category-tab.active { border-color: var(--primary); background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); }
         .category-tab .icon { font-size: 20px; display: block; margin-bottom: 4px; }
         @media (max-width: 900px) { .converter-container { grid-template-columns: 1fr; } }
+        
+        body.dark-theme .drop-area { background: var(--surface-dark); border-color: var(--gray-600); }
+        body.dark-theme .file-item { background: var(--surface-dark); border-color: var(--gray-600); }
+        body.dark-theme .stat-item { background: var(--surface-dark); }
+        body.dark-theme .format-badge { background: var(--gray-700); color: var(--text-secondary); }
+        body.dark-theme .category-tab { background: var(--gray-800); border-color: var(--gray-600); color: var(--text-secondary); }
+        body.dark-theme .category-tab.active { background: var(--surface); border-color: var(--primary); color: var(--primary); }
     </style>
 </head>
 <body>
@@ -89,16 +91,26 @@
             </div>
         </header>
 
-        <h2>🔄 Универсальный конвертер файлов</h2>
-        <p>Конвертируйте документы, аудио, видео и архивы между различными форматами</p>
+        <h2>🔄 Конвертер файлов</h2>
+        <p>Конвертируйте изображения, документы и аудио между различными форматами</p>
 
         <div class="converter-container">
-            <div class="drop-area" id="dropArea">
-                <div class="icon" id="dropIcon">📄</div>
-                <h3 id="dropTitle">Перетащите файлы сюда</h3>
-                <p id="dropSubtitle">или нажмите для выбора</p>
-                <div class="formats" id="formatBadges"></div>
-                <input type="file" id="fileInput" multiple hidden>
+            <div>
+                <div class="drop-area" id="dropArea">
+                    <div class="icon" id="dropIcon">📄</div>
+                    <h3 id="dropTitle">Перетащите файлы сюда</h3>
+                    <p id="dropSubtitle">или нажмите для выбора</p>
+                    <div class="formats" id="formatBadges"></div>
+                    <input type="file" id="fileInput" multiple hidden>
+                </div>
+                
+                <div class="file-list-container" id="fileListContainer" style="display: none;">
+                    <div class="file-list-header">
+                        <h4>📄 Список файлов (<span id="fileCount">0</span>)</h4>
+                        <button class="btn-icon btn-delete" onclick="clearAllFiles()" title="Очистить все">🗑️</button>
+                    </div>
+                    <div id="fileListItems"></div>
+                </div>
             </div>
 
             <div class="settings-panel">
@@ -112,12 +124,12 @@
                     <div class="hint" id="formatHint"></div>
                 </div>
 
-                <div class="settings-group" id="qualityGroup">
+                <div class="settings-group" id="qualityGroup" style="display: none;">
                     <div class="slider-group">
-                        <label><span>Качество</span><span id="qualityValue">High</span></label>
-                        <input type="range" id="quality" min="1" max="3" value="2">
+                        <label><span>Качество</span><span id="qualityValue">90%</span></label>
+                        <input type="range" id="quality" min="10" max="100" value="90">
                     </div>
-                    <div class="hint">Low - экономия места, High - лучшее качество</div>
+                    <div class="hint">Выше качество = больше размер файла</div>
                 </div>
 
                 <div class="settings-group" id="bitrateGroup" style="display: none;">
@@ -128,18 +140,28 @@
                     <div class="hint">Выше битрейт = лучше качество и больший размер</div>
                 </div>
 
+                <div class="settings-group" id="resizeGroup" style="display: none;">
+                    <label>📐 Изменить размер</label>
+                    <div class="input-row" style="display: flex; gap: 10px;">
+                        <input type="number" id="resizeWidth" placeholder="Ширина" style="flex:1;">
+                        <span style="align-self:center;">×</span>
+                        <input type="number" id="resizeHeight" placeholder="Высота" style="flex:1;">
+                    </div>
+                    <div class="hint">Оставьте пустым для автоматического сохранения пропорций</div>
+                </div>
+
                 <div class="stats-bar" id="statsBar" style="display: none;">
                     <div class="stat-item">
-                        <div class="stat-value" id="fileCount">0</div>
+                        <div class="stat-value" id="statFileCount">0</div>
                         <div class="stat-label">Файлов</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="totalSize">0</div>
-                        <div class="stat-label">Размер</div>
+                        <div class="stat-value" id="statTotalSize">0</div>
+                        <div class="stat-label">Общий размер</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="validFiles">0</div>
-                        <div class="stat-label">Готовых</div>
+                        <div class="stat-value" id="statSupported">0</div>
+                        <div class="stat-label">Поддерживается</div>
                     </div>
                 </div>
 
@@ -157,196 +179,59 @@
                     <span id="resultText">Конвертация завершена!</span>
                 </div>
             </div>
-
-            <div class="file-list-container" id="fileListContainer" style="display: none;">
-                <div class="file-list-header">
-                    <h4>📄 Список файлов</h4>
-                    <button class="btn-icon btn-delete" onclick="clearAllFiles()" title="Очистить все">🗑️</button>
-                </div>
-                <div id="fileListItems"></div>
-            </div>
         </div>
     </div>
 
     <script>
-        let files = [], convertedBlob = null, convertedFilename = null;
-        const MAX_FILES = 10, MAX_SIZE = 100 * 1024 * 1024;
+        let files = [];
+        
+        // Категории и поддерживаемые форматы
+        // Категории - убрал аудио
+const categories = {
+    images: {
+        name: '🖼️ Изображения',
+        icon: '🖼️',
+        endpoint: '/api/convert/images',
+        supportedInput: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'],
+        formats: {
+            jpg: { name: 'JPEG', hint: 'Универсальный формат для фотографий' },
+            png: { name: 'PNG', hint: 'Поддержка прозрачности, без потерь' },
+            webp: { name: 'WEBP', hint: 'Современный формат, хорошее сжатие' },
+            bmp: { name: 'BMP', hint: 'Без сжатия, большой размер' },
+            tiff: { name: 'TIFF', hint: 'Для печати и архивации' },
+            avif: { name: 'AVIF', hint: 'Максимальное сжатие' }
+        },
+        hasQuality: true,
+        hasResize: true
+    },
+    documents: {
+        name: '📄 Документы',
+        icon: '📄',
+        endpoint: '/api/convert/documents',
+        supportedInput: ['txt', 'docx', 'md', 'html'],
+        formats: {
+            pdf: { name: 'PDF', hint: 'Универсальный формат для документов' },
+            docx: { name: 'DOCX', hint: 'Microsoft Word формат' },
+            txt: { name: 'TXT', hint: 'Обычный текст' },
+            md: { name: 'MD', hint: 'Markdown разметка' },
+            html: { name: 'HTML', hint: 'Веб-страница' }
+        },
+        hasQuality: false,
+        hasResize: false
+    }
+    // АУДИО УДАЛЕН
+};
 
-        const categories = {
-            documents: {
-                name: '📄 Документы',
-                icon: '📄',
-                formats: {
-                    pdf: ['docx', 'doc', 'txt', 'rtf', 'odt', 'html', 'md'],
-                    docx: ['pdf', 'doc', 'txt', 'rtf', 'odt', 'html'],
-                    doc: ['pdf', 'docx', 'txt', 'rtf', 'odt'],
-                    txt: ['pdf', 'docx', 'doc', 'rtf', 'html', 'md'],
-                    rtf: ['pdf', 'docx', 'doc', 'txt', 'odt'],
-                    odt: ['pdf', 'docx', 'doc', 'txt', 'rtf'],
-                    html: ['pdf', 'docx', 'txt', 'md'],
-                    md: ['pdf', 'html', 'txt', 'docx']
-                },
-                mimes: {
-                    pdf: ['application/pdf'],
-                    docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-                    doc: ['application/msword'],
-                    txt: ['text/plain'],
-                    rtf: ['application/rtf', 'text/rtf'],
-                    odt: ['application/vnd.oasis.opendocument.text'],
-                    html: ['text/html', 'application/xhtml+xml'],
-                    md: ['text/markdown', 'text/x-markdown']
-                },
-                hints: {
-                    pdf: 'Конвертация в PDF (универсальный формат)',
-                    docx: 'Конвертация в современный Word',
-                    doc: 'Конвертация в старый формат Word',
-                    txt: 'Конвертация в обычный текст',
-                    rtf: 'Конвертация в Rich Text Format',
-                    odt: 'Конвертация в OpenDocument',
-                    html: 'Конвертация в веб-страницу',
-                    md: 'Конвертация в Markdown'
-                }
-            },
-            audio: {
-                name: '🎵 Аудио',
-                icon: '🎵',
-                formats: {
-                    mp3: ['wav', 'flac', 'aac', 'ogg', 'm4a', 'wma', 'opus'],
-                    wav: ['mp3', 'flac', 'aac', 'ogg', 'm4a', 'wma'],
-                    flac: ['mp3', 'wav', 'aac', 'ogg', 'm4a'],
-                    aac: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'opus'],
-                    ogg: ['mp3', 'wav', 'flac', 'aac', 'opus'],
-                    m4a: ['mp3', 'wav', 'flac', 'aac', 'ogg'],
-                    opus: ['mp3', 'wav', 'ogg', 'aac'],
-                    wma: ['mp3', 'wav', 'aac', 'ogg']
-                },
-                mimes: {
-                    mp3: ['audio/mpeg', 'audio/mp3'],
-                    wav: ['audio/wav', 'audio/x-wav'],
-                    flac: ['audio/flac', 'audio/x-flac'],
-                    aac: ['audio/aac', 'audio/x-aac'],
-                    ogg: ['audio/ogg', 'application/ogg'],
-                    m4a: ['audio/mp4', 'audio/x-m4a'],
-                    opus: ['audio/opus'],
-                    wma: ['audio/x-ms-wma']
-                },
-                hints: {
-                    mp3: 'Универсальный сжатый формат',
-                    wav: 'Без сжатия, максимальное качество',
-                    flac: 'Без потерь, сжатие без потери качества',
-                    aac: 'Эффективное сжатие, лучше MP3',
-                    ogg: 'Открытый формат, хорошее качество',
-                    m4a: 'Формат Apple, хорошее сжатие',
-                    opus: 'Современный формат для стриминга',
-                    wma: 'Формат Microsoft'
-                }
-            },
-            video: {
-                name: '🎬 Видео',
-                icon: '🎬',
-                formats: {
-                    mp4: ['avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v', '3gp'],
-                    avi: ['mp4', 'mkv', 'mov', 'wmv', 'flv'],
-                    mkv: ['mp4', 'avi', 'mov', 'webm'],
-                    mov: ['mp4', 'avi', 'mkv', 'wmv', 'm4v'],
-                    wmv: ['mp4', 'avi', 'mov', 'flv'],
-                    flv: ['mp4', 'avi', 'webm'],
-                    webm: ['mp4', 'mkv', 'avi', 'webm'],
-                    m4v: ['mp4', 'mov', 'avi'],
-                    '3gp': ['mp4', 'avi', 'mov']
-                },
-                mimes: {
-                    mp4: ['video/mp4'],
-                    avi: ['video/x-msvideo'],
-                    mkv: ['video/x-matroska'],
-                    mov: ['video/quicktime'],
-                    wmv: ['video/x-ms-wmv'],
-                    flv: ['video/x-flv'],
-                    webm: ['video/webm'],
-                    m4v: ['video/x-m4v'],
-                    '3gp': ['video/3gpp']
-                },
-                hints: {
-                    mp4: 'Универсальный формат для веба',
-                    avi: 'Старый формат, высокое качество',
-                    mkv: 'Контейнер для многих кодеков',
-                    mov: 'Формат Apple QuickTime',
-                    wmv: 'Формат Microsoft',
-                    flv: 'Для веб-плееров',
-                    webm: 'Открытый формат для HTML5',
-                    m4v: 'Формат Apple iTunes',
-                    '3gp': 'Для мобильных устройств'
-                }
-            },
-            archive: {
-                name: '📦 Архивы',
-                icon: '📦',
-                formats: {
-                    zip: ['rar', '7z', 'tar', 'gz', 'bz2', 'xz'],
-                    rar: ['zip', '7z', 'tar', 'gz'],
-                    '7z': ['zip', 'rar', 'tar', 'gz'],
-                    tar: ['zip', 'rar', 'gz', 'bz2', 'xz'],
-                    gz: ['zip', 'tar', 'bz2', 'xz'],
-                    bz2: ['zip', 'tar', 'gz', 'xz'],
-                    xz: ['zip', 'tar', 'gz', 'bz2']
-                },
-                mimes: {
-                    zip: ['application/zip', 'application/x-zip-compressed'],
-                    rar: ['application/vnd.rar', 'application/x-rar-compressed'],
-                    '7z': ['application/x-7z-compressed'],
-                    tar: ['application/x-tar'],
-                    gz: ['application/gzip', 'application/x-gzip'],
-                    bz2: ['application/x-bzip2'],
-                    xz: ['application/x-xz']
-                },
-                hints: {
-                    zip: 'Универсальный архив',
-                    rar: 'Высокое сжатие',
-                    '7z': 'Максимальное сжатие',
-                    tar: 'Архив без сжатия',
-                    gz: 'Сжатие одного файла',
-                    bz2: 'Сжатие с хорошим качеством',
-                    xz: 'Современное сжатие'
-                }
-            },
-            code: {
-                name: '💻 Код',
-                icon: '💻',
-                formats: {
-                    json: ['xml', 'csv', 'yaml', 'toml'],
-                    xml: ['json', 'csv', 'yaml'],
-                    csv: ['json', 'xml', 'xlsx', 'txt'],
-                    yaml: ['json', 'xml', 'toml'],
-                    toml: ['json', 'yaml', 'ini'],
-                    ini: ['toml', 'json', 'yaml']
-                },
-                mimes: {
-                    json: ['application/json', 'text/json'],
-                    xml: ['application/xml', 'text/xml'],
-                    csv: ['text/csv', 'application/csv'],
-                    yaml: ['application/x-yaml', 'text/yaml'],
-                    toml: ['application/toml', 'text/x-toml'],
-                    ini: ['text/plain', 'application/x-ini']
-                },
-                hints: {
-                    json: 'JavaScript Object Notation',
-                    xml: 'Extensible Markup Language',
-                    csv: 'Табличные данные',
-                    yaml: 'Читаемый формат конфигурации',
-                    toml: 'Конфигурационный файл',
-                    ini: 'Формат Windows конфигурации'
-                }
-            }
-        };
-
-        let currentCategory = 'documents';
+        let currentCategory = 'images';
 
         async function checkAuth() {
-            const res = await fetch('/api/user');
-            if (res.status === 401) window.location.href = '/login';
-            const user = await res.json();
-            document.getElementById('username').textContent = user.username;
-            document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) window.location.href = '/login';
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            } catch(e) { window.location.href = '/login'; }
         }
 
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
@@ -354,25 +239,24 @@
         function initCategoryTabs() {
             const tabsContainer = document.getElementById('categoryTabs');
             tabsContainer.innerHTML = Object.entries(categories).map(([key, cat]) => 
-                `<div class="category-tab ${key === currentCategory ? 'active' : ''}" data-category="${key}">
+                `<div class="category-tab ${key === currentCategory ? 'active' : ''}" data-category="${key}" onclick="switchCategory('${key}')">
                     <span class="icon">${cat.icon}</span>
                     <span>${cat.name.split(' ')[1]}</span>
                 </div>`
             ).join('');
-
-            tabsContainer.querySelectorAll('.category-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    currentCategory = tab.dataset.category;
-                    tabsContainer.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    updateFormats();
-                    updateDropZone();
-                });
-            });
-
             updateFormats();
             updateDropZone();
         }
+
+        window.switchCategory = function(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.category === category);
+            });
+            updateFormats();
+            updateDropZone();
+            clearAllFiles();
+        };
 
         function updateFormats() {
             const category = categories[currentCategory];
@@ -380,41 +264,26 @@
             const hint = document.getElementById('formatHint');
             const qualityGroup = document.getElementById('qualityGroup');
             const bitrateGroup = document.getElementById('bitrateGroup');
+            const resizeGroup = document.getElementById('resizeGroup');
 
             const formats = Object.keys(category.formats);
-            select.innerHTML = formats.map(f => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
-            hint.textContent = category.hints[formats[0]] || '';
+            select.innerHTML = formats.map(f => `<option value="${f}">${category.formats[f].name}</option>`).join('');
+            hint.textContent = category.formats[formats[0]]?.hint || '';
 
-            qualityGroup.style.display = currentCategory === 'audio' || currentCategory === 'video' ? 'block' : 'none';
-            bitrateGroup.style.display = currentCategory === 'audio' ? 'block' : 'none';
-
-            document.getElementById('fileInput').accept = Object.values(category.mimes).flat().join(',');
+            qualityGroup.style.display = category.hasQuality ? 'block' : 'none';
+            bitrateGroup.style.display = category.hasBitrate ? 'block' : 'none';
+            resizeGroup.style.display = category.hasResize ? 'block' : 'none';
         }
 
         function updateDropZone() {
             const category = categories[currentCategory];
             document.getElementById('dropIcon').textContent = category.icon;
             document.getElementById('dropTitle').textContent = `Перетащите ${category.name.split(' ')[1]} сюда`;
-            document.getElementById('dropSubtitle').textContent = 'или нажмите для выбора';
-
-            const allFormats = Object.keys(category.formats).flatMap(f => 
-                [f, ...category.formats[f]].map(ext => ext.toUpperCase())
-            ).filter((v, i, a) => a.indexOf(v) === i);
-
-            const displayFormats = allFormats.slice(0, 12);
-
-            document.getElementById('formatBadges').innerHTML = displayFormats.map(f => {
-                let cls = 'format-badge';
-                if (currentCategory === 'documents') cls += ' doc';
-                else if (currentCategory === 'audio') cls += ' audio';
-                else if (currentCategory === 'video') cls += ' video';
-                else if (currentCategory === 'archive') cls += ' archive';
-                else if (currentCategory === 'code') cls += ' code';
-                return `<span class="${cls}">${f}</span>`;
-            }).join('');
             
-            const badgesContainer = document.getElementById('formatBadges');
-            badgesContainer.style.minHeight = '60px';
+            const displayFormats = category.supportedInput.slice(0, 12).map(f => f.toUpperCase());
+            document.getElementById('formatBadges').innerHTML = displayFormats.map(f => 
+                `<span class="format-badge">${f}</span>`
+            ).join('');
         }
 
         function initDropZone() {
@@ -434,18 +303,20 @@
 
         function addFiles(newFiles) {
             const category = categories[currentCategory];
-            const validMimes = Object.values(category.mimes).flat();
-
+            const supportedExtensions = category.supportedInput;
+            
             for (const file of newFiles) {
-                if (files.length >= MAX_FILES) break;
-                if (file.size > MAX_SIZE) { alert(`Файл "${file.name}" превышает 100 МБ`); continue; }
-                if (!validMimes.includes(file.type)) {
-                    alert(`Неподдерживаемый формат: ${file.name}`); continue;
+                if (files.length >= 20) break;
+                if (file.size > 100 * 1024 * 1024) { alert(`Файл "${file.name}" превышает 100 МБ`); continue; }
+                
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!supportedExtensions.includes(ext)) {
+                    alert(`Формат ${ext.toUpperCase()} не поддерживается для ${category.name}`);
+                    continue;
                 }
                 if (files.some(f => f.name === file.name && f.size === file.size)) continue;
                 files.push(file);
             }
-
             renderFileList();
             updateStats();
         }
@@ -457,7 +328,7 @@
         }
 
         function clearAllFiles() {
-            if (confirm('Удалить все файлы?')) {
+            if (files.length && confirm('Удалить все файлы?')) {
                 files = [];
                 renderFileList();
                 updateStats();
@@ -467,35 +338,39 @@
         function renderFileList() {
             const container = document.getElementById('fileListContainer');
             const items = document.getElementById('fileListItems');
+            const category = categories[currentCategory];
             
             container.style.display = files.length ? 'block' : 'none';
-            const icons = { documents: '📄', audio: '🎵', video: '🎬', archive: '📦', code: '💻' };
-            items.innerHTML = files.map((file, i) => `
-                <div class="file-item">
-                    <div class="file-icon">${icons[currentCategory]}</div>
-                    <div class="file-info">
-                        <div class="file-name">${escapeHtml(file.name)}</div>
-                        <div class="file-meta">${formatSize(file.size)}</div>
+            document.getElementById('fileCount').textContent = files.length;
+            
+            items.innerHTML = files.map((file, i) => {
+                const ext = file.name.split('.').pop().toUpperCase();
+                return `
+                    <div class="file-item">
+                        <div class="file-icon">${category.icon}</div>
+                        <div class="file-info">
+                            <div class="file-name">${escapeHtml(file.name)}</div>
+                            <div class="file-meta">${formatSize(file.size)} • ${ext}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-icon btn-delete" onclick="removeFile(${i})" title="Удалить">✕</button>
+                        </div>
                     </div>
-                    <div class="file-actions">
-                        <button class="btn-icon btn-delete" onclick="removeFile(${i})" title="Удалить">✕</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function updateStats() {
             const statsBar = document.getElementById('statsBar');
             statsBar.style.display = files.length ? 'grid' : 'none';
             
-            document.getElementById('fileCount').textContent = files.length;
+            document.getElementById('statFileCount').textContent = files.length;
             const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-            document.getElementById('totalSize').textContent = formatSize(totalSize);
-            document.getElementById('validFiles').textContent = files.length;
+            document.getElementById('statTotalSize').textContent = formatSize(totalSize);
+            document.getElementById('statSupported').textContent = files.length;
             
             const convertBtn = document.getElementById('convertBtn');
             convertBtn.disabled = files.length === 0;
-            convertBtn.textContent = files.length ? `🔄 Конвертировать ${files.length} файл(ов)` : '🔄 Начать конвертацию';
         }
 
         function formatSize(bytes) {
@@ -508,12 +383,11 @@
 
         document.getElementById('targetFormat').addEventListener('change', function() {
             const category = categories[currentCategory];
-            document.getElementById('formatHint').textContent = category.hints[this.value] || '';
+            document.getElementById('formatHint').textContent = category.formats[this.value]?.hint || '';
         });
 
         document.getElementById('quality').addEventListener('input', function() {
-            const values = { 1: 'Low', 2: 'Medium', 3: 'High' };
-            document.getElementById('qualityValue').textContent = values[this.value];
+            document.getElementById('qualityValue').textContent = this.value + '%';
         });
 
         document.getElementById('bitrate').addEventListener('input', function() {
@@ -538,16 +412,27 @@
             const formData = new FormData();
             files.forEach(f => formData.append('files', f));
             formData.append('targetFormat', document.getElementById('targetFormat').value);
-            formData.append('category', currentCategory);
-            formData.append('quality', document.getElementById('quality').value);
-            formData.append('bitrate', document.getElementById('bitrate').value);
+            
+            const category = categories[currentCategory];
+            if (category.hasQuality) formData.append('quality', document.getElementById('quality').value);
+            if (category.hasBitrate) formData.append('bitrate', document.getElementById('bitrate').value);
+            if (category.hasResize) {
+                const width = document.getElementById('resizeWidth').value;
+                const height = document.getElementById('resizeHeight').value;
+                if (width) formData.append('width', width);
+                if (height) formData.append('height', height);
+            }
             
             try {
                 progressFill.style.width = '50%';
                 progressText.textContent = 'Обработка...';
 
-                const resp = await fetch('/api/convert/batch', { method: 'POST', body: formData });
-                if (!resp.ok) { const err = await resp.json(); throw new Error(err.error); }
+                const resp = await fetch(category.endpoint, { method: 'POST', body: formData });
+                
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error || 'Ошибка конвертации');
+                }
 
                 progressFill.style.width = '80%';
                 progressText.textContent = 'Генерация результата...';
@@ -560,9 +445,6 @@
                     if (match && match[1]) filename = match[1].replace(/['"]/g, '');
                 }
 
-                convertedBlob = blob;
-                convertedFilename = filename;
-
                 progressFill.style.width = '100%';
                 progressText.textContent = 'Готово!';
 
@@ -573,18 +455,23 @@
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = filename;
-                link.style.cssText = 'position:fixed;top:10px;right:10px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;z-index:9999';
-                link.textContent = '📥 Скачать';
-                document.body.appendChild(link);
-                setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 10000);
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+
+                // Очищаем файлы после успешной конвертации
+                setTimeout(() => {
+                    if (confirm('Очистить список файлов?')) {
+                        clearAllFiles();
+                    }
+                }, 1000);
 
             } catch (err) {
                 resultArea.className = 'result-area error show';
                 document.getElementById('resultIcon').textContent = '❌';
                 document.getElementById('resultText').textContent = 'Ошибка: ' + err.message;
             } finally {
-                convertBtn.disabled = false;
-                setTimeout(() => progressContainer.classList.remove('show'), 2000);
+                convertBtn.disabled = files.length === 0;
+                setTimeout(() => progressContainer.classList.remove('show'), 3000);
             }
         }
 
@@ -606,7 +493,5 @@
             }
         })();
     </script>
-
-    <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>
