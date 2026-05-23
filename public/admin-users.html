@@ -242,9 +242,19 @@
         }
 
         async function logout() {
-            await fetch('/api/admin/logout', { method: 'POST' });
-            window.location.href = '/admin/login';
-        }
+    try {
+        const res = await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        // Даже если ошибка - все равно перенаправляем
+        window.location.href = '/admin/login';
+    } catch(e) {
+        console.error('Ошибка выхода:', e);
+        window.location.href = '/admin/login';
+    }
+}
 
         function escapeHtml(text) {
             if (!text) return '';
