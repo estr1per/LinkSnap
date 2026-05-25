@@ -867,7 +867,10 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
     }
 });
 
-// ========== API QR-КОДЫ ==========
+// ========== QR-КОДЫ С ПОЛНОЙ СТИЛИЗАЦИЕЙ ==========
+const QRCodeStyling = require('qr-code-styling');
+
+// Генерация QR-кода с поддержкой всех стилей
 app.get('/api/qrcode', requireAuth, async (req, res) => {
     try {
         const {
@@ -876,16 +879,17 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             bgColor = '#ffffff', 
             size = 200, 
             margin = 1,
-            logo,
             dotsStyle = 'square',
-            cornersStyle = 'square'
+            cornersStyle = 'square',
+            logo
         } = req.query;
         
         if (!url) return res.status(400).json({ error: 'URL обязателен' });
         
-        // Проверка: стилизация доступна только для premium и business
+        // Проверяем, использует ли пользователь премиум-стилизацию
         const isStyled = color !== '#667eea' || bgColor !== '#ffffff' || 
-                         size !== 200 || logo || dotsStyle !== 'square' || cornersStyle !== 'square';
+                         size !== 200 || margin !== 1 || logo ||
+                         dotsStyle !== 'square' || cornersStyle !== 'square';
         
         if (isStyled) {
             const user = await new Promise((resolve) => {
@@ -894,45 +898,94 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             
             if (user?.plan_type !== 'premium' && user?.plan_type !== 'business') {
                 return res.status(403).json({ 
-                    error: 'Стилизация QR-кодов доступна только для тарифов Премиум и Бизнес' 
+                    error: 'Стилизация QR-кодов доступна только для тарифов Премиум и Бизнес',
+                    requiresUpgrade: true
                 });
             }
         }
         
+        // Проверка лимитов
         checkUserLimits(req.session.userId, 'qrcodes', async (err, limits) => {
             if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
             if (!limits.allowed) {
                 return res.status(403).json({ 
-                    error: `Превышен лимит: ${limits.current}/${limits.limit} QR-кодов в месяц.` 
+                    error: `Превышен лимит: ${limits.current}/${limits.limit} QR-кодов в месяц. Обновите тариф.`,
+                    limitsReached: true
                 });
             }
             
             let validatedUrl = url;
             if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
             
-            const qrOptions = {
-                margin: parseInt(margin) || 1,
-                width: parseInt(size) || 200,
-                color: { 
-                    dark: color || '#667eea', 
-                    light: bgColor || '#ffffff' 
-                }
-            };
-            
-            // Применение стиля точек (для библиотеки qrcode нужно кастомное рисование)
-            // Базовая генерация
-            const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
-            
-            db.run(
-                'INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1]
-            );
-            
-            res.json({ success: true, qrImageData, options: { color, bgColor, size, margin } });
+            try {
+                // Настройки стилизации QR-кода
+                const qrOptions = {
+                    width: parseInt(size) || 200,
+                    height: parseInt(size) || 200,
+                    margin: parseInt(margin) || 1,
+                    image: logo || undefined,
+                    dotsOptions: {
+                        color: color || '#667eea',
+                        type: dotsStyle || 'square'
+                    },
+                    cornersSquareOptions: {
+                        color: color || '#667eea',
+                        type: cornersStyle || 'square'
+                    },
+                    cornersDotOptions: {
+                        color: color || '#667eea',
+                        type: cornersStyle === 'rounded' ? 'dot' : 'square'
+                    },
+                    backgroundOptions: {
+                        color: bgColor || '#ffffff'
+                    },
+                    imageOptions: {
+                        crossOrigin: 'anonymous',
+                        margin: 5
+                    },
+                    qrOptions: {
+                        errorCorrectionLevel: 'H'  // Высокая коррекция ошибок для логотипов
+                    }
+                };
+                
+                // Генерируем QR-код в base64
+                const qrCode = new QRCodeStyling(qrOptions);
+                
+                // Ждем генерации
+                const qrImageData = await new Promise((resolve, reject) => {
+                    qrCode.getRawData('png').then(buffer => {
+                        const base64 = buffer.toString('base64');
+                        resolve(`data:image/png;base64,${base64}`);
+                    }).catch(reject);
+                });
+                
+                // Сохраняем в БД
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
+                        function(err) {
+                            if (err) reject(err);
+                            else resolve(this.lastID);
+                        }
+                    );
+                });
+                
+                res.json({ 
+                    success: true, 
+                    qrImageData,
+                    options: { color, bgColor, size: parseInt(size), margin: parseInt(margin), dotsStyle, cornersStyle }
+                });
+                
+            } catch (genError) {
+                console.error('Ошибка генерации QR:', genError);
+                res.status(500).json({ error: 'Ошибка генерации QR-кода' });
+            }
         });
     } catch (error) {
-        console.error('Ошибка генерации QR-кода:', error.message);
-        res.status(500).json({ error: 'Ошибка генерации QR-кода' });
+        console.error('Ошибка QR-кода:', error.message);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 

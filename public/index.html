@@ -9,6 +9,8 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23grad)'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔗</text></svg>">
     <style>
+        * { box-sizing: border-box; }
+        
         .hero { 
             text-align: center; 
             margin: 48px 0 64px; 
@@ -23,6 +25,7 @@
             max-width: 600px; 
             margin: 0 auto 32px; 
         }
+        
         .feature-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
@@ -65,6 +68,7 @@
             display: inline-block; 
             font-weight: 600;
         }
+        
         .tabs { 
             display: flex; 
             justify-content: center; 
@@ -101,6 +105,7 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
         .qr-container { 
             text-align: center; 
             margin-top: 24px; 
@@ -117,6 +122,7 @@
             transform: scale(1.05);
             box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
         }
+        
         .download-buttons { 
             display: flex; 
             gap: 12px; 
@@ -136,6 +142,7 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
         .qr-url {
             margin-top: 16px;
             padding: 12px;
@@ -145,6 +152,7 @@
             color: var(--text-secondary);
             word-break: break-all;
         }
+        
         .url-input-group {
             margin-bottom: 16px;
         }
@@ -155,6 +163,8 @@
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
+        
+        /* Новая панель стилизации QR-кода */
         .qr-style-panel {
             background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
             border: 2px solid var(--primary-light);
@@ -189,7 +199,7 @@
         }
         .qr-style-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 16px;
         }
         .qr-style-item {
@@ -217,6 +227,19 @@
             width: 100%;
             cursor: pointer;
         }
+        select.form-control {
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--gray-300);
+            background: white;
+            cursor: pointer;
+        }
+        .dark-theme select.form-control {
+            background: var(--surface-dark);
+            color: var(--text-primary);
+            border-color: var(--gray-600);
+        }
+        
         .qr-free-notice {
             background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
             border-left: 4px solid #ffc107;
@@ -239,11 +262,29 @@
         .dark-theme .qr-free-notice a {
             color: #ffc107;
         }
+        
+        .logo-upload-area {
+            border: 1px dashed var(--gray-400);
+            border-radius: var(--radius-md);
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            background: var(--surface);
+        }
+        .logo-preview {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-top: 8px;
+            border-radius: 8px;
+        }
+        
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.5rem; }
             .feature-grid { grid-template-columns: 1fr; }
             .tabs { flex-direction: column; align-items: center; }
             .tablink { width: 100%; max-width: 300px; }
+            .qr-style-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -285,7 +326,7 @@
 
         <div class="hero">
             <h1>Короткие ссылки, мощные инструменты</h1>
-            <p>Сокращайте ссылки, создавайте QR‑коды, конвертируйте файлы и редактируйте изображения — всё в одном сервисе.</p>
+            <p>Сокращайте ссылки, создавайте стильные QR‑коды, конвертируйте файлы и редактируйте изображения — всё в одном сервисе.</p>
             <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn">Начать бесплатно →</a>
         </div>
 
@@ -324,36 +365,62 @@
                         <input type="url" id="qrcodeInput" class="form-control form-control-lg" placeholder="https://example.com">
                     </div>
                     
-                    <!-- Панель стилизации QR-кода -->
+                    <!-- Панель стилизации QR-кода (доступна только для Premium/Business) -->
                     <div id="qrStylePanel" class="qr-style-panel" style="display: none;">
                         <div class="qr-style-header">
                             <span class="qr-style-title">🎨 Стилизация QR-кода</span>
-                            <span class="qr-style-badge">Премиум / Бизнес</span>
+                            <span class="qr-style-badge">⭐ Премиум / Бизнес</span>
                         </div>
                         <div class="qr-style-grid">
                             <div class="qr-style-item">
-                                <label>Цвет QR-кода</label>
-                                <input type="color" id="qrColor" class="form-control color-picker" value="#667eea">
+                                <label>🎨 Цвет QR-кода</label>
+                                <input type="color" id="qrColor" class="color-picker" value="#667eea">
                             </div>
                             <div class="qr-style-item">
-                                <label>Цвет фона</label>
-                                <input type="color" id="qrBgColor" class="form-control color-picker" value="#ffffff">
+                                <label>📄 Цвет фона</label>
+                                <input type="color" id="qrBgColor" class="color-picker" value="#ffffff">
                             </div>
                             <div class="qr-style-item">
-                                <label>Размер (px)</label>
-                                <input type="range" id="qrSize" class="form-range" min="100" max="800" value="200">
+                                <label>🔘 Форма точек</label>
+                                <select id="qrDotsStyle" class="form-control">
+                                    <option value="square">Квадратные</option>
+                                    <option value="rounded">Скругленные</option>
+                                    <option value="dots">Круглые</option>
+                                    <option value="classy">Классические</option>
+                                    <option value="classy-rounded">Классические скругленные</option>
+                                </select>
+                            </div>
+                            <div class="qr-style-item">
+                                <label>◼️ Форма уголков</label>
+                                <select id="qrCornersStyle" class="form-control">
+                                    <option value="square">Квадратные</option>
+                                    <option value="rounded">Скругленные</option>
+                                    <option value="extra-rounded">Максимально скругленные</option>
+                                </select>
+                            </div>
+                            <div class="qr-style-item">
+                                <label>📏 Размер (px)</label>
+                                <input type="range" id="qrSize" class="form-range" min="100" max="600" value="200">
                                 <span id="qrSizeValue">200px</span>
                             </div>
                             <div class="qr-style-item">
-                                <label>Отступ</label>
+                                <label>🖼️ Отступ</label>
                                 <input type="range" id="qrMargin" class="form-range" min="0" max="10" value="1">
                                 <span id="qrMarginValue">1</span>
+                            </div>
+                            <div class="qr-style-item">
+                                <label>🏷️ Логотип (опционально)</label>
+                                <div id="logoUploadArea" class="logo-upload-area" onclick="document.getElementById('qrLogoInput').click()">
+                                    <span>📁 Нажмите для загрузки</span>
+                                    <input type="file" id="qrLogoInput" accept="image/png,image/jpeg,image/webp" style="display: none;">
+                                    <img id="logoPreview" class="logo-preview" style="display: none;">
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <div id="qrFreeNotice" class="qr-free-notice" style="display: none;">
-                        <span>💡 Стилизация QR-кодов доступна на тарифах <a href="/pricing">Премиум и Бизнес</a></span>
+                        <span>💡 Стилизация QR-кодов доступна на тарифах <a href="/pricing">⭐ Премиум и 💼 Бизнес</a></span>
                     </div>
                     
                     <button onclick="generateQRCode()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;">
@@ -398,21 +465,15 @@
     </div>
 
     <script>
-        // Функция экранирования HTML (защита от XSS)
+        let currentUserPlan = 'free';
+        let currentLogoBase64 = null;
+
+        // Функция экранирования HTML
         function escapeHtml(text) {
             if (!text) return '';
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
-
-        // Глобальная переменная для хранения тарифа пользователя
-        let currentUserPlan = 'free';
 
         // Проверка авторизации
         async function checkAuth() {
@@ -429,7 +490,6 @@
                     return false;
                 }
             } catch(e) {
-                console.error('Ошибка проверки авторизации:', e);
                 showAuthButtons();
                 return false;
             }
@@ -441,25 +501,8 @@
             authorizedBlock.style.display = 'flex';
             document.getElementById('userGreeting').textContent = username;
             document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
-            
             const getStartedBtn = document.getElementById('getStartedBtn');
             if (getStartedBtn) getStartedBtn.style.display = 'none';
-        }
-
-        // Обновление панели стилизации QR-кода в зависимости от тарифа
-        function updateQRStylePanel() {
-            const stylePanel = document.getElementById('qrStylePanel');
-            const freeNotice = document.getElementById('qrFreeNotice');
-            
-            if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
-                // Пользователь с премиум/бизнес - показываем панель стилизации
-                if (stylePanel) stylePanel.style.display = 'block';
-                if (freeNotice) freeNotice.style.display = 'none';
-            } else {
-                // Бесплатный тариф - скрываем панель, показываем уведомление
-                if (stylePanel) stylePanel.style.display = 'none';
-                if (freeNotice) freeNotice.style.display = 'block';
-            }
         }
 
         function showAuthButtons() {
@@ -468,31 +511,38 @@
         }
 
         async function logout() {
-            try {
-                await fetch('/api/logout', { method: 'POST' });
-            } catch(e) {
-                console.error('Ошибка выхода:', e);
-            }
+            try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
             window.location.href = '/';
         }
 
+        // Обновление панели стилизации в зависимости от тарифа
+        function updateQRStylePanel() {
+            const stylePanel = document.getElementById('qrStylePanel');
+            const freeNotice = document.getElementById('qrFreeNotice');
+            
+            if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
+                if (stylePanel) stylePanel.style.display = 'block';
+                if (freeNotice) freeNotice.style.display = 'none';
+            } else {
+                if (stylePanel) stylePanel.style.display = 'none';
+                if (freeNotice) freeNotice.style.display = 'block';
+            }
+        }
+
         // Переключение вкладок
-        function openTab(tabId) {
-            // Скрываем все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Убираем active со всех кнопок
-            document.querySelectorAll('.tablink').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Показываем выбранную вкладку
+        function openTab(tabId, event) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tablink').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            
-            // Активируем нажатую кнопку
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+            else {
+                document.querySelectorAll('.tablink').forEach(btn => {
+                    if ((tabId === 'shorten-tab' && btn.textContent.includes('Сократить')) ||
+                        (tabId === 'qrcode-tab' && btn.textContent.includes('QR'))) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
         }
 
         // Сокращение ссылки
@@ -508,7 +558,6 @@
                 return;
             }
             
-            // Проверка авторизации
             const auth = await checkAuth();
             if (!auth) {
                 resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для сокращения ссылок <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</div>';
@@ -549,12 +598,11 @@
                     resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
                 }
             } catch(e) {
-                console.error('Ошибка:', e);
                 resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка соединения с сервером</div>';
             }
         }
 
-        // Генерация QR-кода
+        // Генерация QR-кода с полной стилизацией
         async function generateQRCode() {
             const urlInput = document.getElementById('qrcodeInput');
             const url = urlInput.value.trim();
@@ -565,27 +613,31 @@
                 return;
             }
             
-            // Проверка авторизации
             const auth = await checkAuth();
             if (!auth) {
                 resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для создания QR-кода <a href="/login">войдите</a>.</div>';
                 return;
             }
             
-            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация QR-кода...</span></div>';
+            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация стильного QR-кода...</span></div>';
             
             try {
-                // Собираем параметры стилизации (если доступны)
                 let qrUrl = `/api/qrcode?url=${encodeURIComponent(url)}`;
                 
-                // Добавляем параметры стилизации только для premium/business
+                // Добавляем параметры стилизации для Premium/Business
                 if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
                     const color = document.getElementById('qrColor')?.value || '#667eea';
                     const bgColor = document.getElementById('qrBgColor')?.value || '#ffffff';
                     const size = document.getElementById('qrSize')?.value || 200;
                     const margin = document.getElementById('qrMargin')?.value || 1;
+                    const dotsStyle = document.getElementById('qrDotsStyle')?.value || 'square';
+                    const cornersStyle = document.getElementById('qrCornersStyle')?.value || 'square';
                     
-                    qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}`;
+                    qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}&dotsStyle=${dotsStyle}&cornersStyle=${cornersStyle}`;
+                    
+                    if (currentLogoBase64) {
+                        qrUrl += `&logo=${encodeURIComponent(currentLogoBase64)}`;
+                    }
                 }
                 
                 const resp = await fetch(qrUrl);
@@ -594,25 +646,33 @@
                 if (resp.ok) {
                     let styleInfo = '';
                     if (data.options && (currentUserPlan === 'premium' || currentUserPlan === 'business')) {
-                        styleInfo = `<div class="qr-style-info" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 12px;">
-                            🎨 Цвет: ${data.options.color} | Фон: ${data.options.bgColor} | Размер: ${data.options.size}px
-                        </div>`;
+                        styleInfo = `
+                            <div class="qr-style-info" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 12px;">
+                                🎨 Точки: ${data.options.dotsStyle || 'square'} | 
+                                🎯 Уголки: ${data.options.cornersStyle || 'square'} |
+                                🖌️ Цвет: ${data.options.color || '#667eea'}
+                            </div>
+                        `;
                     }
                     
                     resultDiv.innerHTML = `
                         <div class="qr-result-card">
-                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code">
+                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code" style="max-width: 100%;">
                             <div class="qr-url">${escapeHtml(url)}</div>
                             ${styleInfo}
                             <div class="download-buttons">
-                                <button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-sm btn-secondary">📥 PNG</button>
+                                <button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-sm btn-secondary">📥 Скачать PNG</button>
                                 <button onclick="copyQRCode('${escapeHtml(data.qrImageData)}')" class="btn btn-sm btn-secondary">📋 Копировать</button>
                             </div>
                         </div>
                     `;
                     urlInput.value = '';
                 } else {
-                    resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
+                    if (data.requiresUpgrade) {
+                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Перейти на Премиум →</a></div>`;
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
+                    }
                 }
             } catch(e) {
                 console.error('Ошибка:', e);
@@ -632,22 +692,19 @@
         async function copyQRCode(dataUrl) {
             try {
                 const blob = await (await fetch(dataUrl)).blob();
-                await navigator.clipboard.write([
-                    new ClipboardItem({ [blob.type]: blob })
-                ]);
+                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
                 alert('✅ QR-код скопирован в буфер обмена!');
             } catch(e) {
                 alert('❌ Не удалось скопировать QR-код');
             }
         }
 
-        // Копировать текст в буфер
+        // Копировать текст
         async function copyToClipboard(text) {
             try {
                 await navigator.clipboard.writeText(text);
                 alert('✅ Ссылка скопирована!');
             } catch(e) {
-                // Fallback для старых браузеров
                 const textarea = document.createElement('textarea');
                 textarea.value = text;
                 document.body.appendChild(textarea);
@@ -658,16 +715,37 @@
             }
         }
 
+        // Обработка загрузки логотипа
+        function initLogoUpload() {
+            const logoInput = document.getElementById('qrLogoInput');
+            const logoPreview = document.getElementById('logoPreview');
+            
+            if (logoInput) {
+                logoInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            currentLogoBase64 = event.target.result;
+                            logoPreview.src = currentLogoBase64;
+                            logoPreview.style.display = 'block';
+                            logoPreview.style.width = '40px';
+                            logoPreview.style.height = '40px';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        }
+
         // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
-            
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-theme');
                 if (themeToggle) themeToggle.checked = true;
             }
-            
             if (themeToggle) {
                 themeToggle.addEventListener('change', function() {
                     if (this.checked) {
@@ -681,38 +759,33 @@
             }
         })();
 
-        // Инициализация при загрузке
+        // Обработчики для ползунков
+        const qrSizeSlider = document.getElementById('qrSize');
+        const qrSizeValue = document.getElementById('qrSizeValue');
+        if (qrSizeSlider && qrSizeValue) {
+            qrSizeSlider.addEventListener('input', () => { qrSizeValue.textContent = `${qrSizeSlider.value}px`; });
+        }
+        
+        const qrMarginSlider = document.getElementById('qrMargin');
+        const qrMarginValue = document.getElementById('qrMarginValue');
+        if (qrMarginSlider && qrMarginValue) {
+            qrMarginSlider.addEventListener('input', () => { qrMarginValue.textContent = qrMarginSlider.value; });
+        }
+
+        // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
+            initLogoUpload();
             
-            // Обработка Enter в полях ввода
             document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') shortenUrl();
             });
-            
             document.getElementById('qrcodeInput')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') generateQRCode();
             });
-            
-            // Обработчики для ползунков стилизации QR-кода
-            const qrSizeSlider = document.getElementById('qrSize');
-            const qrSizeValue = document.getElementById('qrSizeValue');
-            if (qrSizeSlider && qrSizeValue) {
-                qrSizeSlider.addEventListener('input', () => {
-                    qrSizeValue.textContent = `${qrSizeSlider.value}px`;
-                });
-            }
-            
-            const qrMarginSlider = document.getElementById('qrMargin');
-            const qrMarginValue = document.getElementById('qrMarginValue');
-            if (qrMarginSlider && qrMarginValue) {
-                qrMarginSlider.addEventListener('input', () => {
-                    qrMarginValue.textContent = qrMarginSlider.value;
-                });
-            }
         });
 
-        // Глобальные функции для onclick
+        // Глобальные функции
         window.openTab = openTab;
         window.shortenUrl = shortenUrl;
         window.generateQRCode = generateQRCode;
@@ -722,7 +795,6 @@
         window.logout = logout;
     </script>
 
-    <!-- Виджет чата поддержки -->
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>
