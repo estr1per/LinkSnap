@@ -423,7 +423,7 @@ app.use(express.static('public', {
     lastModified: true 
 }));
 
-// CORS настройки - ИСПРАВЛЕНО
+// CORS настройки
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     const allowedOrigins = [
@@ -446,7 +446,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// ========== НАСТРОЙКА СЕССИЙ - ИСПРАВЛЕНО ==========
+// ========== НАСТРОЙКА СЕССИЙ ==========
 app.use(session({
     secret: process.env.SESSION_SECRET || 'linksnap-secret-key-2024-secure',
     resave: false,
@@ -524,7 +524,6 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Некорректный email адрес' });
         }
         
-        // ПРОВЕРКА НА СУЩЕСТВОВАНИЕ
         const existing = await new Promise((resolve) => {
             db.get('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username], (err, result) => {
                 resolve(result);
@@ -867,10 +866,7 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
     }
 });
 
-// ========== QR-КОДЫ С ПОЛНОЙ СТИЛИЗАЦИЕЙ ==========
-const QRCodeStyling = require('qr-code-styling');
-
-// Генерация QR-кода с поддержкой всех стилей
+// ========== API QR-КОДЫ (исправленная версия) ==========
 app.get('/api/qrcode', requireAuth, async (req, res) => {
     try {
         const {
@@ -878,18 +874,14 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             color = '#667eea', 
             bgColor = '#ffffff', 
             size = 200, 
-            margin = 1,
-            dotsStyle = 'square',
-            cornersStyle = 'square',
-            logo
+            margin = 1
         } = req.query;
         
         if (!url) return res.status(400).json({ error: 'URL обязателен' });
         
         // Проверяем, использует ли пользователь премиум-стилизацию
         const isStyled = color !== '#667eea' || bgColor !== '#ffffff' || 
-                         size !== 200 || margin !== 1 || logo ||
-                         dotsStyle !== 'square' || cornersStyle !== 'square';
+                         size !== 200 || margin !== 1;
         
         if (isStyled) {
             const user = await new Promise((resolve) => {
@@ -918,46 +910,19 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
             
             try {
-                // Настройки стилизации QR-кода
+                // Настройки QR-кода
                 const qrOptions = {
-                    width: parseInt(size) || 200,
-                    height: parseInt(size) || 200,
+                    errorCorrectionLevel: 'H',
                     margin: parseInt(margin) || 1,
-                    image: logo || undefined,
-                    dotsOptions: {
-                        color: color || '#667eea',
-                        type: dotsStyle || 'square'
-                    },
-                    cornersSquareOptions: {
-                        color: color || '#667eea',
-                        type: cornersStyle || 'square'
-                    },
-                    cornersDotOptions: {
-                        color: color || '#667eea',
-                        type: cornersStyle === 'rounded' ? 'dot' : 'square'
-                    },
-                    backgroundOptions: {
-                        color: bgColor || '#ffffff'
-                    },
-                    imageOptions: {
-                        crossOrigin: 'anonymous',
-                        margin: 5
-                    },
-                    qrOptions: {
-                        errorCorrectionLevel: 'H'  // Высокая коррекция ошибок для логотипов
+                    width: parseInt(size) || 200,
+                    color: {
+                        dark: color || '#667eea',
+                        light: bgColor || '#ffffff'
                     }
                 };
                 
                 // Генерируем QR-код в base64
-                const qrCode = new QRCodeStyling(qrOptions);
-                
-                // Ждем генерации
-                const qrImageData = await new Promise((resolve, reject) => {
-                    qrCode.getRawData('png').then(buffer => {
-                        const base64 = buffer.toString('base64');
-                        resolve(`data:image/png;base64,${base64}`);
-                    }).catch(reject);
-                });
+                const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
                 
                 // Сохраняем в БД
                 await new Promise((resolve, reject) => {
@@ -975,7 +940,7 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
                 res.json({ 
                     success: true, 
                     qrImageData,
-                    options: { color, bgColor, size: parseInt(size), margin: parseInt(margin), dotsStyle, cornersStyle }
+                    options: { color, bgColor, size: parseInt(size), margin: parseInt(margin) }
                 });
                 
             } catch (genError) {
@@ -1433,11 +1398,9 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
     );
 });
 
-
-
 // ========== АДМИН ПАНЕЛЬ ==========
 
-// Вход в админку - проверяем пароль из БД
+// Вход в админку
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -1446,7 +1409,6 @@ app.post('/api/admin/login', async (req, res) => {
             return res.status(400).json({ error: 'Логин и пароль обязательны' });
         }
         
-        // Проверяем в базе данных
         db.get('SELECT * FROM admins WHERE username = $1', [username], async (err, admin) => {
             if (err || !admin) {
                 return res.status(401).json({ error: 'Неверный логин или пароль' });
@@ -1457,7 +1419,6 @@ app.post('/api/admin/login', async (req, res) => {
                 return res.status(401).json({ error: 'Неверный логин или пароль' });
             }
             
-            // Сохраняем админ сессию
             req.session.adminId = admin.id;
             req.session.adminUsername = admin.username;
             
@@ -1472,14 +1433,12 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
-// Выход из админки
 app.post('/api/admin/logout', (req, res) => {
     req.session.adminId = null;
     req.session.adminUsername = null;
     res.json({ success: true, message: 'Выход выполнен' });
 });
 
-// Проверка авторизации админа
 app.get('/api/admin/me', (req, res) => {
     if (req.session.adminId) {
         db.get('SELECT id, username, email FROM admins WHERE id = $1', [req.session.adminId], (err, admin) => {
@@ -1621,6 +1580,271 @@ app.patch('/api/admin/users/:userId/plan', requireAdminAuth, (req, res) => {
 
 // ========== КОНВЕРТЕР ФАЙЛОВ ==========
 
+const imageFormats = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'avif'];
+const documentFormats = ['pdf', 'docx', 'txt', 'md', 'html'];
+
+// Конвертация ИЗОБРАЖЕНИЙ
+app.post('/api/convert/images', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
+    let tempFiles = [];
+    
+    try {
+        const { targetFormat, quality = 90, width, height } = req.body;
+        const files = req.files;
+        
+        if (!files || files.length === 0) {
+            return res.status(400).json({ error: 'Файлы не загружены' });
+        }
+        if (!targetFormat || !imageFormats.includes(targetFormat)) {
+            return res.status(400).json({ error: 'Неподдерживаемый формат изображения' });
+        }
+        
+        const results = [];
+        const errors = [];
+        
+        for (const file of files) {
+            const inputPath = file.path;
+            tempFiles.push(inputPath);
+            
+            const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+            const outputFilename = `${baseName}.${targetFormat === 'jpeg' ? 'jpg' : targetFormat}`;
+            const outputPath = path.join(uploadDir, outputFilename);
+            tempFiles.push(outputPath);
+            
+            try {
+                let pipeline = sharp(inputPath);
+                
+                if (width || height) {
+                    const options = {};
+                    if (width) options.width = parseInt(width);
+                    if (height) options.height = parseInt(height);
+                    pipeline = pipeline.resize(options);
+                }
+                
+                const qualityVal = parseInt(quality);
+                switch (targetFormat) {
+                    case 'jpg': case 'jpeg':
+                        pipeline = pipeline.jpeg({ quality: qualityVal, progressive: true });
+                        break;
+                    case 'png':
+                        pipeline = pipeline.png({ compressionLevel: Math.floor((100 - qualityVal) / 10) });
+                        break;
+                    case 'webp':
+                        pipeline = pipeline.webp({ quality: qualityVal });
+                        break;
+                    case 'avif':
+                        pipeline = pipeline.avif({ quality: qualityVal });
+                        break;
+                    case 'bmp': pipeline = pipeline.bmp(); break;
+                    case 'tiff': pipeline = pipeline.tiff(); break;
+                }
+                
+                await pipeline.toFile(outputPath);
+                results.push({ original: file.originalname, converted: outputFilename, success: true, size: (await fs.promises.stat(outputPath)).size });
+            } catch (err) {
+                errors.push({ original: file.originalname, error: err.message });
+                await cleanupTempFile(outputPath);
+            }
+        }
+        
+        if (results.length === 0) {
+            await cleanupTempFiles(tempFiles);
+            return res.status(400).json({ error: 'Не удалось сконвертировать ни один файл', details: errors });
+        }
+        
+        if (results.length === 1 && errors.length === 0) {
+            const filePath = path.join(uploadDir, results[0].converted);
+            res.download(filePath, results[0].converted, async () => {
+                await cleanupTempFiles(tempFiles);
+            });
+            return;
+        }
+        
+        const zipName = `converted_images_${Date.now()}.zip`;
+        const zipPath = path.join(uploadDir, zipName);
+        tempFiles.push(zipPath);
+        
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        archive.pipe(output);
+        
+        for (const result of results) {
+            const filePath = path.join(uploadDir, result.converted);
+            if (fs.existsSync(filePath)) {
+                archive.file(filePath, { name: result.converted });
+            }
+        }
+        
+        await archive.finalize();
+        await new Promise((resolve) => output.on('close', resolve));
+        
+        res.download(zipPath, zipName, async () => {
+            await cleanupTempFiles(tempFiles);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка конвертации изображений:', error);
+        await cleanupTempFiles(tempFiles);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Конвертация ДОКУМЕНТОВ
+app.post('/api/convert/documents', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
+    let tempFiles = [];
+    
+    try {
+        const { targetFormat } = req.body;
+        const files = req.files;
+        
+        if (!files || files.length === 0) {
+            return res.status(400).json({ error: 'Файлы не загружены' });
+        }
+        if (!targetFormat || !documentFormats.includes(targetFormat)) {
+            return res.status(400).json({ error: 'Неподдерживаемый формат документа' });
+        }
+        
+        const results = [];
+        const errors = [];
+        
+        for (const file of files) {
+            const inputPath = file.path;
+            tempFiles.push(inputPath);
+            
+            const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+            const outputFilename = `${baseName}.${targetFormat}`;
+            const outputPath = path.join(uploadDir, outputFilename);
+            tempFiles.push(outputPath);
+            
+            try {
+                const ext = path.extname(file.originalname).toLowerCase();
+                const mimeType = file.mimetype;
+                
+                if (targetFormat === 'pdf') {
+                    let text = '';
+                    
+                    if (ext === '.txt' || mimeType === 'text/plain') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    } else if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                        const buffer = await fs.promises.readFile(inputPath);
+                        const result = await mammoth.extractRawText({ buffer });
+                        text = result.value;
+                    } else if (ext === '.md' || mimeType === 'text/markdown') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    } else if (ext === '.html' || mimeType === 'text/html') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                        text = text.replace(/<[^>]*>/g, '');
+                    } else {
+                        throw new Error(`Конвертация из ${ext} в PDF не поддерживается`);
+                    }
+                    
+                    const pdfDoc = new PDFDocument({ margin: 50 });
+                    const writeStream = fs.createWriteStream(outputPath);
+                    pdfDoc.pipe(writeStream);
+                    pdfDoc.fontSize(12).text(text, { align: 'left', lineGap: 5 });
+                    pdfDoc.end();
+                    
+                    await new Promise((resolve) => writeStream.on('finish', resolve));
+                    results.push({ original: file.originalname, converted: outputFilename, success: true });
+                    
+                } else if (targetFormat === 'docx') {
+                    let text = '';
+                    
+                    if (ext === '.txt' || mimeType === 'text/plain') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    } else if (ext === '.md' || mimeType === 'text/markdown') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    } else if (ext === '.html' || mimeType === 'text/html') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                        text = text.replace(/<[^>]*>/g, '');
+                    } else if (ext === '.pdf' || mimeType === 'application/pdf') {
+                        throw new Error('PDF в DOCX не поддерживается (требуется внешний сервис)');
+                    } else {
+                        throw new Error(`Конвертация из ${ext} в DOCX не поддерживается`);
+                    }
+                    
+                    const { Document, Packer, Paragraph, TextRun } = require('docx');
+                    const lines = text.split('\n');
+                    const paragraphs = lines.map(line => {
+                        return new Paragraph({
+                            children: [new TextRun({ text: line || ' ', size: 24 })],
+                            spacing: { after: 200 }
+                        });
+                    });
+                    
+                    const doc = new Document({ sections: [{ children: paragraphs }] });
+                    const buffer = await Packer.toBuffer(doc);
+                    await fs.promises.writeFile(outputPath, buffer);
+                    results.push({ original: file.originalname, converted: outputFilename, success: true });
+                    
+                } else if (targetFormat === 'txt') {
+                    let text = '';
+                    
+                    if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                        const buffer = await fs.promises.readFile(inputPath);
+                        const result = await mammoth.extractRawText({ buffer });
+                        text = result.value;
+                    } else if (ext === '.md' || mimeType === 'text/markdown') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    } else if (ext === '.html' || mimeType === 'text/html') {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                        text = text.replace(/<[^>]*>/g, '');
+                    } else if (ext === '.pdf') {
+                        throw new Error('PDF в TXT не поддерживается');
+                    } else {
+                        text = await fs.promises.readFile(inputPath, 'utf8');
+                    }
+                    
+                    await fs.promises.writeFile(outputPath, text, 'utf8');
+                    results.push({ original: file.originalname, converted: outputFilename, success: true });
+                }
+                
+            } catch (err) {
+                errors.push({ original: file.originalname, error: err.message });
+                await cleanupTempFile(outputPath);
+            }
+        }
+        
+        if (results.length === 0) {
+            await cleanupTempFiles(tempFiles);
+            return res.status(400).json({ error: 'Не удалось сконвертировать ни один файл', details: errors });
+        }
+        
+        if (results.length === 1 && errors.length === 0) {
+            const filePath = path.join(uploadDir, results[0].converted);
+            res.download(filePath, results[0].converted, async () => {
+                await cleanupTempFiles(tempFiles);
+            });
+            return;
+        }
+        
+        const zipName = `converted_docs_${Date.now()}.zip`;
+        const zipPath = path.join(uploadDir, zipName);
+        tempFiles.push(zipPath);
+        
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        archive.pipe(output);
+        
+        for (const result of results) {
+            const filePath = path.join(uploadDir, result.converted);
+            if (fs.existsSync(filePath)) {
+                archive.file(filePath, { name: result.converted });
+            }
+        }
+        
+        await archive.finalize();
+        await new Promise((resolve) => output.on('close', resolve));
+        
+        res.download(zipPath, zipName, async () => {
+            await cleanupTempFiles(tempFiles);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка конвертации документов:', error);
+        await cleanupTempFiles(tempFiles);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // ========== РЕДАКТОР ИЗОБРАЖЕНИЙ ==========
 app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (req, res) => {
@@ -1804,281 +2028,6 @@ app.post('/api/image/filter', requireAuth, uploadSingle.single('image'), async (
         res.status(500).json({ error: error.message });
     }
 });
-// ========== РАБОЧИЙ КОНВЕРТЕР ФАЙЛОВ ==========
-
-
-// Поддерживаемые форматы
-const imageFormats = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'avif'];
-const documentFormats = ['pdf', 'docx', 'txt', 'md', 'html'];
-
-// Конвертация ИЗОБРАЖЕНИЙ (работает через sharp)
-app.post('/api/convert/images', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
-    let tempFiles = [];
-    
-    try {
-        const { targetFormat, quality = 90, width, height } = req.body;
-        const files = req.files;
-        
-        if (!files || files.length === 0) {
-            return res.status(400).json({ error: 'Файлы не загружены' });
-        }
-        if (!targetFormat || !imageFormats.includes(targetFormat)) {
-            return res.status(400).json({ error: 'Неподдерживаемый формат изображения' });
-        }
-        
-        const results = [];
-        const errors = [];
-        
-        for (const file of files) {
-            const inputPath = file.path;
-            tempFiles.push(inputPath);
-            
-            const baseName = file.originalname.replace(/\.[^/.]+$/, '');
-            const outputFilename = `${baseName}.${targetFormat === 'jpeg' ? 'jpg' : targetFormat}`;
-            const outputPath = path.join(uploadDir, outputFilename);
-            tempFiles.push(outputPath);
-            
-            try {
-                let pipeline = sharp(inputPath);
-                
-                // Изменение размера если указано
-                if (width || height) {
-                    const options = {};
-                    if (width) options.width = parseInt(width);
-                    if (height) options.height = parseInt(height);
-                    pipeline = pipeline.resize(options);
-                }
-                
-                // Качество
-                const qualityVal = parseInt(quality);
-                switch (targetFormat) {
-                    case 'jpg': case 'jpeg':
-                        pipeline = pipeline.jpeg({ quality: qualityVal, progressive: true });
-                        break;
-                    case 'png':
-                        pipeline = pipeline.png({ compressionLevel: Math.floor((100 - qualityVal) / 10) });
-                        break;
-                    case 'webp':
-                        pipeline = pipeline.webp({ quality: qualityVal });
-                        break;
-                    case 'avif':
-                        pipeline = pipeline.avif({ quality: qualityVal });
-                        break;
-                    case 'bmp': pipeline = pipeline.bmp(); break;
-                    case 'tiff': pipeline = pipeline.tiff(); break;
-                }
-                
-                await pipeline.toFile(outputPath);
-                results.push({ original: file.originalname, converted: outputFilename, success: true, size: (await fs.promises.stat(outputPath)).size });
-            } catch (err) {
-                errors.push({ original: file.originalname, error: err.message });
-                await cleanupTempFile(outputPath);
-            }
-        }
-        
-        if (results.length === 0) {
-            await cleanupTempFiles(tempFiles);
-            return res.status(400).json({ error: 'Не удалось сконвертировать ни один файл', details: errors });
-        }
-        
-        if (results.length === 1 && errors.length === 0) {
-            const filePath = path.join(uploadDir, results[0].converted);
-            res.download(filePath, results[0].converted, async () => {
-                await cleanupTempFiles(tempFiles);
-            });
-            return;
-        }
-        
-        const zipName = `converted_images_${Date.now()}.zip`;
-        const zipPath = path.join(uploadDir, zipName);
-        tempFiles.push(zipPath);
-        
-        const output = fs.createWriteStream(zipPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        archive.pipe(output);
-        
-        for (const result of results) {
-            const filePath = path.join(uploadDir, result.converted);
-            if (fs.existsSync(filePath)) {
-                archive.file(filePath, { name: result.converted });
-            }
-        }
-        
-        await archive.finalize();
-        await new Promise((resolve) => output.on('close', resolve));
-        
-        res.download(zipPath, zipName, async () => {
-            await cleanupTempFiles(tempFiles);
-        });
-        
-    } catch (error) {
-        console.error('Ошибка конвертации изображений:', error);
-        await cleanupTempFiles(tempFiles);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Конвертация ДОКУМЕНТОВ (работает через mammoth, pdfkit)
-app.post('/api/convert/documents', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
-    let tempFiles = [];
-    
-    try {
-        const { targetFormat } = req.body;
-        const files = req.files;
-        
-        if (!files || files.length === 0) {
-            return res.status(400).json({ error: 'Файлы не загружены' });
-        }
-        if (!targetFormat || !documentFormats.includes(targetFormat)) {
-            return res.status(400).json({ error: 'Неподдерживаемый формат документа' });
-        }
-        
-        const results = [];
-        const errors = [];
-        
-        for (const file of files) {
-            const inputPath = file.path;
-            tempFiles.push(inputPath);
-            
-            const baseName = file.originalname.replace(/\.[^/.]+$/, '');
-            const outputFilename = `${baseName}.${targetFormat}`;
-            const outputPath = path.join(uploadDir, outputFilename);
-            tempFiles.push(outputPath);
-            
-            try {
-                const ext = path.extname(file.originalname).toLowerCase();
-                const mimeType = file.mimetype;
-                
-                if (targetFormat === 'pdf') {
-                    // Конвертация в PDF
-                    let text = '';
-                    
-                    if (ext === '.txt' || mimeType === 'text/plain') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        const buffer = await fs.promises.readFile(inputPath);
-                        const result = await mammoth.extractRawText({ buffer });
-                        text = result.value;
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else {
-                        throw new Error(`Конвертация из ${ext} в PDF не поддерживается`);
-                    }
-                    
-                    const pdfDoc = new PDFDocument({ margin: 50 });
-                    const writeStream = fs.createWriteStream(outputPath);
-                    pdfDoc.pipe(writeStream);
-                    pdfDoc.fontSize(12).text(text, { align: 'left', lineGap: 5 });
-                    pdfDoc.end();
-                    
-                    await new Promise((resolve) => writeStream.on('finish', resolve));
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                    
-                } else if (targetFormat === 'docx') {
-                    // Конвертация в DOCX
-                    let text = '';
-                    
-                    if (ext === '.txt' || mimeType === 'text/plain') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else if (ext === '.pdf' || mimeType === 'application/pdf') {
-                        throw new Error('PDF в DOCX не поддерживается (требуется внешний сервис)');
-                    } else {
-                        throw new Error(`Конвертация из ${ext} в DOCX не поддерживается`);
-                    }
-                    
-                    const { Document, Packer, Paragraph, TextRun } = require('docx');
-                    const lines = text.split('\n');
-                    const paragraphs = lines.map(line => {
-                        return new Paragraph({
-                            children: [new TextRun({ text: line || ' ', size: 24 })],
-                            spacing: { after: 200 }
-                        });
-                    });
-                    
-                    const doc = new Document({ sections: [{ children: paragraphs }] });
-                    const buffer = await Packer.toBuffer(doc);
-                    await fs.promises.writeFile(outputPath, buffer);
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                    
-                } else if (targetFormat === 'txt') {
-                    // Конвертация в TXT
-                    let text = '';
-                    
-                    if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        const buffer = await fs.promises.readFile(inputPath);
-                        const result = await mammoth.extractRawText({ buffer });
-                        text = result.value;
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else if (ext === '.pdf') {
-                        throw new Error('PDF в TXT не поддерживается');
-                    } else {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    }
-                    
-                    await fs.promises.writeFile(outputPath, text, 'utf8');
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                }
-                
-            } catch (err) {
-                errors.push({ original: file.originalname, error: err.message });
-                await cleanupTempFile(outputPath);
-            }
-        }
-        
-        if (results.length === 0) {
-            await cleanupTempFiles(tempFiles);
-            return res.status(400).json({ error: 'Не удалось сконвертировать ни один файл', details: errors });
-        }
-        
-        if (results.length === 1 && errors.length === 0) {
-            const filePath = path.join(uploadDir, results[0].converted);
-            res.download(filePath, results[0].converted, async () => {
-                await cleanupTempFiles(tempFiles);
-            });
-            return;
-        }
-        
-        const zipName = `converted_docs_${Date.now()}.zip`;
-        const zipPath = path.join(uploadDir, zipName);
-        tempFiles.push(zipPath);
-        
-        const output = fs.createWriteStream(zipPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        archive.pipe(output);
-        
-        for (const result of results) {
-            const filePath = path.join(uploadDir, result.converted);
-            if (fs.existsSync(filePath)) {
-                archive.file(filePath, { name: result.converted });
-            }
-        }
-        
-        await archive.finalize();
-        await new Promise((resolve) => output.on('close', resolve));
-        
-        res.download(zipPath, zipName, async () => {
-            await cleanupTempFiles(tempFiles);
-        });
-        
-    } catch (error) {
-        console.error('Ошибка конвертации документов:', error);
-        await cleanupTempFiles(tempFiles);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 
 // ========== РЕДИРЕКТ ==========
 app.get('/:shortCode', (req, res) => {

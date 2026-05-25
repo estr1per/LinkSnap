@@ -23,7 +23,6 @@
     "pdfkit": "^0.15.0",
     "pg": "^8.20.0",
     "qrcode": "^1.5.3",
-    "qr-code-styling": "^1.6.0",
     "sharp": "^0.33.2"
   },
   "devDependencies": {

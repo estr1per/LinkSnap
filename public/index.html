@@ -199,7 +199,7 @@
         }
         .qr-style-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
         }
         .qr-style-item {
@@ -279,6 +279,33 @@
             border-radius: 8px;
         }
         
+        /* Стили для сообщений о плане */
+        .plan-upgrade-notice {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #3730a3;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .dark-theme .plan-upgrade-notice {
+            background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+            color: #a78bfa;
+        }
+        .plan-upgrade-notice a {
+            color: #4f46e5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .dark-theme .plan-upgrade-notice a {
+            color: #818cf8;
+        }
+        
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.5rem; }
             .feature-grid { grid-template-columns: 1fr; }
@@ -331,8 +358,8 @@
         </div>
 
         <div class="tabs">
-            <button class="tablink active" onclick="openTab('shorten-tab')">🔗 Сократить ссылку</button>
-            <button class="tablink" onclick="openTab('qrcode-tab')">📱 QR‑код</button>
+            <button class="tablink active" onclick="openTab('shorten-tab', event)">🔗 Сократить ссылку</button>
+            <button class="tablink" onclick="openTab('qrcode-tab', event)">📱 QR‑код</button>
         </div>
 
         <!-- Вкладка сокращения ссылок -->
@@ -365,6 +392,12 @@
                         <input type="url" id="qrcodeInput" class="form-control form-control-lg" placeholder="https://example.com">
                     </div>
                     
+                    <!-- Уведомление о текущем плане -->
+                    <div id="planNotice" class="plan-upgrade-notice" style="display: none;">
+                        <span>⭐ Ваш тариф: <strong id="currentPlanName">Бесплатный</strong></span>
+                        <a href="/pricing">⬆️ Улучшить тариф</a>
+                    </div>
+                    
                     <!-- Панель стилизации QR-кода (доступна только для Premium/Business) -->
                     <div id="qrStylePanel" class="qr-style-panel" style="display: none;">
                         <div class="qr-style-header">
@@ -381,24 +414,6 @@
                                 <input type="color" id="qrBgColor" class="color-picker" value="#ffffff">
                             </div>
                             <div class="qr-style-item">
-                                <label>🔘 Форма точек</label>
-                                <select id="qrDotsStyle" class="form-control">
-                                    <option value="square">Квадратные</option>
-                                    <option value="rounded">Скругленные</option>
-                                    <option value="dots">Круглые</option>
-                                    <option value="classy">Классические</option>
-                                    <option value="classy-rounded">Классические скругленные</option>
-                                </select>
-                            </div>
-                            <div class="qr-style-item">
-                                <label>◼️ Форма уголков</label>
-                                <select id="qrCornersStyle" class="form-control">
-                                    <option value="square">Квадратные</option>
-                                    <option value="rounded">Скругленные</option>
-                                    <option value="extra-rounded">Максимально скругленные</option>
-                                </select>
-                            </div>
-                            <div class="qr-style-item">
                                 <label>📏 Размер (px)</label>
                                 <input type="range" id="qrSize" class="form-range" min="100" max="600" value="200">
                                 <span id="qrSizeValue">200px</span>
@@ -408,19 +423,11 @@
                                 <input type="range" id="qrMargin" class="form-range" min="0" max="10" value="1">
                                 <span id="qrMarginValue">1</span>
                             </div>
-                            <div class="qr-style-item">
-                                <label>🏷️ Логотип (опционально)</label>
-                                <div id="logoUploadArea" class="logo-upload-area" onclick="document.getElementById('qrLogoInput').click()">
-                                    <span>📁 Нажмите для загрузки</span>
-                                    <input type="file" id="qrLogoInput" accept="image/png,image/jpeg,image/webp" style="display: none;">
-                                    <img id="logoPreview" class="logo-preview" style="display: none;">
-                                </div>
-                            </div>
                         </div>
                     </div>
                     
                     <div id="qrFreeNotice" class="qr-free-notice" style="display: none;">
-                        <span>💡 Стилизация QR-кодов доступна на тарифах <a href="/pricing">⭐ Премиум и 💼 Бизнес</a></span>
+                        <span>💡 Стилизация QR-кодов (цвет, размер, фон) доступна на тарифах <a href="/pricing">⭐ Премиум и 💼 Бизнес</a></span>
                     </div>
                     
                     <button onclick="generateQRCode()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;">
@@ -466,7 +473,7 @@
 
     <script>
         let currentUserPlan = 'free';
-        let currentLogoBase64 = null;
+        let currentUserName = '';
 
         // Функция экранирования HTML
         function escapeHtml(text) {
@@ -475,21 +482,24 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Проверка авторизации
+        // Проверка авторизации и получение плана
         async function checkAuth() {
             try {
                 const res = await fetch('/api/user');
                 if (res.ok) {
                     const user = await res.json();
                     currentUserPlan = user.plan_type || 'free';
+                    currentUserName = user.username;
                     showUserPanel(user.username);
                     updateQRStylePanel();
+                    updatePlanNotice();
                     return true;
                 } else {
                     showAuthButtons();
                     return false;
                 }
             } catch(e) {
+                console.error('Ошибка проверки авторизации:', e);
                 showAuthButtons();
                 return false;
             }
@@ -513,6 +523,23 @@
         async function logout() {
             try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
             window.location.href = '/';
+        }
+
+        // Обновление уведомления о плане
+        function updatePlanNotice() {
+            const notice = document.getElementById('planNotice');
+            const planNameSpan = document.getElementById('currentPlanName');
+            const planNames = { free: 'Бесплатный', premium: '⭐ Премиум', business: '💼 Бизнес' };
+            
+            if (planNameSpan) {
+                planNameSpan.textContent = planNames[currentUserPlan] || 'Бесплатный';
+            }
+            
+            if (notice && currentUserPlan === 'free') {
+                notice.style.display = 'flex';
+            } else if (notice) {
+                notice.style.display = 'none';
+            }
         }
 
         // Обновление панели стилизации в зависимости от тарифа
@@ -598,11 +625,12 @@
                     resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
                 }
             } catch(e) {
+                console.error('Ошибка:', e);
                 resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка соединения с сервером</div>';
             }
         }
 
-        // Генерация QR-кода с полной стилизацией
+        // Генерация QR-кода с поддержкой стилизации
         async function generateQRCode() {
             const urlInput = document.getElementById('qrcodeInput');
             const url = urlInput.value.trim();
@@ -619,7 +647,7 @@
                 return;
             }
             
-            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация стильного QR-кода...</span></div>';
+            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация QR-кода...</span></div>';
             
             try {
                 let qrUrl = `/api/qrcode?url=${encodeURIComponent(url)}`;
@@ -630,14 +658,8 @@
                     const bgColor = document.getElementById('qrBgColor')?.value || '#ffffff';
                     const size = document.getElementById('qrSize')?.value || 200;
                     const margin = document.getElementById('qrMargin')?.value || 1;
-                    const dotsStyle = document.getElementById('qrDotsStyle')?.value || 'square';
-                    const cornersStyle = document.getElementById('qrCornersStyle')?.value || 'square';
                     
-                    qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}&dotsStyle=${dotsStyle}&cornersStyle=${cornersStyle}`;
-                    
-                    if (currentLogoBase64) {
-                        qrUrl += `&logo=${encodeURIComponent(currentLogoBase64)}`;
-                    }
+                    qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}`;
                 }
                 
                 const resp = await fetch(qrUrl);
@@ -648,16 +670,16 @@
                     if (data.options && (currentUserPlan === 'premium' || currentUserPlan === 'business')) {
                         styleInfo = `
                             <div class="qr-style-info" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 12px;">
-                                🎨 Точки: ${data.options.dotsStyle || 'square'} | 
-                                🎯 Уголки: ${data.options.cornersStyle || 'square'} |
-                                🖌️ Цвет: ${data.options.color || '#667eea'}
+                                🎨 Цвет: ${data.options.color || '#667eea'} | 
+                                📄 Фон: ${data.options.bgColor || '#ffffff'} | 
+                                📏 Размер: ${data.options.size || 200}px
                             </div>
                         `;
                     }
                     
                     resultDiv.innerHTML = `
                         <div class="qr-result-card">
-                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code" style="max-width: 100%;">
+                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code" style="max-width: 100%; border-radius: 12px;">
                             <div class="qr-url">${escapeHtml(url)}</div>
                             ${styleInfo}
                             <div class="download-buttons">
@@ -670,6 +692,8 @@
                 } else {
                     if (data.requiresUpgrade) {
                         resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Перейти на Премиум →</a></div>`;
+                    } else if (data.limitsReached) {
+                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Улучшить тариф →</a></div>`;
                     } else {
                         resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
                     }
@@ -715,29 +739,6 @@
             }
         }
 
-        // Обработка загрузки логотипа
-        function initLogoUpload() {
-            const logoInput = document.getElementById('qrLogoInput');
-            const logoPreview = document.getElementById('logoPreview');
-            
-            if (logoInput) {
-                logoInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file && file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            currentLogoBase64 = event.target.result;
-                            logoPreview.src = currentLogoBase64;
-                            logoPreview.style.display = 'block';
-                            logoPreview.style.width = '40px';
-                            logoPreview.style.height = '40px';
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
-        }
-
         // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
@@ -775,8 +776,8 @@
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
-            initLogoUpload();
             
+            // Обработка Enter в полях ввода
             document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') shortenUrl();
             });
@@ -785,7 +786,7 @@
             });
         });
 
-        // Глобальные функции
+        // Глобальные функции для onclick
         window.openTab = openTab;
         window.shortenUrl = shortenUrl;
         window.generateQRCode = generateQRCode;
@@ -795,6 +796,7 @@
         window.logout = logout;
     </script>
 
+    <!-- Виджет чата поддержки -->
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>
