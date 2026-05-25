@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тарифы - LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
@@ -128,22 +129,11 @@
             font-size: var(--text-sm);
             color: var(--text-secondary);
         }
-        .features-list li::before {
-            content: "✓";
+        .features-list li i {
             width: 20px;
-            height: 20px;
-            background: var(--success-light);
             color: var(--success);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
         }
-        .features-list li.disabled::before {
-            content: "✗";
-            background: var(--danger-light);
+        .features-list li.disabled i {
             color: var(--danger);
         }
         .features-list li.disabled {
@@ -185,8 +175,6 @@
             transform: none;
             box-shadow: none;
         }
-        
-        /* Сравнительная таблица */
         .comparison-table {
             background: var(--bg-secondary);
             border-radius: var(--radius-2xl);
@@ -232,17 +220,10 @@
             color: var(--danger);
             font-weight: 600;
         }
-        
         @media (max-width: 768px) {
-            .pricing-grid {
-                grid-template-columns: 1fr;
-            }
-            .comparison-table {
-                padding: var(--space-lg);
-            }
-            .pricing-card {
-                padding: var(--space-xl);
-            }
+            .pricing-grid { grid-template-columns: 1fr; }
+            .comparison-table { padding: var(--space-lg); }
+            .pricing-card { padding: var(--space-xl); }
         }
     </style>
 </head>
@@ -250,7 +231,7 @@
     <div class="container">
         <header class="site-header">
             <div class="logo-container">
-                <span class="logo">💰</span>
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
                 <a href="/" class="site-title">LinkSnap</a>
             </div>
             <div class="user-nav">
@@ -259,31 +240,31 @@
                     <span class="user-name" id="username">Загрузка...</span>
                 </div>
                 <div class="theme-switch-wrapper">
-                    <span class="theme-icon">🌙</span>
+                    <i class="fas fa-moon theme-icon"></i>
                     <label class="theme-switch">
                         <input type="checkbox" id="themeToggle">
                         <span class="theme-slider"></span>
                     </label>
-                    <span class="theme-icon">☀️</span>
+                    <i class="fas fa-sun theme-icon"></i>
                 </div>
-                <a href="/profile" class="nav-btn">Профиль</a>
-                <a href="/dashboard" class="nav-btn">Аналитика</a>
-                <a href="/batch" class="nav-btn">Массовое</a>
-                <a href="/converter" class="nav-btn">Конвертер</a>
-                <a href="/image-editor" class="nav-btn">Редактор</a>
-                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                <a href="/profile" class="nav-btn"><i class="fas fa-user"></i> Профиль</a>
+                <a href="/dashboard" class="nav-btn"><i class="fas fa-chart-line"></i> Аналитика</a>
+                <a href="/batch" class="nav-btn"><i class="fas fa-layer-group"></i> Массовое</a>
+                <a href="/converter" class="nav-btn"><i class="fas fa-exchange-alt"></i> Конвертер</a>
+                <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </header>
 
         <div class="pricing-header">
-            <h1>Выберите подходящий тариф</h1>
-            <div class="subtitle">Используйте LinkSnap бесплатно или получите больше возможностей с премиум-планами</div>
+            <h1><i class="fas fa-tag"></i> Выберите подходящий тариф</h1>
+            <div class="subtitle"><i class="fas fa-gem"></i> Используйте LinkSnap бесплатно или получите больше возможностей с премиум-планами</div>
             <div class="currency-selector">
-                <label>💰 Валюта:</label>
+                <label><i class="fas fa-money-bill-wave"></i> Валюта:</label>
                 <select id="currencySelect" onchange="updateCurrency()">
-                    <option value="RUB">🇷🇺 RUB (₽)</option>
-                    <option value="USD">🇺🇸 USD ($)</option>
-                    <option value="EUR">🇪🇺 EUR (€)</option>
+                    <option value="RUB"><i class="fas fa-ruble-sign"></i> RUB (₽)</option>
+                    <option value="USD"><i class="fas fa-dollar-sign"></i> USD ($)</option>
+                    <option value="EUR"><i class="fas fa-euro-sign"></i> EUR (€)</option>
                 </select>
             </div>
         </div>
@@ -291,115 +272,84 @@
         <div class="pricing-grid">
             <!-- Бесплатный тариф -->
             <div class="pricing-card">
-                <div class="plan-name">Бесплатный</div>
+                <div class="plan-name"><i class="fas fa-gift"></i> Бесплатный</div>
                 <div class="plan-price">
                     <span class="currency" id="freeCurrency">₽</span>
                     <span class="price-number" id="freePrice">0</span>
                     <span class="period">/месяц</span>
                 </div>
-                <div class="plan-description">Для начала работы</div>
+                <div class="plan-description"><i class="fas fa-rocket"></i> Для начала работы</div>
                 <ul class="features-list">
-                    <li>До 100 ссылок в месяц</li>
-                    <li>До 50 QR-кодов в месяц</li>
-                    <li class="disabled">Кастомные алиасы</li>
-                    <li class="disabled">Стилизация QR-кодов</li>
-                    <li class="disabled">Массовое создание ссылок</li>
-                    <li class="disabled">API доступ</li>
+                    <li><i class="fas fa-check-circle"></i> До 100 ссылок в месяц</li>
+                    <li><i class="fas fa-check-circle"></i> До 50 QR-кодов в месяц</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> Кастомные алиасы</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> Стилизация QR-кодов</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> Массовое создание ссылок</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> API доступ</li>
                 </ul>
-                <button class="cta-button secondary" onclick="selectPlan('free')" id="freePlanBtn">Выбрать бесплатный</button>
+                <button class="cta-button secondary" onclick="selectPlan('free')" id="freePlanBtn"><i class="fas fa-check"></i> Выбрать бесплатный</button>
             </div>
 
             <!-- Премиум тариф -->
             <div class="pricing-card popular">
-                <div class="popular-badge">✨ ПОПУЛЯРНЫЙ ✨</div>
-                <div class="plan-name">Премиум</div>
+                <div class="popular-badge"><i class="fas fa-fire"></i> САМЫЙ ПОПУЛЯРНЫЙ</div>
+                <div class="plan-name"><i class="fas fa-star"></i> Премиум</div>
                 <div class="plan-price">
                     <span class="currency" id="premiumCurrency">₽</span>
                     <span class="price-number" id="premiumPrice">299</span>
                     <span class="period">/месяц</span>
                 </div>
-                <div class="plan-description">Для активных пользователей</div>
+                <div class="plan-description"><i class="fas fa-chart-line"></i> Для активных пользователей</div>
                 <ul class="features-list">
-                    <li>Безлимитные ссылки</li>
-                    <li>Безлимитные QR-коды</li>
-                    <li>Кастомные алиасы</li>
-                    <li>Стилизация QR-кодов (цвет, фон, размер)</li>
-                    <li class="disabled">Массовое создание ссылок</li>
-                    <li class="disabled">API доступ</li>
+                    <li><i class="fas fa-check-circle"></i> Безлимитные ссылки</li>
+                    <li><i class="fas fa-check-circle"></i> Безлимитные QR-коды</li>
+                    <li><i class="fas fa-check-circle"></i> Кастомные алиасы</li>
+                    <li><i class="fas fa-check-circle"></i> Стилизация QR-кодов (цвет, фон, размер)</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> Массовое создание ссылок</li>
+                    <li class="disabled"><i class="fas fa-times-circle"></i> API доступ</li>
                 </ul>
-                <button class="cta-button" onclick="selectPlan('premium')" id="premiumPlanBtn">Выбрать Премиум</button>
+                <button class="cta-button" onclick="selectPlan('premium')" id="premiumPlanBtn"><i class="fas fa-arrow-up"></i> Выбрать Премиум</button>
             </div>
 
             <!-- Бизнес тариф -->
             <div class="pricing-card">
-                <div class="plan-name">Бизнес</div>
+                <div class="plan-name"><i class="fas fa-briefcase"></i> Бизнес</div>
                 <div class="plan-price">
                     <span class="currency" id="businessCurrency">₽</span>
                     <span class="price-number" id="businessPrice">999</span>
                     <span class="period">/месяц</span>
                 </div>
-                <div class="plan-description">Для компаний и разработчиков</div>
+                <div class="plan-description"><i class="fas fa-building"></i> Для компаний и разработчиков</div>
                 <ul class="features-list">
-                    <li>Безлимитные ссылки</li>
-                    <li>Безлимитные QR-коды</li>
-                    <li>Кастомные алиасы</li>
-                    <li>Стилизация QR-кодов (цвет, фон, размер)</li>
-                    <li>Массовое создание ссылок (до 100 за раз)</li>
-                    <li>API доступ</li>
+                    <li><i class="fas fa-check-circle"></i> Безлимитные ссылки</li>
+                    <li><i class="fas fa-check-circle"></i> Безлимитные QR-коды</li>
+                    <li><i class="fas fa-check-circle"></i> Кастомные алиасы</li>
+                    <li><i class="fas fa-check-circle"></i> Стилизация QR-кодов (цвет, фон, размер)</li>
+                    <li><i class="fas fa-check-circle"></i> Массовое создание ссылок (до 100 за раз)</li>
+                    <li><i class="fas fa-check-circle"></i> API доступ</li>
                 </ul>
-                <button class="cta-button" onclick="selectPlan('business')" id="businessPlanBtn">Выбрать Бизнес</button>
+                <button class="cta-button" onclick="selectPlan('business')" id="businessPlanBtn"><i class="fas fa-chart-simple"></i> Выбрать Бизнес</button>
             </div>
         </div>
 
-        <!-- Сравнительная таблица -->
         <div class="comparison-table">
-            <h2>Сравнение тарифов</h2>
+            <h2><i class="fas fa-table-list"></i> Сравнение тарифов</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Функция</th>
-                        <th>Бесплатный</th>
-                        <th>Премиум</th>
-                        <th>Бизнес</th>
+                        <th><i class="fas fa-gift"></i> Бесплатный</th>
+                        <th><i class="fas fa-star"></i> Премиум</th>
+                        <th><i class="fas fa-briefcase"></i> Бизнес</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Ссылки в месяц</td>
-                        <td>100</td>
-                        <td class="checkmark">Безлимит</td>
-                        <td class="checkmark">Безлимит</td>
-                    </tr>
-                    <tr>
-                        <td>QR-коды в месяц</td>
-                        <td>50</td>
-                        <td class="checkmark">Безлимит</td>
-                        <td class="checkmark">Безлимит</td>
-                    </tr>
-                    <tr>
-                        <td>Кастомные алиасы</td>
-                        <td class="xmark">✗</td>
-                        <td class="checkmark">✓</td>
-                        <td class="checkmark">✓</td>
-                    </tr>
-                    <tr>
-                        <td>Стилизация QR-кодов</td>
-                        <td class="xmark">✗</td>
-                        <td class="checkmark">✓</td>
-                        <td class="checkmark">✓</td>
-                    </tr>
-                    <tr>
-                        <td>Массовое создание</td>
-                        <td class="xmark">✗</td>
-                        <td class="xmark">✗</td>
-                        <td class="checkmark">✓</td>
-                    </tr>
-                    <tr>
-                        <td>API доступ</td>
-                        <td class="xmark">✗</td>
-                        <td class="xmark">✗</td>
-                        <td class="checkmark">✓</td>
-                    </tr>
+                    <tr><td><i class="fas fa-link"></i> Ссылки в месяц</td><td>100</td><td class="checkmark">Безлимит</td><td class="checkmark">Безлимит</td></tr>
+                    <tr><td><i class="fas fa-qrcode"></i> QR-коды в месяц</td><td>50</td><td class="checkmark">Безлимит</td><td class="checkmark">Безлимит</td></tr>
+                    <tr><td><i class="fas fa-pen"></i> Кастомные алиасы</td><td class="xmark">✗</td><td class="checkmark">✓</td><td class="checkmark">✓</td></tr>
+                    <tr><td><i class="fas fa-palette"></i> Стилизация QR-кодов</td><td class="xmark">✗</td><td class="checkmark">✓</td><td class="checkmark">✓</td></tr>
+                    <tr><td><i class="fas fa-layer-group"></i> Массовое создание</td><td class="xmark">✗</td><td class="xmark">✗</td><td class="checkmark">✓</td></tr>
+                    <tr><td><i class="fas fa-code"></i> API доступ</td><td class="xmark">✗</td><td class="xmark">✗</td><td class="checkmark">✓</td></tr>
                 </tbody>
             </table>
         </div>
@@ -411,25 +361,16 @@
         async function checkAuth() {
             try {
                 const res = await fetch('/api/user');
-                if (res.status === 401) { 
-                    window.location.href = '/login'; 
-                    return false; 
-                }
+                if (res.status === 401) { window.location.href = '/login'; return false; }
                 const user = await res.json();
                 document.getElementById('username').textContent = user.username;
                 document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
                 await loadCurrentPlan();
                 return true;
-            } catch(e) { 
-                window.location.href = '/login'; 
-                return false; 
-            }
+            } catch(e) { window.location.href = '/login'; return false; }
         }
 
-        async function logout() { 
-            await fetch('/api/logout', { method: 'POST' }); 
-            window.location.href = '/login'; 
-        }
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
 
         async function loadCurrentPlan() {
             try {
@@ -437,21 +378,15 @@
                 if (!resp.ok) return;
                 const data = await resp.json();
                 const current = data.plan;
-                
-                const btns = {
-                    free: document.getElementById('freePlanBtn'),
-                    premium: document.getElementById('premiumPlanBtn'),
-                    business: document.getElementById('businessPlanBtn')
-                };
-                
+                const btns = { free: document.getElementById('freePlanBtn'), premium: document.getElementById('premiumPlanBtn'), business: document.getElementById('businessPlanBtn') };
                 for (const [plan, btn] of Object.entries(btns)) {
                     if (!btn) continue;
                     if (plan === current) {
-                        btn.textContent = '✅ Текущий план';
+                        btn.innerHTML = '<i class="fas fa-check-circle"></i> Текущий план';
                         btn.classList.add('current-plan');
                         btn.classList.remove('secondary');
                     } else {
-                        btn.textContent = plan === 'free' ? 'Выбрать бесплатный' : plan === 'premium' ? 'Выбрать Премиум' : 'Выбрать Бизнес';
+                        btn.innerHTML = plan === 'free' ? '<i class="fas fa-check"></i> Выбрать бесплатный' : plan === 'premium' ? '<i class="fas fa-star"></i> Выбрать Премиум' : '<i class="fas fa-briefcase"></i> Выбрать Бизнес';
                         btn.classList.remove('current-plan');
                         if (plan === 'free') btn.classList.add('secondary');
                     }
@@ -462,89 +397,43 @@
         async function selectPlan(planId) {
             if (isSelecting) return;
             isSelecting = true;
-            
             try {
                 const resp = await fetch('/api/user/plan');
                 const currentData = await resp.json();
-                
-                if (currentData.plan === planId) {
-                    alert('Это ваш текущий тарифный план');
-                    return;
-                }
-                
+                if (currentData.plan === planId) { alert('Это ваш текущий тарифный план'); return; }
                 const planNames = { free: 'Бесплатный', premium: 'Премиум', business: 'Бизнес' };
-                const message = planId === 'free' 
-                    ? 'Вы уверены, что хотите перейти на бесплатный тариф? Это ограничит ваши возможности.'
-                    : `Перейти на тариф "${planNames[planId]}"?`;
-                
+                const message = planId === 'free' ? 'Вы уверены, что хотите перейти на бесплатный тариф? Это ограничит ваши возможности.' : `Перейти на тариф "${planNames[planId]}"?`;
                 if (confirm(message)) {
-                    const upResp = await fetch('/api/user/upgrade-plan', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ planId }) 
-                    });
+                    const upResp = await fetch('/api/user/upgrade-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planId }) });
                     const data = await upResp.json();
-                    
-                    if (upResp.ok) { 
-                        alert(data.message); 
-                        await loadCurrentPlan(); 
-                    } else { 
-                        alert('Ошибка: ' + data.error); 
-                    }
+                    if (upResp.ok) { alert(data.message); await loadCurrentPlan(); }
+                    else { alert('Ошибка: ' + data.error); }
                 }
-            } catch(e) { 
-                alert('Ошибка соединения с сервером'); 
-            } finally { 
-                isSelecting = false; 
-            }
+            } catch(e) { alert('Ошибка соединения с сервером'); }
+            finally { isSelecting = false; }
         }
 
         function updateCurrency() {
             const currency = document.getElementById('currencySelect').value;
             let symbol = '₽', premium = 299, business = 999;
-            
-            if (currency === 'USD') { 
-                symbol = '$'; 
-                premium = 4; 
-                business = 12; 
-            } else if (currency === 'EUR') { 
-                symbol = '€'; 
-                premium = 3.5; 
-                business = 10; 
-            }
-            
+            if (currency === 'USD') { symbol = '$'; premium = 4; business = 12; }
+            else if (currency === 'EUR') { symbol = '€'; premium = 3.5; business = 10; }
             document.getElementById('freeCurrency').textContent = symbol;
             document.getElementById('premiumCurrency').textContent = symbol;
             document.getElementById('businessCurrency').textContent = symbol;
-            
             document.getElementById('premiumPrice').textContent = premium;
             document.getElementById('businessPrice').textContent = business;
         }
 
-        // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-theme');
-                if (themeToggle) themeToggle.checked = true;
-            }
-            if (themeToggle) {
-                themeToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        document.body.classList.add('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'dark');
-                    } else {
-                        document.body.classList.remove('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'light');
-                    }
-                });
-            }
+            if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); if (themeToggle) themeToggle.checked = true; }
+            if (themeToggle) { themeToggle.addEventListener('change', function() { if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); } else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); } }); }
         })();
 
         document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
-
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>

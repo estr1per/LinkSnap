@@ -4,101 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель — Пользователи и тарифы</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/admin.css">
-
     <link rel="stylesheet" href="/dark-theme.css">
 </head>
 <body>
     <div class="admin-header">
         <div class="container">
             <div class="logo-container">
-                <span class="logo">👥</span>
+                <i class="fas fa-users" style="font-size: 2rem; color: var(--primary);"></i>
                 <span class="site-title">LinkSnap Admin — Пользователи</span>
             </div>
             <div class="admin-nav">
-                <a href="/admin">💬 Чаты</a>
-                <a href="/admin/users" class="active-nav">👥 Пользователи</a>
-                <a href="#" onclick="logout()">🚪 Выйти</a>
+                <a href="/admin"><i class="fas fa-comments"></i> Чаты</a>
+                <a href="/admin/users" class="active-nav"><i class="fas fa-users"></i> Пользователи</a>
+                <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Выйти</a>
             </div>
         </div>
     </div>
 
     <div class="container" id="authCheck" style="text-align: center; padding: 50px;">
-        <div class="loading"><div class="loading-spinner"></div><span>Проверка авторизации...</span></div>
+        <div class="loading"><div class="loading-spinner"></div><span><i class="fas fa-shield-alt"></i> Проверка авторизации...</span></div>
     </div>
 
     <div class="container" id="adminPanel" style="display: none;">
         <div class="stats-grid">
             <div class="stat-card">
-                <span class="stat-card-icon">👥</span>
+                <i class="fas fa-users" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statTotal">0</h3>
-                <p>Всего пользователей</p>
+                <p><i class="fas fa-users"></i> Всего пользователей</p>
             </div>
             <div class="stat-card">
-                <span class="stat-card-icon">🆓</span>
+                <i class="fas fa-gift" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statFree">0</h3>
-                <p>Бесплатный тариф</p>
+                <p><i class="fas fa-gift"></i> Бесплатный тариф</p>
             </div>
             <div class="stat-card">
-                <span class="stat-card-icon">⭐</span>
+                <i class="fas fa-star" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statPremium">0</h3>
-                <p>Премиум</p>
+                <p><i class="fas fa-star"></i> Премиум</p>
             </div>
             <div class="stat-card">
-                <span class="stat-card-icon">💼</span>
+                <i class="fas fa-briefcase" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statBusiness">0</h3>
-                <p>Бизнес</p>
+                <p><i class="fas fa-briefcase"></i> Бизнес</p>
             </div>
         </div>
 
         <div class="filter-bar">
-            <label>📊 Фильтр по тарифу:</label>
+            <label><i class="fas fa-filter"></i> Фильтр по тарифу:</label>
             <select id="planFilter" onchange="loadUsers()">
                 <option value="">Все тарифы</option>
                 <option value="free">Бесплатный</option>
                 <option value="premium">Премиум</option>
                 <option value="business">Бизнес</option>
             </select>
-            <button class="btn btn-sm" onclick="loadUsers()">🔄 Обновить</button>
+            <button class="btn btn-sm" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> Обновить</button>
         </div>
 
         <div class="users-table">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Пользователь</th>
-                        <th>Email</th>
-                        <th>Тариф</th>
-                        <th>Ссылки</th>
-                        <th>QR-коды</th>
-                        <th>Дата регистрации</th>
-                        <th>Действия</th>
+                        <th><i class="fas fa-hashtag"></i> ID</th>
+                        <th><i class="fas fa-user"></i> Пользователь</th>
+                        <th><i class="fas fa-envelope"></i> Email</th>
+                        <th><i class="fas fa-tag"></i> Тариф</th>
+                        <th><i class="fas fa-link"></i> Ссылки</th>
+                        <th><i class="fas fa-qrcode"></i> QR-коды</th>
+                        <th><i class="fas fa-calendar"></i> Дата регистрации</th>
+                        <th><i class="fas fa-cog"></i> Действия</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--gray-500); font-weight: 500;">Загрузка...</td>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--gray-500); font-weight: 500;"><i class="fas fa-spinner fa-spin"></i> Загрузка...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Модальное окно смены тарифа -->
     <div class="modal" id="changePlanModal">
         <div class="modal-content">
-            <h3>✏️ Изменить тариф</h3>
+            <h3><i class="fas fa-edit"></i> Изменить тариф</h3>
             <p id="modalUserName" style="margin-bottom: 15px; color: var(--gray-700);"></p>
             <select id="newPlanSelect">
-                <option value="free">🆓 Бесплатный</option>
-                <option value="premium">⭐ Премиум</option>
-                <option value="business">💼 Бизнес</option>
+                <option value="free"><i class="fas fa-gift"></i> Бесплатный</option>
+                <option value="premium"><i class="fas fa-star"></i> Премиум</option>
+                <option value="business"><i class="fas fa-briefcase"></i> Бизнес</option>
             </select>
             <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeModal()">Отмена</button>
-                <button class="btn-primary" onclick="confirmChangePlan()">Сохранить</button>
+                <button class="btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Отмена</button>
+                <button class="btn-primary" onclick="confirmChangePlan()"><i class="fas fa-save"></i> Сохранить</button>
             </div>
         </div>
     </div>
@@ -127,49 +126,31 @@
         async function loadUsers() {
             try {
                 const planFilter = document.getElementById('planFilter').value;
-                const url = planFilter 
-                    ? `/api/admin/users?plan=${planFilter}`
-                    : '/api/admin/users';
-                
+                const url = planFilter ? `/api/admin/users?plan=${planFilter}` : '/api/admin/users';
                 const res = await fetch(url);
                 const data = await res.json();
-                
                 allUsers = data.users || [];
-                
-                // Обновляем статистику
                 updateStats(allUsers);
-                
                 const tbody = document.getElementById('usersTableBody');
-                
                 if (!allUsers.length) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--gray-500); font-weight: 500;">Нет пользователей</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--gray-500); font-weight: 500;"><i class="fas fa-inbox"></i> Нет пользователей</td></tr>';
                     return;
                 }
-
                 tbody.innerHTML = allUsers.map(user => `
                     <tr>
                         <td>${user.id}</td>
-                        <td><strong>${escapeHtml(user.username)}</strong></td>
-                        <td>${escapeHtml(user.email)}</td>
-                        <td>
-                            <span class="plan-badge plan-${user.plan_type}">
-                                ${getPlanName(user.plan_type)}
-                            </span>
-                        </td>
-                        <td>${user.total_links || 0}</td>
-                        <td>${user.total_qrcodes || 0}</td>
-                        <td>${formatDate(user.created_at)}</td>
-                        <td>
-                            <button class="change-plan-btn" onclick="openChangePlanModal(${user.id}, '${escapeHtml(user.username)}', '${user.plan_type}')">
-                                ✏️ Изменить
-                            </button>
-                        </td>
+                        <td><strong><i class="fas fa-user-circle"></i> ${escapeHtml(user.username)}</strong></td>
+                        <td><i class="fas fa-envelope"></i> ${escapeHtml(user.email)}</td>
+                        <td><span class="plan-badge plan-${user.plan_type}">${getPlanName(user.plan_type)}</span></td>
+                        <td><i class="fas fa-link"></i> ${user.total_links || 0}</td>
+                        <td><i class="fas fa-qrcode"></i> ${user.total_qrcodes || 0}</td>
+                        <td><i class="fas fa-calendar"></i> ${formatDate(user.created_at)}</td>
+                        <td><button class="change-plan-btn" onclick="openChangePlanModal(${user.id}, '${escapeHtml(user.username)}', '${user.plan_type}')"><i class="fas fa-edit"></i> Изменить</button></td>
                     </tr>
                 `).join('');
             } catch(e) {
                 console.error('Ошибка загрузки пользователей:', e);
-                document.getElementById('usersTableBody').innerHTML = 
-                    '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--danger); font-weight: 600;">Ошибка загрузки</td></tr>';
+                document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--danger); font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> Ошибка загрузки</td></tr>';
             }
         }
 
@@ -178,7 +159,6 @@
             const free = users.filter(u => u.plan_type === 'free').length;
             const premium = users.filter(u => u.plan_type === 'premium').length;
             const business = users.filter(u => u.plan_type === 'business').length;
-            
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statFree').textContent = free;
             document.getElementById('statPremium').textContent = premium;
@@ -186,25 +166,17 @@
         }
 
         function getPlanName(plan) {
-            const names = {
-                'free': '🆓 Бесплатный',
-                'premium': '⭐ Премиум',
-                'business': '💼 Бизнес'
-            };
+            const names = { 'free': '<i class="fas fa-gift"></i> Бесплатный', 'premium': '<i class="fas fa-star"></i> Премиум', 'business': '<i class="fas fa-briefcase"></i> Бизнес' };
             return names[plan] || plan;
         }
 
         function formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('ru-RU', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            return new Date(dateStr).toLocaleDateString('ru-RU', { year: 'numeric', month: 'short', day: 'numeric' });
         }
 
         function openChangePlanModal(userId, username, currentPlan) {
             currentUserId = userId;
-            document.getElementById('modalUserName').textContent = `Пользователь: ${username}`;
+            document.getElementById('modalUserName').innerHTML = `<i class="fas fa-user"></i> Пользователь: ${username}`;
             document.getElementById('newPlanSelect').value = currentPlan;
             document.getElementById('changePlanModal').classList.add('active');
         }
@@ -216,20 +188,16 @@
 
         async function confirmChangePlan() {
             if (!currentUserId) return;
-            
             const newPlan = document.getElementById('newPlanSelect').value;
-            
             try {
                 const res = await fetch(`/api/admin/users/${currentUserId}/plan`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ planType: newPlan })
                 });
-
                 const data = await res.json();
-                
                 if (data.success) {
-                    alert(`Тариф изменён на ${getPlanName(newPlan)}`);
+                    alert(`Тариф изменён на ${newPlan === 'free' ? 'Бесплатный' : newPlan === 'premium' ? 'Премиум' : 'Бизнес'}`);
                     closeModal();
                     loadUsers();
                 } else {
@@ -242,28 +210,20 @@
         }
 
         async function logout() {
-    console.log('Выход из админки...');
-    try {
-        await fetch('/api/admin/logout', { method: 'POST' });
-    } catch(e) {
-        console.error('Ошибка выхода:', e);
-    }
-    // Всегда перенаправляем
-    window.location.href = '/admin/login';
-}
+            console.log('Выход из админки...');
+            try {
+                await fetch('/api/admin/logout', { method: 'POST' });
+            } catch(e) {
+                console.error('Ошибка выхода:', e);
+            }
+            window.location.href = '/admin/login';
+        }
 
         function escapeHtml(text) {
             if (!text) return '';
-            return String(text).replace(/[&<>"']/g, m => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            }[m]));
+            return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
         }
 
-        // Инициализация
         checkAdminAuth();
     </script>
 </body>

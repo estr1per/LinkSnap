@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkSnap — Короткие ссылки и QR-коды</title>
-    <meta name="description" content="Сокращайте ссылки, создавайте красивые QR-коды, конвертируйте файлы и редактируйте изображения в одном сервисе">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Сокращайте ссылки, создавайте красивые QR-коды, конвертируйте файлы и редактируйте изображения">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%236366f1'/><stop offset='100%25' stop-color='%23a855f7'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23grad)'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔗</text></svg>">
     <style>
-        /* Дополнительные стили для главной страницы */
         .hero {
             text-align: center;
             margin: var(--space-3xl) 0 var(--space-4xl);
@@ -32,8 +31,6 @@
             justify-content: center;
             flex-wrap: wrap;
         }
-        
-        /* Вкладки */
         .tabs {
             display: flex;
             justify-content: center;
@@ -51,6 +48,7 @@
             cursor: pointer;
             color: var(--text-secondary);
         }
+        .tablink i { margin-right: 8px; }
         .tablink.active {
             background: var(--gradient-primary);
             color: white;
@@ -67,8 +65,6 @@
         .tab-content.active {
             display: block;
         }
-        
-        /* QR-код */
         .qr-result-card {
             background: var(--bg-primary);
             padding: var(--space-xl);
@@ -98,8 +94,6 @@
             justify-content: center;
             margin-top: var(--space-md);
         }
-        
-        /* Панель стилизации QR */
         .qr-style-panel {
             background: var(--bg-secondary);
             border: 2px solid var(--primary-bg);
@@ -156,8 +150,6 @@
             width: 100%;
             cursor: pointer;
         }
-        
-        /* Уведомления */
         .qr-free-notice {
             background: var(--warning-light);
             border-left: 4px solid var(--warning);
@@ -190,8 +182,6 @@
             font-weight: 700;
             text-decoration: none;
         }
-        
-        /* Автодополнение тегов */
         .tag-input-wrapper {
             position: relative;
         }
@@ -221,8 +211,6 @@
             background: var(--primary-bg);
             color: var(--primary);
         }
-        
-        /* Карточки функций */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -243,9 +231,10 @@
             box-shadow: var(--shadow-xl);
             border-color: var(--primary-light);
         }
-        .feature-icon {
+        .feature-card i {
             font-size: 3rem;
             margin-bottom: var(--space-md);
+            color: var(--primary);
         }
         .feature-card h3 {
             margin-bottom: var(--space-sm);
@@ -264,8 +253,6 @@
             display: inline-block;
             font-weight: 600;
         }
-        
-        /* Футер */
         .footer {
             text-align: center;
             padding-top: var(--space-3xl);
@@ -274,12 +261,10 @@
             color: var(--text-muted);
             font-size: var(--text-sm);
         }
-        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
         @media (max-width: 768px) {
             .hero h1 { font-size: var(--text-3xl); }
             .hero p { font-size: var(--text-base); }
@@ -295,13 +280,13 @@
     <div class="container">
         <header class="site-header">
             <div class="logo-container">
-                <span class="logo">🔗</span>
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
                 <a href="/" class="site-title">LinkSnap</a>
             </div>
             <div class="user-nav">
                 <div id="authButtons" class="btn-group">
-                    <a href="/login" class="btn btn-secondary">Вход</a>
-                    <a href="/register" class="btn btn-primary">Регистрация</a>
+                    <a href="/login" class="btn btn-secondary"><i class="fas fa-sign-in-alt"></i> Вход</a>
+                    <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Регистрация</a>
                 </div>
                 <div id="authorizedBlock" style="display: none; align-items: center; gap: var(--space-md); flex-wrap: wrap;">
                     <div class="user-info">
@@ -309,108 +294,99 @@
                         <span class="user-name" id="userGreeting"></span>
                     </div>
                     <div class="theme-switch-wrapper">
-                        <span class="theme-icon">🌙</span>
+                        <i class="fas fa-moon theme-icon"></i>
                         <label class="theme-switch">
                             <input type="checkbox" id="themeToggle">
                             <span class="theme-slider"></span>
                         </label>
-                        <span class="theme-icon">☀️</span>
+                        <i class="fas fa-sun theme-icon"></i>
                     </div>
-                    <a href="/dashboard" class="nav-btn">Аналитика</a>
-                    <a href="/profile" class="nav-btn">Профиль</a>
-                    <a href="/batch" class="nav-btn">Массовое</a>
-                    <a href="/pricing" class="nav-btn">Тарифы</a>
-                    <a href="/converter" class="nav-btn">Конвертер</a>
-                    <a href="/image-editor" class="nav-btn">Редактор</a>
-                    <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                    <a href="/dashboard" class="nav-btn"><i class="fas fa-chart-line"></i> Аналитика</a>
+                    <a href="/profile" class="nav-btn"><i class="fas fa-user"></i> Профиль</a>
+                    <a href="/batch" class="nav-btn"><i class="fas fa-layer-group"></i> Массовое</a>
+                    <a href="/pricing" class="nav-btn"><i class="fas fa-tag"></i> Тарифы</a>
+                    <a href="/converter" class="nav-btn"><i class="fas fa-exchange-alt"></i> Конвертер</a>
+                    <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                    <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
                 </div>
             </div>
         </header>
 
-        <!-- Hero секция -->
         <div class="hero">
             <h1>Короткие ссылки,<br>мощные инструменты</h1>
             <p>Сокращайте ссылки, создавайте стильные QR‑коды, конвертируйте файлы и редактируйте изображения — всё в одном сервисе.</p>
             <div class="hero-buttons">
-                <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn">🚀 Начать бесплатно</a>
+                <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn"><i class="fas fa-rocket"></i> Начать бесплатно</a>
             </div>
         </div>
 
-        <!-- Вкладки -->
         <div class="tabs">
-            <button class="tablink active" onclick="openTab('shorten-tab', event)">🔗 Сократить ссылку</button>
-            <button class="tablink" onclick="openTab('qrcode-tab', event)">📱 QR‑код</button>
+            <button class="tablink active" onclick="openTab('shorten-tab', event)"><i class="fas fa-link"></i> Сократить ссылку</button>
+            <button class="tablink" onclick="openTab('qrcode-tab', event)"><i class="fas fa-qrcode"></i> QR‑код</button>
         </div>
 
-        <!-- Вкладка: Сокращение ссылок -->
         <div id="shorten-tab" class="tab-content active">
             <div class="card">
                 <div class="card-body">
                     <div class="form-group">
-                        <label class="form-label">🔗 Введите длинную ссылку</label>
+                        <label class="form-label"><i class="fas fa-link"></i> Введите длинную ссылку</label>
                         <input type="url" id="urlInput" class="form-control" placeholder="https://example.com/very/long/url">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">✏️ Кастомный алиас (необязательно)</label>
+                        <label class="form-label"><i class="fas fa-pen"></i> Кастомный алиас (необязательно)</label>
                         <input type="text" id="customAlias" class="form-control" placeholder="my-link">
                         <small style="color: var(--text-muted);">Только латиница, цифры, дефис и подчеркивание</small>
                     </div>
-                    
-                    <!-- НОВОЕ: Поле для тегов при создании ссылки -->
                     <div class="form-group">
-                        <label class="form-label">🏷️ Теги (через запятую)</label>
+                        <label class="form-label"><i class="fas fa-tags"></i> Теги (через запятую)</label>
                         <div class="tag-input-wrapper">
                             <input type="text" id="tagsInput" class="form-control" placeholder="работа, важное, клиент, проект">
                             <div id="tagSuggestions" class="tag-suggestions-dropdown"></div>
                         </div>
                         <small style="color: var(--text-muted);">Необязательно. Помогут найти ссылку позже</small>
                     </div>
-                    
                     <button onclick="shortenUrl()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-md);">
-                        🚀 Сократить!
+                        <i class="fas fa-cut"></i> Сократить!
                     </button>
                     <div id="result"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Вкладка: QR-код -->
         <div id="qrcode-tab" class="tab-content">
             <div class="card">
                 <div class="card-body">
                     <div class="form-group">
-                        <label class="form-label">📱 Введите ссылку для QR-кода</label>
+                        <label class="form-label"><i class="fas fa-qrcode"></i> Введите ссылку для QR-кода</label>
                         <input type="url" id="qrcodeInput" class="form-control" placeholder="https://example.com">
                     </div>
                     
-                    <!-- Уведомление о текущем плане -->
                     <div id="planNotice" class="plan-upgrade-notice" style="display: none;">
-                        <span>⭐ Ваш тариф: <strong id="currentPlanName">Бесплатный</strong></span>
-                        <a href="/pricing">⬆️ Улучшить тариф</a>
+                        <span><i class="fas fa-star"></i> Ваш тариф: <strong id="currentPlanName">Бесплатный</strong></span>
+                        <a href="/pricing"><i class="fas fa-arrow-up"></i> Улучшить тариф</a>
                     </div>
                     
-                    <!-- Панель стилизации QR-кода -->
                     <div id="qrStylePanel" class="qr-style-panel" style="display: none;">
                         <div class="qr-style-header">
-                            <span class="qr-style-title">🎨 Стилизация QR-кода</span>
-                            <span class="qr-style-badge">⭐ Премиум / Бизнес</span>
+                            <span class="qr-style-title"><i class="fas fa-palette"></i> Стилизация QR-кода</span>
+                            <span class="qr-style-badge"><i class="fas fa-star"></i> Премиум / Бизнес</span>
                         </div>
                         <div class="qr-style-grid">
                             <div class="qr-style-item">
-                                <label>🎨 Цвет QR-кода</label>
+                                <label><i class="fas fa-fill-drip"></i> Цвет QR-кода</label>
                                 <input type="color" id="qrColor" class="color-picker" value="#6366f1">
                             </div>
                             <div class="qr-style-item">
-                                <label>📄 Цвет фона</label>
+                                <label><i class="fas fa-square"></i> Цвет фона</label>
                                 <input type="color" id="qrBgColor" class="color-picker" value="#ffffff">
                             </div>
                             <div class="qr-style-item">
-                                <label>📏 Размер (px)</label>
+                                <label><i class="fas fa-arrows-alt"></i> Размер (px)</label>
                                 <input type="range" id="qrSize" class="form-range" min="100" max="600" value="200">
                                 <span id="qrSizeValue">200px</span>
                             </div>
                             <div class="qr-style-item">
-                                <label>🖼️ Отступ</label>
+                                <label><i class="fas fa-border-all"></i> Отступ</label>
                                 <input type="range" id="qrMargin" class="form-range" min="0" max="10" value="1">
                                 <span id="qrMarginValue">1</span>
                             </div>
@@ -418,47 +394,46 @@
                     </div>
                     
                     <div id="qrFreeNotice" class="qr-free-notice" style="display: none;">
-                        <span>💡 Стилизация QR-кодов (цвет, размер, фон) доступна на тарифах <a href="/pricing">⭐ Премиум и 💼 Бизнес</a></span>
+                        <span><i class="fas fa-info-circle"></i> Стилизация QR-кодов (цвет, размер, фон) доступна на тарифах <a href="/pricing"><i class="fas fa-star"></i> Премиум и <i class="fas fa-briefcase"></i> Бизнес</a></span>
                     </div>
                     
                     <button onclick="generateQRCode()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-md);">
-                        ⚡ Сгенерировать QR-код
+                        <i class="fas fa-magic"></i> Сгенерировать QR-код
                     </button>
                     <div id="qrcodeResult"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Карточки функций -->
         <div class="feature-grid">
             <div class="feature-card" onclick="window.location.href='/batch'">
-                <div class="feature-icon">📦</div>
+                <i class="fas fa-layer-group"></i>
                 <h3>Массовое создание</h3>
                 <p>Создавайте до 100 ссылок за раз из CSV или списка URL</p>
-                <span class="badge">Популярное</span>
+                <span class="badge"><i class="fas fa-fire"></i> Популярное</span>
             </div>
             <div class="feature-card" onclick="window.location.href='/dashboard'">
-                <div class="feature-icon">📊</div>
+                <i class="fas fa-chart-line"></i>
                 <h3>Аналитика</h3>
                 <p>Отслеживайте переходы, устройства и источники трафика</p>
-                <span class="badge">Новое</span>
+                <span class="badge"><i class="fas fa-newspaper"></i> Новое</span>
             </div>
             <div class="feature-card" onclick="window.location.href='/converter'">
-                <div class="feature-icon">🔄</div>
+                <i class="fas fa-exchange-alt"></i>
                 <h3>Конвертер файлов</h3>
                 <p>Конвертируйте изображения и документы в нужный формат</p>
-                <span class="badge">Бесплатно</span>
+                <span class="badge"><i class="fas fa-gem"></i> Бесплатно</span>
             </div>
             <div class="feature-card" onclick="window.location.href='/image-editor'">
-                <div class="feature-icon">✂️</div>
+                <i class="fas fa-crop-alt"></i>
                 <h3>Редактор изображений</h3>
                 <p>Изменяйте размер, формат и применяйте фильтры</p>
-                <span class="badge">Удобно</span>
+                <span class="badge"><i class="fas fa-thumbs-up"></i> Удобно</span>
             </div>
         </div>
 
         <footer class="footer">
-            <p>LinkSnap © 2024 — всё для работы со ссылками и файлами</p>
+            <p><i class="far fa-copyright"></i> LinkSnap 2024 — всё для работы со ссылками и файлами</p>
         </footer>
     </div>
 
@@ -467,14 +442,12 @@
         let currentUserName = '';
         let allTagsList = [];
 
-        // Экранирование HTML
         function escapeHtml(text) {
             if (!text) return '';
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Проверка авторизации
         async function checkAuth() {
             try {
                 const res = await fetch('/api/user');
@@ -521,23 +494,15 @@
         function updatePlanNotice() {
             const notice = document.getElementById('planNotice');
             const planNameSpan = document.getElementById('currentPlanName');
-            const planNames = { free: 'Бесплатный', premium: '⭐ Премиум', business: '💼 Бизнес' };
-            
-            if (planNameSpan) {
-                planNameSpan.textContent = planNames[currentUserPlan] || 'Бесплатный';
-            }
-            
-            if (notice && currentUserPlan === 'free') {
-                notice.style.display = 'flex';
-            } else if (notice) {
-                notice.style.display = 'none';
-            }
+            const planNames = { free: 'Бесплатный', premium: 'Премиум', business: 'Бизнес' };
+            if (planNameSpan) planNameSpan.textContent = planNames[currentUserPlan] || 'Бесплатный';
+            if (notice && currentUserPlan === 'free') notice.style.display = 'flex';
+            else if (notice) notice.style.display = 'none';
         }
 
         function updateQRStylePanel() {
             const stylePanel = document.getElementById('qrStylePanel');
             const freeNotice = document.getElementById('qrFreeNotice');
-            
             if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
                 if (stylePanel) stylePanel.style.display = 'block';
                 if (freeNotice) freeNotice.style.display = 'none';
@@ -547,50 +512,29 @@
             }
         }
 
-        // Загрузка всех тегов для автодополнения
         async function loadAllTagsForAutocomplete() {
             try {
                 const res = await fetch('/api/tags/all');
                 const tags = await res.json();
                 allTagsList = tags || [];
-            } catch (e) {
-                console.error('Ошибка загрузки тегов:', e);
-            }
+            } catch(e) { console.error('Ошибка загрузки тегов:', e); }
         }
 
-        // Автодополнение тегов при вводе
         function setupTagAutocomplete() {
             const tagsInput = document.getElementById('tagsInput');
             const suggestionsDiv = document.getElementById('tagSuggestions');
-            
             if (!tagsInput) return;
-            
             tagsInput.addEventListener('input', function() {
                 const value = this.value.toLowerCase();
                 const lastTag = value.split(',').pop().trim();
-                
-                if (lastTag.length < 1) {
-                    suggestionsDiv.classList.remove('show');
-                    return;
-                }
-                
-                const filteredTags = allTagsList
-                    .map(t => t.name)
-                    .filter(tag => tag.toLowerCase().includes(lastTag) && !value.toLowerCase().includes(tag.toLowerCase()));
-                
+                if (lastTag.length < 1) { suggestionsDiv.classList.remove('show'); return; }
+                const filteredTags = allTagsList.map(t => t.name).filter(tag => tag.toLowerCase().includes(lastTag) && !value.toLowerCase().includes(tag.toLowerCase()));
                 if (filteredTags.length > 0) {
-                    suggestionsDiv.innerHTML = filteredTags.slice(0, 5).map(tag => 
-                        `<div class="tag-suggestion-item" onclick="insertTag('${escapeHtml(tag)}')">🏷️ ${escapeHtml(tag)}</div>`
-                    ).join('');
+                    suggestionsDiv.innerHTML = filteredTags.slice(0, 5).map(tag => `<div class="tag-suggestion-item" onclick="insertTag('${escapeHtml(tag)}')"><i class="fas fa-tag"></i> ${escapeHtml(tag)}</div>`).join('');
                     suggestionsDiv.classList.add('show');
-                } else {
-                    suggestionsDiv.classList.remove('show');
-                }
+                } else { suggestionsDiv.classList.remove('show'); }
             });
-            
-            tagsInput.addEventListener('blur', function() {
-                setTimeout(() => suggestionsDiv.classList.remove('show'), 200);
-            });
+            tagsInput.addEventListener('blur', function() { setTimeout(() => suggestionsDiv.classList.remove('show'), 200); });
         }
         
         function insertTag(tag) {
@@ -610,7 +554,6 @@
             if (event && event.currentTarget) event.currentTarget.classList.add('active');
         }
 
-        // Сокращение ссылки (с тегами!)
         async function shortenUrl() {
             const urlInput = document.getElementById('urlInput');
             const customAliasInput = document.getElementById('customAlias');
@@ -619,226 +562,81 @@
             const customAlias = customAliasInput.value.trim();
             const tags = tagsInput.value.trim();
             const resultDiv = document.getElementById('result');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
-                return;
-            }
-            
+            if (!url) { resultDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> Введите ссылку</div>'; return; }
             const auth = await checkAuth();
-            if (!auth) {
-                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для сокращения ссылок <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</div>';
-                return;
-            }
-            
+            if (!auth) { resultDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> Для сокращения ссылок <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</div>'; return; }
             resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Создание короткой ссылки...</span></div>';
-            
             try {
                 const body = { originalUrl: url };
                 if (customAlias) body.customAlias = customAlias;
                 if (tags) body.tags = tags;
-                
-                const resp = await fetch('/api/shorten', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                
+                const resp = await fetch('/api/shorten', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 const data = await resp.json();
-                
                 if (resp.ok) {
-                    const tagsDisplay = tags ? `<div style="margin-top: var(--space-sm);"><small>🏷️ Теги: ${escapeHtml(tags)}</small></div>` : '';
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            ✅ Ссылка готова!<br>
-                            <a href="${escapeHtml(data.shortUrl)}" target="_blank" style="font-size: 1.1rem; font-weight: bold; word-break: break-all;">
-                                ${escapeHtml(data.shortUrl)}
-                            </a><br>
-                            <small style="color: var(--text-muted); word-break: break-all;">${escapeHtml(data.originalUrl)}</small>
-                            ${tagsDisplay}
-                            <div style="margin-top: var(--space-md);">
-                                <button onclick="copyToClipboard('${escapeHtml(data.shortUrl)}')" class="btn btn-secondary btn-sm">📋 Копировать</button>
-                                <button onclick="window.open('${escapeHtml(data.shortUrl)}', '_blank')" class="btn btn-primary btn-sm">🔗 Перейти</button>
-                            </div>
-                        </div>
-                    `;
-                    urlInput.value = '';
-                    customAliasInput.value = '';
-                    tagsInput.value = '';
-                    // Обновляем список тегов для автодополнения
+                    const tagsDisplay = tags ? `<div style="margin-top: var(--space-sm);"><small><i class="fas fa-tags"></i> Теги: ${escapeHtml(tags)}</small></div>` : '';
+                    resultDiv.innerHTML = `<div class="alert alert-success"><i class="fas fa-check-circle"></i> Ссылка готова!<br><a href="${escapeHtml(data.shortUrl)}" target="_blank" style="font-size: 1.1rem; font-weight: bold; word-break: break-all;">${escapeHtml(data.shortUrl)}</a><br><small style="color: var(--text-muted); word-break: break-all;">${escapeHtml(data.originalUrl)}</small>${tagsDisplay}<div style="margin-top: var(--space-md);"><button onclick="copyToClipboard('${escapeHtml(data.shortUrl)}')" class="btn btn-secondary btn-sm"><i class="fas fa-copy"></i> Копировать</button><button onclick="window.open('${escapeHtml(data.shortUrl)}', '_blank')" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Перейти</button></div></div>`;
+                    urlInput.value = ''; customAliasInput.value = ''; tagsInput.value = '';
                     loadAllTagsForAutocomplete();
-                } else {
-                    resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
-                }
-            } catch(e) {
-                console.error('Ошибка:', e);
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка соединения с сервером</div>';
-            }
+                } else { resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(data.error)}</div>`; }
+            } catch(e) { resultDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-wifi"></i> Ошибка соединения с сервером</div>'; }
         }
 
-        // Генерация QR-кода
         async function generateQRCode() {
             const urlInput = document.getElementById('qrcodeInput');
             const url = urlInput.value.trim();
             const resultDiv = document.getElementById('qrcodeResult');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
-                return;
-            }
-            
+            if (!url) { resultDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> Введите ссылку</div>'; return; }
             const auth = await checkAuth();
-            if (!auth) {
-                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для создания QR-кода <a href="/login">войдите</a>.</div>';
-                return;
-            }
-            
+            if (!auth) { resultDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> Для создания QR-кода <a href="/login">войдите</a>.</div>'; return; }
             resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация QR-кода...</span></div>';
-            
             try {
                 let qrUrl = `/api/qrcode?url=${encodeURIComponent(url)}`;
-                
                 if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
                     const color = document.getElementById('qrColor')?.value || '#6366f1';
                     const bgColor = document.getElementById('qrBgColor')?.value || '#ffffff';
                     const size = document.getElementById('qrSize')?.value || 200;
                     const margin = document.getElementById('qrMargin')?.value || 1;
-                    
                     qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}`;
                 }
-                
                 const resp = await fetch(qrUrl);
                 const data = await resp.json();
-                
                 if (resp.ok) {
                     let styleInfo = '';
                     if (data.options && (currentUserPlan === 'premium' || currentUserPlan === 'business')) {
-                        styleInfo = `
-                            <div style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-md);">
-                                🎨 Цвет: ${data.options.color || '#6366f1'} | 
-                                📄 Фон: ${data.options.bgColor || '#ffffff'} | 
-                                📏 Размер: ${data.options.size || 200}px
-                            </div>
-                        `;
+                        styleInfo = `<div style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-md);"><i class="fas fa-palette"></i> Цвет: ${data.options.color || '#6366f1'} | <i class="fas fa-square"></i> Фон: ${data.options.bgColor || '#ffffff'} | <i class="fas fa-arrows-alt"></i> Размер: ${data.options.size || 200}px</div>`;
                     }
-                    
-                    resultDiv.innerHTML = `
-                        <div class="qr-result-card">
-                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code">
-                            <div class="qr-url">${escapeHtml(url)}</div>
-                            ${styleInfo}
-                            <div class="download-buttons">
-                                <button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-secondary btn-sm">📥 Скачать PNG</button>
-                                <button onclick="copyQRCode('${escapeHtml(data.qrImageData)}')" class="btn btn-secondary btn-sm">📋 Копировать</button>
-                            </div>
-                        </div>
-                    `;
+                    resultDiv.innerHTML = `<div class="qr-result-card"><img src="${escapeHtml(data.qrImageData)}" alt="QR Code"><div class="qr-url"><i class="fas fa-link"></i> ${escapeHtml(url)}</div>${styleInfo}<div class="download-buttons"><button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Скачать PNG</button><button onclick="copyQRCode('${escapeHtml(data.qrImageData)}')" class="btn btn-secondary btn-sm"><i class="fas fa-copy"></i> Копировать</button></div></div>`;
                     urlInput.value = '';
                 } else {
-                    if (data.requiresUpgrade) {
-                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Перейти на Премиум →</a></div>`;
-                    } else if (data.limitsReached) {
-                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Улучшить тариф →</a></div>`;
-                    } else {
-                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
-                    }
+                    if (data.requiresUpgrade) resultDiv.innerHTML = `<div class="alert alert-warning"><i class="fas fa-star"></i> ${escapeHtml(data.error)} <a href="/pricing">Перейти на Премиум →</a></div>`;
+                    else if (data.limitsReached) resultDiv.innerHTML = `<div class="alert alert-warning"><i class="fas fa-chart-line"></i> ${escapeHtml(data.error)} <a href="/pricing">Улучшить тариф →</a></div>`;
+                    else resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(data.error)}</div>`;
                 }
-            } catch(e) {
-                console.error('Ошибка:', e);
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка генерации QR-кода</div>';
-            }
+            } catch(e) { resultDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-wifi"></i> Ошибка генерации QR-кода</div>'; }
         }
 
-        function downloadQR(dataUrl, format) {
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = `qrcode-${Date.now()}.${format}`;
-            link.click();
-        }
+        function downloadQR(dataUrl, format) { const link = document.createElement('a'); link.href = dataUrl; link.download = `qrcode-${Date.now()}.${format}`; link.click(); }
+        async function copyQRCode(dataUrl) { try { const blob = await (await fetch(dataUrl)).blob(); await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]); alert('✅ QR-код скопирован в буфер обмена!'); } catch(e) { alert('❌ Не удалось скопировать QR-код'); } }
+        async function copyToClipboard(text) { try { await navigator.clipboard.writeText(text); alert('✅ Ссылка скопирована!'); } catch(e) { const textarea = document.createElement('textarea'); textarea.value = text; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('✅ Ссылка скопирована!'); } }
 
-        async function copyQRCode(dataUrl) {
-            try {
-                const blob = await (await fetch(dataUrl)).blob();
-                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-                alert('✅ QR-код скопирован в буфер обмена!');
-            } catch(e) {
-                alert('❌ Не удалось скопировать QR-код');
-            }
-        }
-
-        async function copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                alert('✅ Ссылка скопирована!');
-            } catch(e) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('✅ Ссылка скопирована!');
-            }
-        }
-
-        // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-theme');
-                if (themeToggle) themeToggle.checked = true;
-            }
-            if (themeToggle) {
-                themeToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        document.body.classList.add('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'dark');
-                    } else {
-                        document.body.classList.remove('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'light');
-                    }
-                });
-            }
+            if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); if (themeToggle) themeToggle.checked = true; }
+            if (themeToggle) { themeToggle.addEventListener('change', function() { if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); } else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); } }); }
         })();
 
-        // Обработчики ползунков
         const qrSizeSlider = document.getElementById('qrSize');
         const qrSizeValue = document.getElementById('qrSizeValue');
-        if (qrSizeSlider && qrSizeValue) {
-            qrSizeSlider.addEventListener('input', () => { qrSizeValue.textContent = `${qrSizeSlider.value}px`; });
-        }
-        
+        if (qrSizeSlider && qrSizeValue) qrSizeSlider.addEventListener('input', () => { qrSizeValue.textContent = `${qrSizeSlider.value}px`; });
         const qrMarginSlider = document.getElementById('qrMargin');
         const qrMarginValue = document.getElementById('qrMarginValue');
-        if (qrMarginSlider && qrMarginValue) {
-            qrMarginSlider.addEventListener('input', () => { qrMarginValue.textContent = qrMarginSlider.value; });
-        }
+        if (qrMarginSlider && qrMarginValue) qrMarginSlider.addEventListener('input', () => { qrMarginValue.textContent = qrMarginSlider.value; });
 
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            setupTagAutocomplete();
-            
-            document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') shortenUrl();
-            });
-            document.getElementById('qrcodeInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') generateQRCode();
-            });
-        });
+        document.addEventListener('DOMContentLoaded', () => { checkAuth(); setupTagAutocomplete(); document.getElementById('urlInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') shortenUrl(); }); document.getElementById('qrcodeInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') generateQRCode(); }); });
 
-        // Глобальные функции
-        window.openTab = openTab;
-        window.shortenUrl = shortenUrl;
-        window.generateQRCode = generateQRCode;
-        window.downloadQR = downloadQR;
-        window.copyQRCode = copyQRCode;
-        window.copyToClipboard = copyToClipboard;
-        window.logout = logout;
-        window.insertTag = insertTag;
+        window.openTab = openTab; window.shortenUrl = shortenUrl; window.generateQRCode = generateQRCode; window.downloadQR = downloadQR; window.copyQRCode = copyQRCode; window.copyToClipboard = copyToClipboard; window.logout = logout; window.insertTag = insertTag;
     </script>
-
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>

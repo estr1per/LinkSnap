@@ -4,104 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Конвертер файлов - LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>">
     <style>
-        * { box-sizing: border-box; }
         .converter-container { display: grid; grid-template-columns: 1fr 380px; gap: 30px; align-items: stretch; }
-        .drop-area { border: 3px dashed #d1d5db; border-radius: var(--radius-lg); padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: white; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .drop-area { border: 3px dashed var(--gray-400); border-radius: var(--radius-lg); padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg-primary); height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .drop-area:hover, .drop-area.dragover { border-color: var(--primary); background: rgba(102, 126, 234, 0.05); transform: scale(1.01); }
-        .drop-area .icon { font-size: 4rem; margin-bottom: 15px; }
-        .drop-area h3 { margin: 0 0 10px 0; color: var(--text); }
-        .drop-area p { color: var(--gray-600); margin: 5px 0; font-size: 14px; }
+        .drop-area i { font-size: 4rem; margin-bottom: 15px; color: var(--primary); }
+        .drop-area h3 { margin: 0 0 10px 0; color: var(--text-primary); }
+        .drop-area p { color: var(--text-secondary); margin: 5px 0; font-size: 14px; }
         .drop-area .formats { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-        .format-badge { background: var(--gray-200); padding: 4px 10px; border-radius: 20px; font-size: 11px; color: var(--gray-700); font-weight: 500; }
-        .settings-panel { background: var(--surface); border-radius: var(--radius-lg); padding: 25px; border: 1px solid var(--surface-light); height: 100%; min-height: 500px; }
+        .format-badge { background: var(--bg-tertiary); padding: 4px 10px; border-radius: 20px; font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+        .settings-panel { background: var(--bg-primary); border-radius: var(--radius-lg); padding: 25px; border: 1px solid var(--bg-tertiary); height: 100%; min-height: 500px; }
         .settings-panel h4 { margin: 0 0 20px 0; color: var(--primary); font-size: 16px; display: flex; align-items: center; gap: 8px; }
         .settings-group { margin-bottom: 20px; }
-        .settings-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text); }
-        .settings-group select, .settings-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--bg-light); color: var(--text); font-size: 14px; }
+        .settings-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-primary); }
+        .settings-group select, .settings-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; }
         .settings-group select:focus, .settings-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        .settings-group .hint { font-size: 11px; color: var(--gray-600); margin-top: 5px; }
+        .settings-group .hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
         .slider-group { margin-bottom: 15px; }
         .slider-group label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
         .slider-group input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: var(--gray-300); appearance: none; cursor: pointer; }
         .slider-group input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; }
-        .file-list-container { background: var(--surface-light); border-radius: var(--radius-lg); padding: 20px; max-height: 600px; overflow-y: auto; min-height: 300px; }
+        .file-list-container { background: var(--bg-secondary); border-radius: var(--radius-lg); padding: 20px; max-height: 600px; overflow-y: auto; min-height: 300px; }
         .file-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--gray-300); }
         .file-list-header h4 { margin: 0; font-size: 14px; }
-        .file-item { background: white; border-radius: var(--radius-md); padding: 12px 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--gray-200); transition: all 0.2s; }
+        .file-item { background: var(--bg-primary); border-radius: var(--radius-md); padding: 12px 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--gray-200); transition: all 0.2s; }
         .file-item:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .file-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--gray-100); border-radius: var(--radius-md); }
+        .file-icon i { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--gray-100); border-radius: var(--radius-md); color: var(--primary); }
         .file-info { flex: 1; min-width: 0; }
-        .file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .file-meta { font-size: 11px; color: var(--gray-600); margin-top: 3px; }
-        .file-actions { display: flex; gap: 8px; }
-        .btn-icon { width: 32px; height: 32px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; }
-        .btn-delete { background: #fee2e2; color: #ef4444; }
-        .btn-delete:hover { background: #ef4444; color: white; }
-        .convert-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 20px; transition: all 0.3s; }
+        .file-name { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+        .btn-icon { width: 32px; height: 32px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; background: var(--danger-light); color: var(--danger); }
+        .btn-icon:hover { background: var(--danger); color: white; }
+        .convert-btn { width: 100%; padding: 14px; background: var(--gradient-primary); color: white; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 20px; transition: all 0.3s; }
         .convert-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
         .convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .stat-item { background: var(--gray-100); padding: 10px; border-radius: var(--radius-md); text-align: center; }
+        .stat-item { background: var(--bg-secondary); padding: 10px; border-radius: var(--radius-md); text-align: center; }
         .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 11px; color: var(--gray-600); margin-top: 3px; }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
         .progress-container { margin-top: 15px; display: none; }
         .progress-container.show { display: block; }
         .progress-bar { height: 8px; background: var(--gray-300); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); transition: width 0.3s ease; width: 0%; }
-        .progress-text { font-size: 12px; color: var(--gray-600); text-align: center; }
-        .result-area { margin-top: 20px; padding: 15px; background: #d1fae5; border-radius: var(--radius-md); display: none; align-items: center; gap: 10px; }
+        .progress-fill { height: 100%; background: var(--gradient-primary); transition: width 0.3s ease; width: 0%; }
+        .progress-text { font-size: 12px; color: var(--text-muted); text-align: center; }
+        .result-area { margin-top: 20px; padding: 15px; background: var(--success-light); border-radius: var(--radius-md); display: none; align-items: center; gap: 10px; }
         .result-area.show { display: flex; }
-        .result-area.error { background: #fee2e2; }
+        .result-area.error { background: var(--danger-light); }
         .category-tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; flex-wrap: wrap; }
-        .category-tab { padding: 12px 30px; border: 2px solid #d1d5db; border-radius: var(--radius-md); background: #f3f4f6; cursor: pointer; font-size: 16px; text-align: center; transition: all 0.2s; font-weight: 600; color: #374151; min-width: 160px; }
+        .category-tab { padding: 12px 30px; border: 2px solid var(--gray-300); border-radius: var(--radius-md); background: var(--bg-secondary); cursor: pointer; font-size: 16px; text-align: center; transition: all 0.2s; font-weight: 600; color: var(--text-secondary); min-width: 160px; }
         .category-tab:hover { border-color: var(--primary); background: rgba(102, 126, 234, 0.1); }
-        .category-tab.active { border-color: var(--primary); background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-        .category-tab .icon { font-size: 20px; display: inline-block; margin-right: 8px; vertical-align: middle; }
+        .category-tab.active { border-color: var(--primary); background: var(--gradient-primary); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+        .category-tab i { font-size: 18px; margin-right: 8px; }
         .input-row { display: flex; gap: 10px; align-items: center; }
         @media (max-width: 900px) { 
             .converter-container { grid-template-columns: 1fr; }
             .category-tab { padding: 10px 20px; font-size: 14px; min-width: 120px; }
         }
-        
-        body.dark-theme .drop-area { background: var(--surface-dark); border-color: var(--gray-600); }
-        body.dark-theme .file-item { background: var(--surface-dark); border-color: var(--gray-600); }
-        body.dark-theme .stat-item { background: var(--surface-dark); }
-        body.dark-theme .format-badge { background: var(--gray-700); color: var(--text-secondary); }
-        body.dark-theme .category-tab { background: var(--gray-800); border-color: var(--gray-600); color: var(--text-secondary); }
-        body.dark-theme .category-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: transparent; }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="site-header">
-            <div class="logo-container"><span class="logo">🔄</span><a href="/" class="site-title">LinkSnap</a></div>
+            <div class="logo-container">
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
+                <a href="/" class="site-title">LinkSnap</a>
+            </div>
             <div class="user-nav">
-                <div class="user-info"><div class="user-avatar" id="userAvatar"></div><span class="user-name" id="username">Загрузка...</span></div>
-                <div class="theme-switch-wrapper">
-                    <span class="theme-icon">🌙</span>
-                    <label class="theme-switch"><input type="checkbox" id="themeToggle"><span class="theme-slider"></span></label>
-                    <span class="theme-icon">☀️</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <span class="user-name" id="username">Загрузка...</span>
                 </div>
-                <a href="/profile" class="nav-btn">Профиль</a>
-                <a href="/dashboard" class="nav-btn">Аналитика</a>
-                <a href="/batch" class="nav-btn">Массовое</a>
-                <a href="/pricing" class="nav-btn">Тарифы</a>
-                <a href="/image-editor" class="nav-btn">Редактор</a>
-                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                <div class="theme-switch-wrapper">
+                    <i class="fas fa-moon theme-icon"></i>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="theme-slider"></span>
+                    </label>
+                    <i class="fas fa-sun theme-icon"></i>
+                </div>
+                <a href="/profile" class="nav-btn"><i class="fas fa-user"></i> Профиль</a>
+                <a href="/dashboard" class="nav-btn"><i class="fas fa-chart-line"></i> Аналитика</a>
+                <a href="/batch" class="nav-btn"><i class="fas fa-layer-group"></i> Массовое</a>
+                <a href="/pricing" class="nav-btn"><i class="fas fa-tag"></i> Тарифы</a>
+                <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </header>
 
-        <h2>🔄 Конвертер файлов</h2>
-        <p>Конвертируйте изображения и документы между различными форматами</p>
+        <h2><i class="fas fa-exchange-alt"></i> Конвертер файлов</h2>
+        <p><i class="fas fa-info-circle"></i> Конвертируйте изображения и документы между различными форматами</p>
 
         <div class="converter-container">
             <div>
                 <div class="drop-area" id="dropArea">
-                    <div class="icon" id="dropIcon">🖼️</div>
+                    <i class="fas fa-images" id="dropIcon"></i>
                     <h3 id="dropTitle">Перетащите изображения сюда</h3>
                     <p id="dropSubtitle">или нажмите для выбора</p>
                     <div class="formats" id="formatBadges"></div>
@@ -110,41 +110,41 @@
                 
                 <div class="file-list-container" id="fileListContainer" style="display: none;">
                     <div class="file-list-header">
-                        <h4>📄 Список файлов (<span id="fileCount">0</span>)</h4>
-                        <button class="btn-icon btn-delete" onclick="clearAllFiles()" title="Очистить все">🗑️</button>
+                        <h4><i class="fas fa-list"></i> Список файлов (<span id="fileCount">0</span>)</h4>
+                        <button class="btn-icon" onclick="clearAllFiles()" title="Очистить все"><i class="fas fa-trash-alt"></i></button>
                     </div>
                     <div id="fileListItems"></div>
                 </div>
             </div>
 
             <div class="settings-panel">
-                <h4><span>⚙️</span> Настройки конвертации</h4>
+                <h4><i class="fas fa-cog"></i> Настройки конвертации</h4>
                 
                 <div class="category-tabs" id="categoryTabs">
                     <div class="category-tab active" data-category="images">
-                        <span class="icon">🖼️</span> Изображения
+                        <i class="fas fa-image"></i> Изображения
                     </div>
                     <div class="category-tab" data-category="documents">
-                        <span class="icon">📄</span> Документы
+                        <i class="fas fa-file-alt"></i> Документы
                     </div>
                 </div>
 
                 <div class="settings-group">
-                    <label>🎯 Целевой формат</label>
+                    <label><i class="fas fa-target"></i> Целевой формат</label>
                     <select id="targetFormat"></select>
                     <div class="hint" id="formatHint"></div>
                 </div>
 
                 <div class="settings-group" id="qualityGroup">
                     <div class="slider-group">
-                        <label><span>Качество</span><span id="qualityValue">90%</span></label>
+                        <label><i class="fas fa-chart-line"></i> Качество <span id="qualityValue">90%</span></label>
                         <input type="range" id="quality" min="10" max="100" value="90">
                     </div>
                     <div class="hint">Выше качество = больше размер файла</div>
                 </div>
 
                 <div class="settings-group" id="resizeGroup">
-                    <label>📐 Изменить размер (опционально)</label>
+                    <label><i class="fas fa-expand-alt"></i> Изменить размер (опционально)</label>
                     <div class="input-row">
                         <input type="number" id="resizeWidth" placeholder="Ширина" style="flex:1;">
                         <span>×</span>
@@ -156,20 +156,20 @@
                 <div class="stats-bar" id="statsBar" style="display: none;">
                     <div class="stat-item">
                         <div class="stat-value" id="statFileCount">0</div>
-                        <div class="stat-label">Файлов</div>
+                        <div class="stat-label"><i class="fas fa-file"></i> Файлов</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statTotalSize">0</div>
-                        <div class="stat-label">Общий размер</div>
+                        <div class="stat-label"><i class="fas fa-database"></i> Общий размер</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statSupported">0</div>
-                        <div class="stat-label">Поддерживается</div>
+                        <div class="stat-label"><i class="fas fa-check-circle"></i> Поддерживается</div>
                     </div>
                 </div>
 
                 <button onclick="convertFiles()" class="convert-btn" id="convertBtn" disabled>
-                    🔄 Начать конвертацию
+                    <i class="fas fa-sync-alt"></i> Начать конвертацию
                 </button>
 
                 <div class="progress-container" id="progressContainer">
@@ -178,7 +178,7 @@
                 </div>
 
                 <div class="result-area" id="resultArea">
-                    <span id="resultIcon">✅</span>
+                    <i class="fas fa-check-circle" id="resultIcon"></i>
                     <span id="resultText">Конвертация завершена!</span>
                 </div>
             </div>
@@ -188,11 +188,10 @@
     <script>
         let files = [];
         
-        // ТОЛЬКО РАБОТАЮЩИЕ КАТЕГОРИИ
         const categories = {
             images: {
                 name: 'Изображения',
-                icon: '🖼️',
+                icon: 'fas fa-image',
                 endpoint: '/api/convert/images',
                 supportedInput: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'],
                 formats: {
@@ -205,13 +204,13 @@
                 },
                 hasQuality: true,
                 hasResize: true,
-                dropIcon: '🖼️',
+                dropIcon: 'fas fa-image',
                 dropTitle: 'Перетащите изображения сюда',
                 formatsList: ['JPG', 'PNG', 'WEBP', 'BMP', 'TIFF', 'GIF']
             },
             documents: {
                 name: 'Документы',
-                icon: '📄',
+                icon: 'fas fa-file-alt',
                 endpoint: '/api/convert/documents',
                 supportedInput: ['txt', 'docx', 'md', 'html'],
                 formats: {
@@ -221,7 +220,7 @@
                 },
                 hasQuality: false,
                 hasResize: false,
-                dropIcon: '📄',
+                dropIcon: 'fas fa-file-alt',
                 dropTitle: 'Перетащите документы сюда',
                 formatsList: ['TXT', 'DOCX', 'MD', 'HTML']
             }
@@ -244,11 +243,8 @@
         function switchCategory(category) {
             currentCategory = category;
             document.querySelectorAll('.category-tab').forEach(tab => {
-                if (tab.dataset.category === category) {
-                    tab.classList.add('active');
-                } else {
-                    tab.classList.remove('active');
-                }
+                if (tab.dataset.category === category) tab.classList.add('active');
+                else tab.classList.remove('active');
             });
             updateFormats();
             updateDropZone();
@@ -272,13 +268,10 @@
 
         function updateDropZone() {
             const category = categories[currentCategory];
-            document.getElementById('dropIcon').textContent = category.dropIcon;
+            document.getElementById('dropIcon').className = category.dropIcon;
             document.getElementById('dropTitle').textContent = category.dropTitle;
-            
             const displayFormats = category.formatsList.slice(0, 12);
-            document.getElementById('formatBadges').innerHTML = displayFormats.map(f => 
-                `<span class="format-badge">${f}</span>`
-            ).join('');
+            document.getElementById('formatBadges').innerHTML = displayFormats.map(f => `<span class="format-badge">${f}</span>`).join('');
         }
 
         function initDropZone() {
@@ -342,13 +335,13 @@
                 const ext = file.name.split('.').pop().toUpperCase();
                 return `
                     <div class="file-item">
-                        <div class="file-icon">${category.icon}</div>
+                        <div class="file-icon"><i class="${category.icon}"></i></div>
                         <div class="file-info">
                             <div class="file-name">${escapeHtml(file.name)}</div>
                             <div class="file-meta">${formatSize(file.size)} • ${ext}</div>
                         </div>
                         <div class="file-actions">
-                            <button class="btn-icon btn-delete" onclick="removeFile(${i})" title="Удалить">✕</button>
+                            <button class="btn-icon" onclick="removeFile(${i})" title="Удалить"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
                 `;
@@ -439,7 +432,7 @@
                 progressText.textContent = 'Готово!';
 
                 resultArea.className = 'result-area show';
-                document.getElementById('resultIcon').textContent = '✅';
+                document.getElementById('resultIcon').className = 'fas fa-check-circle';
                 document.getElementById('resultText').textContent = `Конвертация завершена! (${formatSize(blob.size)})`;
 
                 const link = document.createElement('a');
@@ -450,7 +443,7 @@
 
             } catch (err) {
                 resultArea.className = 'result-area error show';
-                document.getElementById('resultIcon').textContent = '❌';
+                document.getElementById('resultIcon').className = 'fas fa-exclamation-triangle';
                 document.getElementById('resultText').textContent = 'Ошибка: ' + err.message;
             } finally {
                 convertBtn.disabled = files.length === 0;
@@ -458,28 +451,16 @@
             }
         }
 
-        // ИНИЦИАЛИЗАЦИЯ - ВАЖНО!
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
-            
-            // Привязываем обработчики к кнопкам категорий
             const categoryTabs = document.querySelectorAll('.category-tab');
             categoryTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    switchCategory(tab.dataset.category);
-                });
+                tab.addEventListener('click', () => { switchCategory(tab.dataset.category); });
             });
-            
             updateFormats();
             updateDropZone();
             initDropZone();
         });
-
-        window.switchCategory = switchCategory;
-        window.convertFiles = convertFiles;
-        window.removeFile = removeFile;
-        window.clearAllFiles = clearAllFiles;
-        window.logout = logout;
 
         (function() {
             const themeToggle = document.getElementById('themeToggle');
@@ -492,7 +473,12 @@
                 });
             }
         })();
+
+        window.switchCategory = switchCategory;
+        window.convertFiles = convertFiles;
+        window.removeFile = removeFile;
+        window.clearAllFiles = clearAllFiles;
+        window.logout = logout;
     </script>
-    <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>

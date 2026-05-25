@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Массовое создание - LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
@@ -30,67 +31,86 @@
         .card { min-height: 500px; }
         .card-body { min-height: 400px; }
         @media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: var(--gradient-primary); padding: 15px; border-radius: var(--radius-md); text-align: center; color: white; }
+        .stat-number { font-size: 2rem; font-weight: 700; }
+        .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .progress-bar { height: 8px; background: var(--gray-300); border-radius: 4px; overflow: hidden; margin: 20px 0; display: none; }
+        .progress-fill { height: 100%; background: var(--gradient-primary); width: 0%; transition: width 0.3s; }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="site-header">
-            <div class="logo-container"><span class="logo">📦</span><a href="/" class="site-title">LinkSnap</a></div>
+            <div class="logo-container">
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
+                <a href="/" class="site-title">LinkSnap</a>
+            </div>
             <div class="user-nav">
-                <div class="user-info"><div class="user-avatar" id="userAvatar"></div><span class="user-name" id="username">Загрузка...</span></div>
-                <div class="theme-switch-wrapper">
-                    <span class="theme-icon">🌙</span>
-                    <label class="theme-switch"><input type="checkbox" id="themeToggle"><span class="theme-slider"></span></label>
-                    <span class="theme-icon">☀️</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <span class="user-name" id="username">Загрузка...</span>
                 </div>
-                <a href="/profile" class="nav-btn">Профиль</a>
-                <a href="/dashboard" class="nav-btn">Аналитика</a>
-                <a href="/pricing" class="nav-btn">Тарифы</a>
-                <a href="/converter" class="nav-btn">Конвертер</a>
-                <a href="/image-editor" class="nav-btn">Редактор</a>
-                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                <div class="theme-switch-wrapper">
+                    <i class="fas fa-moon theme-icon"></i>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="theme-slider"></span>
+                    </label>
+                    <i class="fas fa-sun theme-icon"></i>
+                </div>
+                <a href="/profile" class="nav-btn"><i class="fas fa-user"></i> Профиль</a>
+                <a href="/dashboard" class="nav-btn"><i class="fas fa-chart-line"></i> Аналитика</a>
+                <a href="/pricing" class="nav-btn"><i class="fas fa-tag"></i> Тарифы</a>
+                <a href="/converter" class="nav-btn"><i class="fas fa-exchange-alt"></i> Конвертер</a>
+                <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </header>
         
-        <h2>⚡ Массовое создание ссылок</h2>
-        <p>Создайте несколько коротких ссылок за один раз из списка URL или CSV файла</p>
+        <h2><i class="fas fa-layer-group"></i> Массовое создание ссылок</h2>
+        <p><i class="fas fa-info-circle"></i> Создайте несколько коротких ссылок за один раз из списка URL или CSV файла</p>
 
         <div class="row">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">📥 Входные данные</h3></div>
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-upload"></i> Входные данные</h3>
+                </div>
                 <div class="card-body">
                     <div class="btn-group" style="margin-bottom:20px;">
-                        <button class="btn btn-primary" onclick="setInputMethod('text')" id="textBtn">Текст</button>
-                        <button class="btn btn-secondary" onclick="setInputMethod('csv')" id="csvBtn">CSV</button>
+                        <button class="btn btn-primary" onclick="setInputMethod('text')" id="textBtn"><i class="fas fa-font"></i> Текст</button>
+                        <button class="btn btn-secondary" onclick="setInputMethod('csv')" id="csvBtn"><i class="fas fa-file-csv"></i> CSV</button>
                     </div>
                     <div id="textInput">
                         <textarea id="urlList" class="form-control" rows="8" placeholder="Вставьте список URL (по одному на строку)"></textarea>
                     </div>
                     <div id="csvInput" style="display:none;">
                         <div class="file-upload" id="dropZone">
-                            <span style="font-size:3em;">📁</span>
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 3em;"></i>
                             <p>Перетащите CSV файл сюда или нажмите для выбора</p>
                             <input type="file" id="csvFile" accept=".csv,.txt" hidden>
-                            <div id="fileName" style="margin-top:10px;">Файл не выбран</div>
+                            <div id="fileName" style="margin-top:10px;"><i class="fas fa-file"></i> Файл не выбран</div>
                         </div>
                     </div>
-                    <button onclick="processBatch()" class="btn btn-primary" style="width:100%; margin-top:20px;">🚀 Начать массовое создание</button>
-                    <div class="progress-bar" id="progressBar" style="display:none;"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+                    <button onclick="processBatch()" class="btn btn-primary" style="width:100%; margin-top:20px;"><i class="fas fa-play"></i> Начать массовое создание</button>
+                    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3 class="card-title">📊 Результаты</h3></div>
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-chart-simple"></i> Результаты</h3>
+                </div>
                 <div class="card-body">
                     <div class="stats-grid" id="statsBar" style="display:none;">
-                        <div class="stat-card"><div class="stat-number" id="totalProcessed">0</div><div class="stat-label">Всего</div></div>
-                        <div class="stat-card"><div class="stat-number" id="successCount">0</div><div class="stat-label">Успешно</div></div>
-                        <div class="stat-card"><div class="stat-number" id="errorCount">0</div><div class="stat-label">Ошибок</div></div>
+                        <div class="stat-card"><div class="stat-number" id="totalProcessed">0</div><div class="stat-label"><i class="fas fa-list"></i> Всего</div></div>
+                        <div class="stat-card"><div class="stat-number" id="successCount">0</div><div class="stat-label"><i class="fas fa-check-circle"></i> Успешно</div></div>
+                        <div class="stat-card"><div class="stat-number" id="errorCount">0</div><div class="stat-label"><i class="fas fa-exclamation-triangle"></i> Ошибок</div></div>
                     </div>
-                    <div id="resultsContainer" style="max-height:400px; overflow-y:auto;"><p class="empty-state">📋 Здесь появятся результаты</p></div>
+                    <div id="resultsContainer" style="max-height:400px; overflow-y:auto;"><p class="empty-state"><i class="fas fa-inbox"></i> Здесь появятся результаты</p></div>
                     <div class="btn-group" id="copyButtons" style="display:none; margin-top:20px;">
-                        <button onclick="copyAllLinks()" class="btn btn-success">📋 Копировать все</button>
-                        <button onclick="downloadResults()" class="btn btn-info">📥 Скачать CSV</button>
-                        <button onclick="clearResults()" class="btn btn-secondary">🗑️ Очистить</button>
+                        <button onclick="copyAllLinks()" class="btn btn-success"><i class="fas fa-copy"></i> Копировать все</button>
+                        <button onclick="downloadResults()" class="btn btn-info"><i class="fas fa-download"></i> Скачать CSV</button>
+                        <button onclick="clearResults()" class="btn btn-secondary"><i class="fas fa-trash-alt"></i> Очистить</button>
                     </div>
                 </div>
             </div>
@@ -149,7 +169,7 @@
         
         function updateFileName() { 
             const file = document.getElementById('csvFile').files[0]; 
-            document.getElementById('fileName').textContent = file ? `${file.name} (${(file.size/1024).toFixed(1)} KB)` : 'Файл не выбран'; 
+            document.getElementById('fileName').innerHTML = file ? `<i class="fas fa-file-csv"></i> ${file.name} (${(file.size/1024).toFixed(1)} KB)` : '<i class="fas fa-file"></i> Файл не выбран'; 
         }
         
         async function parseInputData() {
@@ -192,15 +212,13 @@
             const urls = await parseInputData();
             if (!urls.length) { alert('Введите хотя бы один URL'); return; }
             
-            const BATCH_SIZE = 10; // ИСПРАВЛЕНО: фиксированный размер
-            
             document.getElementById('progressBar').style.display = 'block';
             document.getElementById('resultsContainer').innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Обработка...</span></div>';
             
             let allResults = [], allErrors = [], processed = 0;
             
-            for (let i = 0; i < urls.length; i += BATCH_SIZE) {
-                const batch = urls.slice(i, i + BATCH_SIZE);
+            for (let i = 0; i < urls.length; i += 10) {
+                const batch = urls.slice(i, i + 10);
                 try {
                     const resp = await fetch('/api/batch/shorten', { 
                         method: 'POST', 
@@ -212,7 +230,7 @@
                         allResults = allResults.concat(data.results || []); 
                         allErrors = allErrors.concat(data.errors || []); 
                     }
-                    const progress = Math.min(((i + BATCH_SIZE) / urls.length) * 100, 100);
+                    const progress = Math.min(((i + 10) / urls.length) * 100, 100);
                     document.getElementById('progressFill').style.width = progress + '%';
                 } catch(e) { 
                     allErrors.push({ error: e.message, url: 'Ошибка сети' }); 
@@ -232,17 +250,17 @@
             let html = '';
             results.forEach(r => { 
                 html += `<div class="result-item">
-                    <div>${escapeHtml(r.originalUrl)}</div>
-                    <a href="${escapeHtml(r.shortUrl)}" target="_blank">${escapeHtml(r.shortUrl)}</a>
+                    <div><i class="fas fa-link"></i> ${escapeHtml(r.originalUrl)}</div>
+                    <a href="${escapeHtml(r.shortUrl)}" target="_blank"><i class="fas fa-external-link-alt"></i> ${escapeHtml(r.shortUrl)}</a>
                 </div>`; 
             });
             errors.forEach(e => { 
                 html += `<div class="result-item error">
-                    <div>${escapeHtml(e.url || 'Ошибка')}</div>
-                    <div style="color:var(--danger);">❌ ${escapeHtml(e.error)}</div>
+                    <div><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(e.url || 'Ошибка')}</div>
+                    <div style="color:var(--danger);"><i class="fas fa-times-circle"></i> ${escapeHtml(e.error)}</div>
                 </div>`; 
             });
-            document.getElementById('resultsContainer').innerHTML = html || '<p class="empty-state">Нет результатов</p>';
+            document.getElementById('resultsContainer').innerHTML = html || '<p class="empty-state"><i class="fas fa-inbox"></i> Нет результатов</p>';
         }
         
         function copyAllLinks() { 
@@ -268,13 +286,12 @@
         }
         
         function clearResults() { 
-            document.getElementById('resultsContainer').innerHTML = '<p class="empty-state">📋 Здесь появятся результаты</p>'; 
+            document.getElementById('resultsContainer').innerHTML = '<p class="empty-state"><i class="fas fa-inbox"></i> Здесь появятся результаты</p>'; 
             document.getElementById('statsBar').style.display = 'none'; 
             document.getElementById('copyButtons').style.display = 'none'; 
             document.getElementById('progressFill').style.width = '0%'; 
         }
         
-        // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
@@ -297,7 +314,6 @@
 
         document.addEventListener('DOMContentLoaded', async () => { await checkAuth(); initFileUpload(); });
     </script>
-
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>

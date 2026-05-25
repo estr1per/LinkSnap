@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль - LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
-    <link rel="icon" type="image/x-icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
     <style>
         .settings-section {
             background: var(--bg-primary);
@@ -23,6 +22,10 @@
             border-bottom: 2px solid var(--primary);
             display: inline-block;
         }
+        .settings-section h3 i {
+            margin-right: var(--space-sm);
+            color: var(--primary);
+        }
         .info-row {
             display: flex;
             padding: var(--space-sm) 0;
@@ -33,12 +36,15 @@
             font-weight: 600;
             color: var(--text-secondary);
         }
+        .info-label i {
+            width: 20px;
+            margin-right: var(--space-sm);
+            color: var(--primary);
+        }
         .info-value {
             flex: 1;
             color: var(--text-primary);
         }
-        
-        /* Фильтр по тегам */
         .tag-filter-bar {
             display: flex;
             gap: var(--space-md);
@@ -67,9 +73,7 @@
             z-index: 100;
             display: none;
         }
-        .filter-suggestions.show {
-            display: block;
-        }
+        .filter-suggestions.show { display: block; }
         .filter-suggestion-item {
             padding: var(--space-sm) var(--space-md);
             cursor: pointer;
@@ -101,11 +105,7 @@
             font-weight: bold;
             opacity: 0.8;
         }
-        .selected-tag .remove:hover {
-            opacity: 1;
-        }
-        
-        /* История ссылок */
+        .selected-tag .remove:hover { opacity: 1; }
         .history-list {
             max-height: 500px;
             overflow-y: auto;
@@ -140,8 +140,6 @@
             font-size: var(--text-xs);
             color: var(--text-muted);
         }
-        
-        /* Редактор тегов */
         .tag-editor {
             display: flex;
             gap: var(--space-sm);
@@ -183,16 +181,12 @@
             padding: var(--space-xs) var(--space-md);
             font-size: var(--text-sm);
         }
-        
-        /* Пагинация */
         .pagination {
             display: flex;
             justify-content: center;
             gap: var(--space-sm);
             margin-top: var(--space-lg);
         }
-        
-        /* План-бадж */
         .plan-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -202,8 +196,6 @@
             background: var(--gradient-primary);
             color: white;
         }
-        
-        /* Прогресс-бар лимитов */
         .limit-progress {
             background: var(--bg-tertiary);
             border-radius: var(--radius-full);
@@ -217,8 +209,6 @@
             width: 0%;
             transition: width var(--transition-slow);
         }
-        
-        /* API ключ */
         .api-key {
             background: var(--bg-secondary);
             padding: var(--space-md);
@@ -228,8 +218,6 @@
             margin: var(--space-md) 0;
             border: 1px solid var(--primary);
         }
-        
-        /* Пустое состояние */
         .empty-state {
             text-align: center;
             padding: var(--space-3xl);
@@ -237,8 +225,6 @@
             background: var(--bg-secondary);
             border-radius: var(--radius-xl);
         }
-        
-        /* Фильтр результат */
         .filter-info {
             background: var(--primary-bg);
             padding: var(--space-md);
@@ -250,7 +236,6 @@
             flex-wrap: wrap;
             gap: var(--space-sm);
         }
-        
         @media (max-width: 768px) {
             .info-row { flex-direction: column; }
             .info-label { width: 100%; margin-bottom: var(--space-xs); }
@@ -260,12 +245,11 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <header class="site-header">
             <div class="logo-container">
-                <span class="logo">👤</span>
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
                 <a href="/" class="site-title">LinkSnap</a>
             </div>
             <div class="user-nav">
@@ -274,97 +258,73 @@
                     <span class="user-name" id="username">Загрузка...</span>
                 </div>
                 <div class="theme-switch-wrapper">
-                    <span class="theme-icon">🌙</span>
+                    <i class="fas fa-moon theme-icon"></i>
                     <label class="theme-switch">
                         <input type="checkbox" id="themeToggle">
                         <span class="theme-slider"></span>
                     </label>
-                    <span class="theme-icon">☀️</span>
+                    <i class="fas fa-sun theme-icon"></i>
                 </div>
-                <a href="/dashboard" class="nav-btn">Аналитика</a>
-                <a href="/batch" class="nav-btn">Массовое</a>
-                <a href="/pricing" class="nav-btn">Тарифы</a>
-                <a href="/converter" class="nav-btn">Конвертер</a>
-                <a href="/image-editor" class="nav-btn">Редактор</a>
-                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                <a href="/dashboard" class="nav-btn"><i class="fas fa-chart-line"></i> Аналитика</a>
+                <a href="/batch" class="nav-btn"><i class="fas fa-layer-group"></i> Массовое</a>
+                <a href="/pricing" class="nav-btn"><i class="fas fa-tag"></i> Тарифы</a>
+                <a href="/converter" class="nav-btn"><i class="fas fa-exchange-alt"></i> Конвертер</a>
+                <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </header>
 
-        <h2>👤 Мой профиль</h2>
-        <p>Управление аккаунтом, тарифом и историей</p>
+        <h2><i class="fas fa-user-circle"></i> Мой профиль</h2>
+        <p><i class="fas fa-sliders-h"></i> Управление аккаунтом, тарифом и историей</p>
 
-        <!-- Информация об аккаунте -->
         <div class="settings-section">
-            <h3>📋 Информация об аккаунте</h3>
-            <div id="userInfo">
-                <div class="loading">
-                    <div class="loading-spinner"></div><span>Загрузка...</span>
-                </div>
-            </div>
+            <h3><i class="fas fa-info-circle"></i> Информация об аккаунте</h3>
+            <div id="userInfo"><div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div></div>
         </div>
 
-        <!-- Тарифный план -->
         <div class="settings-section">
-            <h3>💎 Тарифный план</h3>
-            <div id="planInfo">
-                <div class="loading">
-                    <div class="loading-spinner"></div><span>Загрузка...</span>
-                </div>
-            </div>
+            <h3><i class="fas fa-gem"></i> Тарифный план</h3>
+            <div id="planInfo"><div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div></div>
         </div>
 
-        <!-- Фильтр по тегам -->
         <div class="settings-section">
-            <h3>🔍 Фильтр по тегам</h3>
+            <h3><i class="fas fa-filter"></i> Фильтр по тегам</h3>
             <div class="tag-filter-bar">
                 <div class="tag-filter-input">
                     <input type="text" id="tagFilterInput" class="form-control" placeholder="Введите тег..." autocomplete="off">
                     <div id="filterSuggestions" class="filter-suggestions"></div>
                 </div>
-                <button onclick="addFilterTag()" class="btn btn-primary btn-sm">➕ Добавить тег</button>
-                <button onclick="clearFilter()" class="btn btn-secondary btn-sm">🗑️ Очистить фильтр</button>
-                <button onclick="exportFilteredLinks()" class="btn btn-success btn-sm">📥 Экспорт CSV</button>
+                <button onclick="addFilterTag()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Добавить тег</button>
+                <button onclick="clearFilter()" class="btn btn-secondary btn-sm"><i class="fas fa-trash-alt"></i> Очистить фильтр</button>
+                <button onclick="exportFilteredLinks()" class="btn btn-success btn-sm"><i class="fas fa-file-csv"></i> Экспорт CSV</button>
             </div>
             <div id="selectedTags" class="selected-tags"></div>
             <div id="filterInfo" class="filter-info" style="display: none;"></div>
             <div id="filterResult"></div>
         </div>
 
-        <!-- История ссылок -->
         <div class="settings-section">
-            <h3>🔗 История ссылок</h3>
+            <h3><i class="fas fa-history"></i> История ссылок</h3>
             <div class="btn-group" style="margin-bottom: var(--space-lg);">
-                <button onclick="loadLinksHistory(1)" class="btn btn-secondary btn-sm">🔄 Обновить</button>
-                <button onclick="clearLinksHistory()" class="btn btn-danger btn-sm">🗑️ Очистить все ссылки</button>
+                <button onclick="loadLinksHistory(1)" class="btn btn-secondary btn-sm"><i class="fas fa-sync-alt"></i> Обновить</button>
+                <button onclick="clearLinksHistory()" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> Очистить все ссылки</button>
             </div>
-            <div id="linksHistory" class="history-list">
-                <div class="loading">
-                    <div class="loading-spinner"></div><span>Загрузка...</span>
-                </div>
-            </div>
+            <div id="linksHistory" class="history-list"><div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div></div>
             <div id="pagination" class="pagination"></div>
         </div>
 
-        <!-- История QR-кодов -->
         <div class="settings-section">
-            <h3>📱 История QR-кодов</h3>
+            <h3><i class="fas fa-qrcode"></i> История QR-кодов</h3>
             <div class="btn-group" style="margin-bottom: var(--space-lg);">
-                <button onclick="loadQRCodesHistory()" class="btn btn-secondary btn-sm">🔄 Обновить</button>
-                <button onclick="clearQRCodesHistory()" class="btn btn-danger btn-sm">🗑️ Очистить QR-коды</button>
+                <button onclick="loadQRCodesHistory()" class="btn btn-secondary btn-sm"><i class="fas fa-sync-alt"></i> Обновить</button>
+                <button onclick="clearQRCodesHistory()" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> Очистить QR-коды</button>
             </div>
-            <div id="qrcodesHistory" class="history-list">
-                <div class="loading">
-                    <div class="loading-spinner"></div><span>Загрузка...</span>
-                </div>
-            </div>
+            <div id="qrcodesHistory" class="history-list"><div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div></div>
         </div>
     </div>
 
     <script>
-        let currentPage = 1;
-        let totalPages = 1;
-        let filterTags = [];
-        let allTagsList = [];
+        let currentPage = 1, totalPages = 1, filterTags = [], allTagsList = [];
 
         async function checkAuth() {
             try {
@@ -373,32 +333,23 @@
                 const user = await res.json();
                 document.getElementById('username').textContent = user.username;
                 document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
-                await loadUserInfo();
-                await loadPlanInfo();
-                await loadAllTags();
-                await loadLinksHistory(1);
-                await loadQRCodesHistory();
+                await loadUserInfo(); await loadPlanInfo(); await loadAllTags(); await loadLinksHistory(1); await loadQRCodesHistory();
                 return true;
-            } catch (e) { window.location.href = '/login'; return false; }
+            } catch(e) { window.location.href = '/login'; return false; }
         }
 
-        async function logout() {
-            await fetch('/api/logout', { method: 'POST' });
-            window.location.href = '/login';
-        }
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
 
         async function loadUserInfo() {
             try {
                 const res = await fetch('/api/user');
                 const user = await res.json();
                 document.getElementById('userInfo').innerHTML = `
-                    <div class="info-row"><div class="info-label">Имя пользователя:</div><div class="info-value">${escapeHtml(user.username)}</div></div>
-                    <div class="info-row"><div class="info-label">Email:</div><div class="info-value">${escapeHtml(user.email)}</div></div>
-                    <div class="info-row"><div class="info-label">Дата регистрации:</div><div class="info-value">${new Date(user.created_at).toLocaleDateString()}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-user"></i> Имя пользователя:</div><div class="info-value">${escapeHtml(user.username)}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-envelope"></i> Email:</div><div class="info-value">${escapeHtml(user.email)}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-calendar-alt"></i> Дата регистрации:</div><div class="info-value">${new Date(user.created_at).toLocaleDateString()}</div></div>
                 `;
-            } catch (e) {
-                document.getElementById('userInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
-            }
+            } catch(e) { document.getElementById('userInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>'; }
         }
 
         async function loadPlanInfo() {
@@ -410,208 +361,112 @@
                 const maxQR = data.limits.maxQR === 999999 ? '∞' : data.limits.maxQR;
                 const linksPercent = data.limits.maxLinks === 999999 ? 0 : (data.limits.currentLinks / data.limits.maxLinks) * 100;
                 const qrPercent = data.limits.maxQR === 999999 ? 0 : (data.limits.currentQR / data.limits.maxQR) * 100;
-
                 let apiHtml = '';
-                if (data.plan === 'business') {
-                    apiHtml = `<div style="margin-top: var(--space-lg);"><button onclick="generateApiKey()" class="btn btn-primary btn-sm">🔑 Сгенерировать API ключ</button><div id="apiKeyDisplay" class="api-key" style="display:none;"></div></div>`;
-                }
-
+                if (data.plan === 'business') apiHtml = `<div style="margin-top: var(--space-lg);"><button onclick="generateApiKey()" class="btn btn-primary btn-sm"><i class="fas fa-key"></i> Сгенерировать API ключ</button><div id="apiKeyDisplay" class="api-key" style="display:none;"></div></div>`;
                 document.getElementById('planInfo').innerHTML = `
-                    <div class="info-row"><div class="info-label">Текущий тариф:</div><div class="info-value"><span class="plan-badge">${planNames[data.plan]}</span></div></div>
-                    <div class="info-row"><div class="info-label">Ссылки в этом месяце:</div><div class="info-value">${data.limits.currentLinks} из ${maxLinks}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-tag"></i> Текущий тариф:</div><div class="info-value"><span class="plan-badge">${planNames[data.plan]}</span></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-link"></i> Ссылки в этом месяце:</div><div class="info-value">${data.limits.currentLinks} из ${maxLinks}</div></div>
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, linksPercent)}%;"></div></div>
-                    <div class="info-row"><div class="info-label">QR-коды в этом месяце:</div><div class="info-value">${data.limits.currentQR} из ${maxQR}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-qrcode"></i> QR-коды в этом месяце:</div><div class="info-value">${data.limits.currentQR} из ${maxQR}</div></div>
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, qrPercent)}%;"></div></div>
-                    <div class="info-row" style="margin-top: var(--space-lg);"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm">🔄 Сменить тариф</a></div></div>
+                    <div class="info-row" style="margin-top: var(--space-lg);"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm"><i class="fas fa-exchange-alt"></i> Сменить тариф</a></div></div>
                     ${apiHtml}
                 `;
-            } catch (e) {
-                document.getElementById('planInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
-            }
+            } catch(e) { document.getElementById('planInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>'; }
         }
 
         async function loadAllTags() {
-            try {
-                const res = await fetch('/api/tags/all');
-                const tags = await res.json();
-                allTagsList = tags || [];
-            } catch (e) {
-                console.error('Ошибка загрузки тегов:', e);
-            }
+            try { const res = await fetch('/api/tags/all'); const tags = await res.json(); allTagsList = tags || []; } catch(e) { console.error('Ошибка загрузки тегов:', e); }
         }
 
-        // Автодополнение для фильтра
         function setupFilterAutocomplete() {
             const input = document.getElementById('tagFilterInput');
             const suggestionsDiv = document.getElementById('filterSuggestions');
-            
             if (!input) return;
-            
             input.addEventListener('input', function() {
                 const value = this.value.toLowerCase().trim();
-                
-                if (value.length < 1) {
-                    suggestionsDiv.classList.remove('show');
-                    return;
-                }
-                
-                const filteredTags = allTagsList
-                    .map(t => t.name)
-                    .filter(tag => tag.toLowerCase().includes(value) && !filterTags.includes(tag))
-                    .slice(0, 5);
-                
+                if (value.length < 1) { suggestionsDiv.classList.remove('show'); return; }
+                const filteredTags = allTagsList.map(t => t.name).filter(tag => tag.toLowerCase().includes(value) && !filterTags.includes(tag)).slice(0, 5);
                 if (filteredTags.length > 0) {
-                    suggestionsDiv.innerHTML = filteredTags.map(tag => 
-                        `<div class="filter-suggestion-item" onclick="selectFilterTag('${escapeHtml(tag)}')">🏷️ ${escapeHtml(tag)}</div>`
-                    ).join('');
+                    suggestionsDiv.innerHTML = filteredTags.map(tag => `<div class="filter-suggestion-item" onclick="selectFilterTag('${escapeHtml(tag)}')"><i class="fas fa-tag"></i> ${escapeHtml(tag)}</div>`).join('');
                     suggestionsDiv.classList.add('show');
-                } else {
-                    suggestionsDiv.classList.remove('show');
-                }
+                } else { suggestionsDiv.classList.remove('show'); }
             });
-            
-            input.addEventListener('blur', function() {
-                setTimeout(() => suggestionsDiv.classList.remove('show'), 200);
-            });
-            
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addFilterTag();
-                }
-            });
+            input.addEventListener('blur', function() { setTimeout(() => suggestionsDiv.classList.remove('show'), 200); });
+            input.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addFilterTag(); } });
         }
         
-        function selectFilterTag(tag) {
-            document.getElementById('tagFilterInput').value = tag;
-            addFilterTag();
-        }
+        function selectFilterTag(tag) { document.getElementById('tagFilterInput').value = tag; addFilterTag(); }
 
         function addFilterTag() {
             const input = document.getElementById('tagFilterInput');
             const tag = input.value.trim().toLowerCase();
-            if (tag && !filterTags.includes(tag)) {
-                filterTags.push(tag);
-                renderSelectedTags();
-                applyFilter();
-            }
-            input.value = '';
-            document.getElementById('filterSuggestions').classList.remove('show');
+            if (tag && !filterTags.includes(tag)) { filterTags.push(tag); renderSelectedTags(); applyFilter(); }
+            input.value = ''; document.getElementById('filterSuggestions').classList.remove('show');
         }
 
         function renderSelectedTags() {
             const container = document.getElementById('selectedTags');
-            if (filterTags.length === 0) {
-                container.innerHTML = '<small style="color: var(--text-muted);">Нет выбранных тегов</small>';
-                return;
-            }
-            container.innerHTML = filterTags.map(tag => `
-                <span class="selected-tag">
-                    ${escapeHtml(tag)}
-                    <span class="remove" onclick="removeFilterTag('${escapeHtml(tag)}')">✕</span>
-                </span>
-            `).join('');
+            if (filterTags.length === 0) { container.innerHTML = '<small style="color: var(--text-muted);"><i class="fas fa-info-circle"></i> Нет выбранных тегов</small>'; return; }
+            container.innerHTML = filterTags.map(tag => `<span class="selected-tag"><i class="fas fa-tag"></i> ${escapeHtml(tag)}<span class="remove" onclick="removeFilterTag('${escapeHtml(tag)}')"><i class="fas fa-times"></i></span></span>`).join('');
         }
 
-        function removeFilterTag(tag) {
-            filterTags = filterTags.filter(t => t !== tag);
-            renderSelectedTags();
-            applyFilter();
-        }
-
-        function clearFilter() {
-            filterTags = [];
-            renderSelectedTags();
-            document.getElementById('filterInfo').style.display = 'none';
-            loadLinksHistory(1);
-        }
+        function removeFilterTag(tag) { filterTags = filterTags.filter(t => t !== tag); renderSelectedTags(); applyFilter(); }
+        function clearFilter() { filterTags = []; renderSelectedTags(); document.getElementById('filterInfo').style.display = 'none'; loadLinksHistory(1); }
 
         async function applyFilter() {
             const container = document.getElementById('linksHistory');
             const filterInfo = document.getElementById('filterInfo');
-            
-            if (filterTags.length === 0) {
-                filterInfo.style.display = 'none';
-                await loadLinksHistory(1);
-                return;
-            }
-            
+            if (filterTags.length === 0) { filterInfo.style.display = 'none'; await loadLinksHistory(1); return; }
             filterInfo.style.display = 'flex';
-            filterInfo.innerHTML = `<span>🔍 Фильтр по тегам: <strong>${filterTags.join(', ')}</strong></span>
-                                    <button onclick="clearFilter()" class="btn btn-sm btn-secondary">✕ Очистить</button>`;
-            
+            filterInfo.innerHTML = `<span><i class="fas fa-filter"></i> Фильтр по тегам: <strong>${filterTags.join(', ')}</strong></span><button onclick="clearFilter()" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Очистить</button>`;
             container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Фильтрация...</span></div>';
-            
             try {
                 const tagsParam = filterTags.join(',');
                 const res = await fetch(`/api/links/filter?tags=${encodeURIComponent(tagsParam)}&page=1&limit=50`);
                 const data = await res.json();
-                
-                if (data.data && data.data.length > 0) {
-                    renderFilteredLinks(data.data);
-                    document.getElementById('pagination').innerHTML = '';
-                } else {
-                    container.innerHTML = '<div class="empty-state">📭 Нет ссылок с выбранными тегами</div>';
-                }
-            } catch (e) {
-                container.innerHTML = '<div class="alert alert-error">Ошибка фильтрации</div>';
-            }
+                if (data.data && data.data.length > 0) { renderFilteredLinks(data.data); document.getElementById('pagination').innerHTML = ''; }
+                else { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет ссылок с выбранными тегами</div>'; }
+            } catch(e) { container.innerHTML = '<div class="alert alert-error">Ошибка фильтрации</div>'; }
         }
 
-        function renderFilteredLinks(links) {
-            const container = document.getElementById('linksHistory');
-            container.innerHTML = links.map(link => renderLinkItem(link)).join('');
-        }
+        function renderFilteredLinks(links) { document.getElementById('linksHistory').innerHTML = links.map(link => renderLinkItem(link)).join(''); }
 
         async function loadLinksHistory(page = 1) {
-            if (filterTags.length > 0) {
-                await applyFilter();
-                return;
-            }
-            
+            if (filterTags.length > 0) { await applyFilter(); return; }
             const container = document.getElementById('linksHistory');
             container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>';
-
             try {
-                const url = `/api/links?page=${page}&limit=10`;
-                const res = await fetch(url);
+                const res = await fetch(`/api/links?page=${page}&limit=10`);
                 const data = await res.json();
                 renderLinks(data.data || []);
                 renderPagination(data.pagination);
-            } catch (e) {
-                container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
-            }
+            } catch(e) { container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>'; }
         }
 
         function renderLinks(links) {
             const container = document.getElementById('linksHistory');
-            if (!links || !links.length) {
-                container.innerHTML = '<div class="empty-state">📭 Нет созданных ссылок</div>';
-                return;
-            }
+            if (!links || !links.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет созданных ссылок</div>'; return; }
             container.innerHTML = links.map(link => renderLinkItem(link)).join('');
         }
 
         function renderLinkItem(link) {
-            return `
-                <div class="history-item" data-link-id="${link.id}">
-                    <div class="history-item-header">
-                        <div><strong>🔗 /${escapeHtml(link.short_code)}</strong> <span class="history-date">${new Date(link.created_at).toLocaleDateString()}</span></div>
-                        <span>👆 ${link.clicks || 0} кликов</span>
-                    </div>
-                    <div class="history-url">${escapeHtml(link.original_url)}</div>
-                    <div class="tag-editor">
-                        <input type="text" class="form-control tag-input" placeholder="Теги через запятую" value="${escapeHtml(link.tags || '')}" 
-                               data-link-id="${link.id}" data-original-tags="${escapeHtml(link.tags || '')}">
-                        <button onclick="saveTags(${link.id}, this)" class="btn btn-primary btn-sm">💾 Сохранить</button>
-                    </div>
-                    <div class="tag-suggestions" id="suggestions-${link.id}"></div>
-                    <div style="margin-top: var(--space-md);">
-                        <a href="/${link.short_code}" target="_blank" class="btn btn-secondary btn-sm">🔗 Перейти</a>
-                        <button onclick="deleteLink(${link.id})" class="btn btn-danger btn-sm">🗑️ Удалить</button>
-                    </div>
+            return `<div class="history-item" data-link-id="${link.id}">
+                <div class="history-item-header">
+                    <div><strong><i class="fas fa-link"></i> /${escapeHtml(link.short_code)}</strong> <span class="history-date"><i class="far fa-calendar-alt"></i> ${new Date(link.created_at).toLocaleDateString()}</span></div>
+                    <span><i class="fas fa-mouse-pointer"></i> ${link.clicks || 0} кликов</span>
                 </div>
-            `;
+                <div class="history-url"><i class="fas fa-external-link-alt"></i> ${escapeHtml(link.original_url)}</div>
+                <div class="tag-editor">
+                    <input type="text" class="form-control tag-input" placeholder="Теги через запятую" value="${escapeHtml(link.tags || '')}" data-link-id="${link.id}" data-original-tags="${escapeHtml(link.tags || '')}">
+                    <button onclick="saveTags(${link.id}, this)" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Сохранить</button>
+                </div>
+                <div class="tag-suggestions" id="suggestions-${link.id}"></div>
+                <div style="margin-top: var(--space-md);">
+                    <a href="/${link.short_code}" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-external-link-alt"></i> Перейти</a>
+                    <button onclick="deleteLink(${link.id})" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> Удалить</button>
+                </div>
+            </div>`;
         }
 
         let recommendTimeout;
@@ -619,25 +474,15 @@
             clearTimeout(recommendTimeout);
             const url = document.querySelector(`.history-item[data-link-id="${linkId}"] .history-url`)?.innerText;
             if (!url || url.length < 10) return;
-            
             recommendTimeout = setTimeout(async () => {
                 try {
                     const res = await fetch(`/api/tags/recommend?url=${encodeURIComponent(url)}`);
                     const data = await res.json();
                     const suggestionsContainer = document.getElementById(`suggestions-${linkId}`);
                     if (data.recommendations && data.recommendations.length > 0) {
-                        suggestionsContainer.innerHTML = `
-                            <span>✨ Рекомендуемые:</span>
-                            ${data.recommendations.map(tag => 
-                                `<span class="tag-suggestion" onclick="addTagToInput(${linkId}, '${escapeHtml(tag)}')">${escapeHtml(tag)}</span>`
-                            ).join('')}
-                        `;
-                    } else {
-                        suggestionsContainer.innerHTML = '';
-                    }
-                } catch (e) {
-                    console.error('Ошибка рекомендации:', e);
-                }
+                        suggestionsContainer.innerHTML = `<span><i class="fas fa-lightbulb"></i> Рекомендуемые:</span>${data.recommendations.map(tag => `<span class="tag-suggestion" onclick="addTagToInput(${linkId}, '${escapeHtml(tag)}')"><i class="fas fa-tag"></i> ${escapeHtml(tag)}</span>`).join('')}`;
+                    } else { suggestionsContainer.innerHTML = ''; }
+                } catch(e) { console.error('Ошибка рекомендации:', e); }
             }, 500);
         }
 
@@ -646,11 +491,7 @@
             if (input) {
                 const currentTags = input.value;
                 const tags = currentTags ? currentTags.split(',').map(t => t.trim()) : [];
-                if (!tags.includes(tag)) {
-                    tags.push(tag);
-                    input.value = tags.join(', ');
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+                if (!tags.includes(tag)) { tags.push(tag); input.value = tags.join(', '); input.dispatchEvent(new Event('input', { bubbles: true })); }
             }
         }
 
@@ -658,68 +499,34 @@
             const input = button.previousElementSibling;
             const tags = input.value;
             const originalTags = input.getAttribute('data-original-tags');
-            
-            if (tags === originalTags) {
-                alert('Теги не изменились');
-                return;
-            }
-            
-            button.disabled = true;
-            button.textContent = '⏳...';
-            
+            if (tags === originalTags) { alert('Теги не изменились'); return; }
+            button.disabled = true; button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
             try {
-                const res = await fetch(`/api/links/${linkId}/tags`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tags })
-                });
+                const res = await fetch(`/api/links/${linkId}/tags`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags }) });
                 const data = await res.json();
-                
                 if (res.ok) {
                     input.setAttribute('data-original-tags', tags);
-                    alert('✅ Теги сохранены');
+                    alert('<i class="fas fa-check-circle"></i> Теги сохранены');
                     await loadAllTags();
-                    if (filterTags.length > 0) {
-                        await applyFilter();
-                    } else {
-                        await loadLinksHistory(currentPage);
-                    }
-                } else {
-                    alert('❌ Ошибка: ' + data.error);
-                }
-            } catch (e) {
-                alert('❌ Ошибка соединения');
-            } finally {
-                button.disabled = false;
-                button.textContent = '💾 Сохранить';
-            }
+                    if (filterTags.length > 0) await applyFilter(); else await loadLinksHistory(currentPage);
+                } else { alert('Ошибка: ' + data.error); }
+            } catch(e) { alert('Ошибка соединения'); }
+            finally { button.disabled = false; button.innerHTML = '<i class="fas fa-save"></i> Сохранить'; }
         }
 
         async function deleteLink(linkId) {
             if (!confirm('Удалить эту ссылку?')) return;
             try {
                 const res = await fetch(`/api/links/${linkId}`, { method: 'DELETE' });
-                if (res.ok) {
-                    if (filterTags.length > 0) {
-                        await applyFilter();
-                    } else {
-                        await loadLinksHistory(currentPage);
-                    }
-                    await loadAllTags();
-                } else {
-                    alert('Ошибка удаления');
-                }
-            } catch (e) {
-                alert('Ошибка соединения');
-            }
+                if (res.ok) { if (filterTags.length > 0) await applyFilter(); else await loadLinksHistory(currentPage); await loadAllTags(); }
+                else { alert('Ошибка удаления'); }
+            } catch(e) { alert('Ошибка соединения'); }
         }
 
         async function exportFilteredLinks() {
             try {
                 let url = `/api/links/export?format=csv`;
-                if (filterTags.length > 0) {
-                    url += `&tags=${encodeURIComponent(filterTags.join(','))}`;
-                }
+                if (filterTags.length > 0) url += `&tags=${encodeURIComponent(filterTags.join(','))}`;
                 const res = await fetch(url);
                 const blob = await res.blob();
                 const downloadUrl = URL.createObjectURL(blob);
@@ -729,30 +536,18 @@
                 a.download = filename;
                 a.click();
                 URL.revokeObjectURL(downloadUrl);
-            } catch (e) {
-                alert('Ошибка экспорта');
-            }
+            } catch(e) { alert('Ошибка экспорта'); }
         }
 
         function renderPagination(pagination) {
             const container = document.getElementById('pagination');
             if (!pagination) return;
-            currentPage = pagination.page;
-            totalPages = pagination.pages;
-
-            if (totalPages <= 1) {
-                container.innerHTML = '';
-                return;
-            }
-
+            currentPage = pagination.page; totalPages = pagination.pages;
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
             let html = '';
-            if (currentPage > 1) {
-                html += `<button onclick="loadLinksHistory(${currentPage - 1})" class="btn btn-secondary btn-sm">← Назад</button>`;
-            }
+            if (currentPage > 1) html += `<button onclick="loadLinksHistory(${currentPage - 1})" class="btn btn-secondary btn-sm"><i class="fas fa-chevron-left"></i> Назад</button>`;
             html += `<span style="padding: 0 var(--space-md);">Стр. ${currentPage} из ${totalPages}</span>`;
-            if (currentPage < totalPages) {
-                html += `<button onclick="loadLinksHistory(${currentPage + 1})" class="btn btn-secondary btn-sm">Вперед →</button>`;
-            }
+            if (currentPage < totalPages) html += `<button onclick="loadLinksHistory(${currentPage + 1})" class="btn btn-secondary btn-sm">Вперед <i class="fas fa-chevron-right"></i></button>`;
             container.innerHTML = html;
         }
 
@@ -761,50 +556,20 @@
             try {
                 const res = await fetch('/api/qrcodes');
                 const qrcodes = await res.json();
-                if (!qrcodes || !qrcodes.length) {
-                    container.innerHTML = '<div class="empty-state">📭 Нет созданных QR-кодов</div>';
-                    return;
-                }
-                container.innerHTML = qrcodes.map(qr => `
-                    <div class="history-item">
-                        <div style="display: flex; gap: var(--space-lg); align-items: flex-start; flex-wrap: wrap;">
-                            <div style="background: ${qr.bg_color || '#ffffff'}; padding: var(--space-md); border-radius: var(--radius-md);">
-                                <img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm);">
-                            </div>
-                            <div style="flex: 1;">
-                                <div><strong>📱 QR-код</strong> <span class="history-date">${new Date(qr.created_at).toLocaleDateString()}</span></div>
-                                <div class="history-url" style="margin: var(--space-sm) 0;">${escapeHtml(qr.original_url)}</div>
-                                <div>
-                                    <button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-secondary btn-sm">📥 Скачать PNG</button>
-                                    <a href="${escapeHtml(qr.original_url)}" target="_blank" class="btn btn-primary btn-sm">🔗 Открыть ссылку</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (e) {
-                container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
-            }
+                if (!qrcodes || !qrcodes.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет созданных QR-кодов</div>'; return; }
+                container.innerHTML = qrcodes.map(qr => `<div class="history-item"><div style="display: flex; gap: var(--space-lg); align-items: flex-start; flex-wrap: wrap;"><div style="background: ${qr.bg_color || '#ffffff'}; padding: var(--space-md); border-radius: var(--radius-md);"><img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm);"></div><div style="flex: 1;"><div><strong><i class="fas fa-qrcode"></i> QR-код</strong> <span class="history-date"><i class="far fa-calendar-alt"></i> ${new Date(qr.created_at).toLocaleDateString()}</span></div><div class="history-url" style="margin: var(--space-sm) 0;"><i class="fas fa-link"></i> ${escapeHtml(qr.original_url)}</div><div><button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Скачать PNG</button><a href="${escapeHtml(qr.original_url)}" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Открыть ссылку</a></div></div></div></div>`).join('');
+            } catch(e) { container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>'; }
         }
 
-        function downloadQR(qrData, format) {
-            const link = document.createElement('a');
-            link.href = qrData;
-            link.download = `qrcode-${Date.now()}.${format}`;
-            link.click();
-        }
+        function downloadQR(qrData, format) { const link = document.createElement('a'); link.href = qrData; link.download = `qrcode-${Date.now()}.${format}`; link.click(); }
 
         async function clearLinksHistory() {
             if (!confirm('Удалить все ссылки? Это действие нельзя отменить.')) return;
             const res = await fetch('/api/links', { method: 'DELETE' });
             const data = await res.json();
             alert(data.message);
-            filterTags = [];
-            renderSelectedTags();
-            document.getElementById('filterInfo').style.display = 'none';
-            await loadLinksHistory(1);
-            await loadPlanInfo();
-            await loadAllTags();
+            filterTags = []; renderSelectedTags(); document.getElementById('filterInfo').style.display = 'none';
+            await loadLinksHistory(1); await loadPlanInfo(); await loadAllTags();
         }
 
         async function clearQRCodesHistory() {
@@ -812,69 +577,31 @@
             const res = await fetch('/api/qrcodes', { method: 'DELETE' });
             const data = await res.json();
             alert(data.message);
-            await loadQRCodesHistory();
-            await loadPlanInfo();
+            await loadQRCodesHistory(); await loadPlanInfo();
         }
 
         async function generateApiKey() {
             try {
                 const res = await fetch('/api/user/generate-api-key', { method: 'POST' });
                 const data = await res.json();
-                if (res.ok) {
-                    const apiDiv = document.getElementById('apiKeyDisplay');
-                    apiDiv.textContent = `Ваш API ключ: ${data.apiKey}`;
-                    apiDiv.style.display = 'block';
-                    setTimeout(() => apiDiv.style.display = 'none', 10000);
-                } else {
-                    alert('Ошибка: ' + data.error);
-                }
-            } catch (e) {
-                alert('Ошибка соединения');
-            }
+                if (res.ok) { const apiDiv = document.getElementById('apiKeyDisplay'); apiDiv.innerHTML = `<i class="fas fa-key"></i> Ваш API ключ: <code>${data.apiKey}</code>`; apiDiv.style.display = 'block'; setTimeout(() => apiDiv.style.display = 'none', 10000); }
+                else { alert('Ошибка: ' + data.error); }
+            } catch(e) { alert('Ошибка соединения'); }
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
-        }
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
 
-        // Инициализация обработчиков для рекомендаций
-        document.addEventListener('input', function(e) {
-            if (e.target.classList && e.target.classList.contains('tag-input')) {
-                const linkId = parseInt(e.target.getAttribute('data-link-id'));
-                if (linkId) {
-                    recommendTags(e.target, linkId);
-                }
-            }
-        });
+        document.addEventListener('input', function(e) { if (e.target.classList && e.target.classList.contains('tag-input')) { const linkId = parseInt(e.target.getAttribute('data-link-id')); if (linkId) recommendTags(e.target, linkId); } });
 
-        // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-theme');
-                if (themeToggle) themeToggle.checked = true;
-            }
-            if (themeToggle) {
-                themeToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        document.body.classList.add('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'dark');
-                    } else {
-                        document.body.classList.remove('dark-theme');
-                        localStorage.setItem('linksnap-theme', 'light');
-                    }
-                });
-            }
+            if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); if (themeToggle) themeToggle.checked = true; }
+            if (themeToggle) { themeToggle.addEventListener('change', function() { if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); } else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); } }); }
         })();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            setupFilterAutocomplete();
-        });
+        document.addEventListener('DOMContentLoaded', () => { checkAuth(); setupFilterAutocomplete(); });
     </script>
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
-
 </html>

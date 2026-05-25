@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Дашборд - LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -12,79 +13,146 @@
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-md);
+            }
         }
         .dashboard-card {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            border: 1px solid var(--surface-light);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            border: 1px solid var(--bg-tertiary);
             text-align: center;
-            transition: transform 0.3s;
+            transition: all var(--transition-base);
         }
-        .dashboard-card:hover { transform: translateY(-5px); }
-        .dashboard-card .icon { font-size: 2.5rem; margin-bottom: 10px; }
-        .dashboard-card .value { font-size: 2rem; font-weight: 800; color: var(--primary); }
-        .dashboard-card .label { color: var(--text-secondary); font-size: 0.9rem; }
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary-light);
+        }
+        .dashboard-card i {
+            font-size: 2rem;
+            margin-bottom: var(--space-sm);
+            color: var(--primary);
+        }
+        .dashboard-card .value {
+            font-size: var(--text-3xl);
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .dashboard-card .label {
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+            margin-top: var(--space-xs);
+        }
         .charts-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: var(--space-xl);
+            margin-bottom: var(--space-2xl);
         }
         .chart-container {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            border: 1px solid var(--surface-light);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            border: 1px solid var(--bg-tertiary);
         }
-        .chart-container h3 { margin-bottom: 20px; color: var(--text-primary); }
-        canvas { max-height: 300px; }
+        .chart-container h3 {
+            margin-bottom: var(--space-lg);
+            color: var(--text-primary);
+            font-size: var(--text-lg);
+        }
+        .chart-container h3 i {
+            margin-right: var(--space-sm);
+            color: var(--primary);
+        }
+        canvas {
+            max-height: 280px;
+            width: 100% !important;
+        }
         .recent-links {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            border: 1px solid var(--surface-light);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            border: 1px solid var(--bg-tertiary);
         }
-        .recent-links h3 { margin-bottom: 20px; }
+        .recent-links h3 {
+            margin-bottom: var(--space-lg);
+            color: var(--text-primary);
+        }
+        .recent-links h3 i {
+            margin-right: var(--space-sm);
+            color: var(--primary);
+        }
         .recent-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--surface-light);
+            padding: var(--space-md);
+            border-bottom: 1px solid var(--bg-tertiary);
         }
-        .recent-item:last-child { border-bottom: none; }
+        .recent-item:last-child {
+            border-bottom: none;
+        }
         .recent-url {
             flex: 1;
-            font-size: 0.9rem;
+            font-size: var(--text-sm);
             word-break: break-all;
-            margin-right: 15px;
+            margin-right: var(--space-md);
+        }
+        .recent-url a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .recent-url a:hover {
+            text-decoration: underline;
+        }
+        .recent-url small {
+            display: block;
+            color: var(--text-muted);
+            font-size: var(--text-xs);
+            margin-top: 4px;
         }
         .recent-clicks {
-            background: var(--primary-light);
+            background: var(--primary-bg);
             padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
             font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
         }
-        @media (max-width: 1024px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .charts-grid { grid-template-columns: 1fr; }
+        .greeting {
+            margin-bottom: var(--space-xl);
         }
-        @media (max-width: 640px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
+        .greeting h1 {
+            font-size: var(--text-2xl);
+            margin-bottom: var(--space-xs);
         }
-        .greeting { margin-bottom: 25px; }
-        .greeting h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .greeting p {
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+        }
+        @media (max-width: 768px) {
+            .chart-container { padding: var(--space-lg); }
+            .recent-links { padding: var(--space-lg); }
+            .recent-item { flex-wrap: wrap; gap: var(--space-sm); }
+            .recent-clicks { margin-left: auto; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="site-header">
             <div class="logo-container">
-                <span class="logo">📊</span>
+                <i class="fas fa-link" style="font-size: 2rem; color: var(--primary);"></i>
                 <a href="/" class="site-title">LinkSnap</a>
             </div>
             <div class="user-nav">
@@ -93,44 +161,45 @@
                     <span class="user-name" id="username">Загрузка...</span>
                 </div>
                 <div class="theme-switch-wrapper">
-                    <span class="theme-icon">🌙</span>
+                    <i class="fas fa-moon theme-icon"></i>
                     <label class="theme-switch">
                         <input type="checkbox" id="themeToggle">
                         <span class="theme-slider"></span>
                     </label>
-                    <span class="theme-icon">☀️</span>
+                    <i class="fas fa-sun theme-icon"></i>
                 </div>
-                <a href="/profile" class="nav-btn">Профиль</a>
-                <a href="/batch" class="nav-btn">Массовое</a>
-                <a href="/pricing" class="nav-btn">Тарифы</a>
-                <a href="/converter" class="nav-btn">Конвертер</a>
-                <a href="/image-editor" class="nav-btn">Редактор</a>
-                <button onclick="logout()" class="btn btn-danger btn-sm">Выйти</button>
+                <a href="/profile" class="nav-btn"><i class="fas fa-user"></i> Профиль</a>
+                <a href="/batch" class="nav-btn"><i class="fas fa-layer-group"></i> Массовое</a>
+                <a href="/pricing" class="nav-btn"><i class="fas fa-tag"></i> Тарифы</a>
+                <a href="/converter" class="nav-btn"><i class="fas fa-exchange-alt"></i> Конвертер</a>
+                <a href="/image-editor" class="nav-btn"><i class="fas fa-crop-alt"></i> Редактор</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </header>
 
         <div class="greeting">
-            <h1 id="greetingText">Добро пожаловать!</h1>
+            <h1 id="greetingText"><i class="fas fa-hand-peace"></i> Добро пожаловать!</h1>
+            <p><i class="fas fa-chart-simple"></i> Статистика ваших ссылок и QR-кодов</p>
         </div>
 
-        <div class="dashboard-grid">
+        <div class="dashboard-grid" id="statsGrid">
             <div class="dashboard-card">
-                <div class="icon">🔗</div>
+                <i class="fas fa-link"></i>
                 <div class="value" id="totalLinks">0</div>
                 <div class="label">Всего ссылок</div>
             </div>
             <div class="dashboard-card">
-                <div class="icon">👆</div>
+                <i class="fas fa-mouse-pointer"></i>
                 <div class="value" id="totalClicks">0</div>
                 <div class="label">Всего кликов</div>
             </div>
             <div class="dashboard-card">
-                <div class="icon">📱</div>
+                <i class="fas fa-qrcode"></i>
                 <div class="value" id="totalQRCodes">0</div>
                 <div class="label">QR-кодов</div>
             </div>
             <div class="dashboard-card">
-                <div class="icon">⭐</div>
+                <i class="fas fa-trophy"></i>
                 <div class="value" id="topClicks">0</div>
                 <div class="label">Макс. кликов</div>
             </div>
@@ -138,13 +207,13 @@
 
         <div class="charts-grid">
             <div class="chart-container">
-                <h3>📱 Устройства</h3>
+                <h3><i class="fas fa-mobile-alt"></i> Устройства</h3>
                 <canvas id="devicesChart"></canvas>
             </div>
         </div>
 
         <div class="recent-links">
-            <h3>🔗 Последние ссылки</h3>
+            <h3><i class="fas fa-clock"></i> Последние ссылки</h3>
             <div id="recentLinksList">
                 <div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>
             </div>
@@ -154,175 +223,106 @@
     <script>
         let devicesChart = null;
 
-async function checkAuth() {
-    try {
-        const res = await fetch('/api/user');
-        if (res.status === 401) { 
-            window.location.href = '/login'; 
-            return false; 
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/user');
+                if (res.status === 401) { window.location.href = '/login'; return false; }
+                const user = await res.json();
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                const hour = new Date().getHours();
+                let greeting = '';
+                if (hour < 12) greeting = 'Доброе утро';
+                else if (hour < 18) greeting = 'Добрый день';
+                else greeting = 'Добрый вечер';
+                document.getElementById('greetingText').innerHTML = `<i class="fas fa-hand-peace"></i> ${greeting}, ${user.username}!`;
+                await loadDashboardData();
+                return true;
+            } catch(e) { window.location.href = '/login'; return false; }
         }
-        const user = await res.json();
-        document.getElementById('username').textContent = user.username;
-        document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
-        
-        const hour = new Date().getHours();
-        let greeting = '';
-        if (hour < 12) greeting = 'Доброе утро';
-        else if (hour < 18) greeting = 'Добрый день';
-        else greeting = 'Добрый вечер';
-        document.getElementById('greetingText').textContent = `${greeting}, ${user.username}!`;
-        
-        await loadDashboardData();
-        return true;
-    } catch(e) { 
-        console.error('Ошибка авторизации:', e);
-        window.location.href = '/login'; 
-        return false; 
-    }
-}
 
-async function logout() {
-    await fetch('/api/logout', { method: 'POST' });
-    window.location.href = '/login';
-}
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
 
-async function loadDashboardData() {
-    try {
-        // Загружаем ссылки
-        const linksRes = await fetch('/api/links?limit=1000');
-        const linksData = await linksRes.json();
-        const links = Array.isArray(linksData) ? linksData : (linksData.data || []);
-        
-        // Загружаем базовую аналитику
-        const analyticsRes = await fetch('/api/analytics/summary');
-        const analytics = await analyticsRes.json();
-        
-        // Загружаем расширенную статистику для дашборда (устройства)
-        const statsRes = await fetch('/api/analytics/dashboard-stats');
-        const statsData = await statsRes.json();
-        
-        const totalLinks = links?.length || 0;
-        const totalClicks = links?.reduce((sum, l) => sum + (l.clicks || 0), 0) || 0;
-        const maxClicks = Math.max(...(links?.map(l => l.clicks || 0) || [0]));
-        
-        document.getElementById('totalLinks').textContent = totalLinks;
-        document.getElementById('totalClicks').textContent = totalClicks;
-        document.getElementById('topClicks').textContent = maxClicks;
-        
-        // Загружаем QR-коды
-        const qrRes = await fetch('/api/qrcodes');
-        const qrcodes = await qrRes.json();
-        document.getElementById('totalQRCodes').textContent = qrcodes?.length || 0;
-        
-        // Последние ссылки
-        const recent = (links || []).slice(0, 10);
-        renderRecentLinks(recent);
-        
-        // Рендерим график устройств
-        renderCharts(statsData.devices || []);
-        
-    } catch(e) {
-        console.error('Ошибка загрузки:', e);
-    }
-}
-
-function renderRecentLinks(links) {
-    const container = document.getElementById('recentLinksList');
-    if (!links || !links.length) {
-        container.innerHTML = '<p class="empty-state">Нет созданных ссылок</p>';
-        return;
-    }
-    container.innerHTML = links.map(link => `
-        <div class="recent-item">
-            <div class="recent-url">
-                <a href="/${escapeHtml(link.short_code)}" target="_blank" style="color: var(--primary);">
-                    /${escapeHtml(link.short_code)}
-                </a>
-                <small style="display: block; color: var(--text-muted);">${escapeHtml(link.original_url?.substring(0, 60) || '')}${link.original_url?.length > 60 ? '...' : ''}</small>
-            </div>
-            <div class="recent-clicks">👆 ${link.clicks || 0}</div>
-        </div>
-    `).join('');
-}
-
-function renderCharts(deviceStats) {
-    // График устройств
-    const ctxDevices = document.getElementById('devicesChart').getContext('2d');
-    if (devicesChart) devicesChart.destroy();
-    
-    // Подготавливаем данные для графика устройств
-    const deviceLabels = [];
-    const deviceData = [];
-    const backgroundColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#6b7280'];
-    
-    if (deviceStats && deviceStats.length > 0) {
-        deviceStats.forEach((stat, index) => {
-            let label = 'Другие';
-            if (stat.device_type === 'desktop') label = '💻 Десктоп';
-            else if (stat.device_type === 'mobile') label = '📱 Мобильные';
-            else if (stat.device_type === 'tablet') label = '📟 Планшеты';
-            else if (stat.device_type === 'bot') label = '🤖 Боты';
-            else label = '❓ ' + (stat.device_type || 'Неизвестно');
-            
-            deviceLabels.push(label);
-            deviceData.push(stat.count);
-        });
-    } else {
-        // Если данных нет, показываем сообщение-заглушку
-        deviceLabels.push('Нет данных');
-        deviceData.push(1);
-    }
-    
-    devicesChart = new Chart(ctxDevices, {
-        type: 'doughnut',
-        data: {
-            labels: deviceLabels,
-            datasets: [{
-                data: deviceData,
-                backgroundColor: backgroundColors.slice(0, deviceLabels.length),
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') || '#333' } }
-            }
+        async function loadDashboardData() {
+            try {
+                const linksRes = await fetch('/api/links?limit=1000');
+                const linksData = await linksRes.json();
+                const links = Array.isArray(linksData) ? linksData : (linksData.data || []);
+                const analyticsRes = await fetch('/api/analytics/summary');
+                const analytics = await analyticsRes.json();
+                const statsRes = await fetch('/api/analytics/dashboard-stats');
+                const statsData = await statsRes.json();
+                const totalLinks = links?.length || 0;
+                const totalClicks = links?.reduce((sum, l) => sum + (l.clicks || 0), 0) || 0;
+                const maxClicks = Math.max(...(links?.map(l => l.clicks || 0) || [0]));
+                document.getElementById('totalLinks').textContent = totalLinks;
+                document.getElementById('totalClicks').textContent = totalClicks;
+                document.getElementById('topClicks').textContent = maxClicks;
+                const qrRes = await fetch('/api/qrcodes');
+                const qrcodes = await qrRes.json();
+                document.getElementById('totalQRCodes').textContent = qrcodes?.length || 0;
+                const recent = (links || []).slice(0, 10);
+                renderRecentLinks(recent);
+                renderCharts(statsData.devices || []);
+            } catch(e) { console.error('Ошибка загрузки:', e); }
         }
-    });
-}
-    
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
-}
 
-// Тёмная тема (без изменений)
-(function() {
-    const themeToggle = document.getElementById('themeToggle');
-    const savedTheme = localStorage.getItem('linksnap-theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-theme');
-        if (themeToggle) themeToggle.checked = true;
-    }
-    if (themeToggle) {
-        themeToggle.addEventListener('change', function() {
-            if (this.checked) {
-                document.body.classList.add('dark-theme');
-                localStorage.setItem('linksnap-theme', 'dark');
-            } else {
-                document.body.classList.remove('dark-theme');
-                localStorage.setItem('linksnap-theme', 'light');
-            }
-            setTimeout(() => loadDashboardData(), 50);
-        });
-    }
-})();
+        function renderRecentLinks(links) {
+            const container = document.getElementById('recentLinksList');
+            if (!links || !links.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет созданных ссылок</div>'; return; }
+            container.innerHTML = links.map(link => `
+                <div class="recent-item">
+                    <div class="recent-url">
+                        <a href="/${escapeHtml(link.short_code)}" target="_blank"><i class="fas fa-external-link-alt"></i> /${escapeHtml(link.short_code)}</a>
+                        <small>${escapeHtml(link.original_url?.substring(0, 50) || '')}${link.original_url?.length > 50 ? '...' : ''}</small>
+                    </div>
+                    <div class="recent-clicks"><i class="fas fa-mouse-pointer"></i> ${link.clicks || 0}</div>
+                </div>
+            `).join('');
+        }
 
-document.addEventListener('DOMContentLoaded', checkAuth);
+        function renderCharts(deviceStats) {
+            const ctxDevices = document.getElementById('devicesChart').getContext('2d');
+            if (devicesChart) devicesChart.destroy();
+            const deviceLabels = []; const deviceData = [];
+            const backgroundColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#6b7280'];
+            if (deviceStats && deviceStats.length > 0) {
+                deviceStats.forEach((stat, index) => {
+                    let label = 'Другие';
+                    if (stat.device_type === 'desktop') label = '<i class="fas fa-desktop"></i> Десктоп';
+                    else if (stat.device_type === 'mobile') label = '<i class="fas fa-mobile-alt"></i> Мобильные';
+                    else if (stat.device_type === 'tablet') label = '<i class="fas fa-tablet-alt"></i> Планшеты';
+                    else if (stat.device_type === 'bot') label = '<i class="fas fa-robot"></i> Боты';
+                    else label = '<i class="fas fa-question-circle"></i> ' + (stat.device_type || 'Неизвестно');
+                    deviceLabels.push(label);
+                    deviceData.push(stat.count);
+                });
+            } else { deviceLabels.push('Нет данных'); deviceData.push(1); }
+            devicesChart = new Chart(ctxDevices, {
+                type: 'doughnut',
+                data: { labels: deviceLabels, datasets: [{ data: deviceData, backgroundColor: backgroundColors.slice(0, deviceLabels.length), borderWidth: 0, hoverOffset: 10 }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') || '#333', font: { size: 12 } } },
+                        tooltip: { callbacks: { label: function(context) { const total = context.dataset.data.reduce((a, b) => a + b, 0); const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0; return `${context.label}: ${context.raw} (${percentage}%)`; } } }
+                    }
+                }
+            });
+        }
+
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
+
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('linksnap-theme');
+            if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); if (themeToggle) themeToggle.checked = true; }
+            if (themeToggle) { themeToggle.addEventListener('change', function() { if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); } else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); } setTimeout(() => loadDashboardData(), 50); }); }
+        })();
+
+        document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
-
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Вход администратора — LinkSnap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/admin.css">
     <link rel="stylesheet" href="/dark-theme.css">
@@ -12,31 +13,30 @@
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <span class="logo">🛡️</span>
+                <i class="fas fa-shield-alt" style="font-size: 4rem; margin-bottom: 1rem; color: var(--primary);"></i>
                 <h1>LinkSnap Admin</h1>
                 <p>Вход для администратора</p>
             </div>
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username">Имя пользователя</label>
+                    <label for="username"><i class="fas fa-user"></i> Имя пользователя</label>
                     <input type="text" id="username" class="form-control" placeholder="admin" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Пароль</label>
+                    <label for="password"><i class="fas fa-lock"></i> Пароль</label>
                     <input type="password" id="password" class="form-control" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="btn btn-primary login-btn">🔐 Войти</button>
+                <button type="submit" class="btn btn-primary login-btn"><i class="fas fa-sign-in-alt"></i> Войти</button>
             </form>
 
             <div class="back-link">
-                <a href="/"><span>←</span> На главную</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> На главную</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Сначала делаем принудительный выход, чтобы сбросить старую сессию
         async function forceLogout() {
             try {
                 await fetch('/api/admin/logout', { method: 'POST' });
@@ -53,7 +53,7 @@
             const btn = document.querySelector('.login-btn');
             
             btn.disabled = true;
-            btn.textContent = '⏳ Вход...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
             
             try {
                 const res = await fetch('/api/admin/login', {
@@ -69,17 +69,16 @@
                 } else {
                     alert('Ошибка: ' + (data.error || 'Неверный логин или пароль'));
                     btn.disabled = false;
-                    btn.textContent = '🔐 Войти';
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
                 }
             } catch(e) {
                 console.error('Ошибка входа:', e);
                 alert('Ошибка соединения с сервером');
                 btn.disabled = false;
-                btn.textContent = '🔐 Войти';
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
             }
         });
 
-        // При загрузке страницы сбрасываем сессию
         forceLogout();
     </script>
 </body>

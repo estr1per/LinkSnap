@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель — Чаты поддержки</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/admin.css">
     <link rel="stylesheet" href="/dark-theme.css">
@@ -12,13 +13,13 @@
     <div class="admin-header">
         <div class="container">
             <div class="logo-container">
-                <span class="logo">🛡️</span>
+                <i class="fas fa-shield-alt" style="font-size: 2rem; color: var(--primary);"></i>
                 <span class="site-title">LinkSnap Admin — Чаты</span>
             </div>
             <div class="admin-nav">
-                <a href="/admin">💬 Чаты</a>
-                <a href="/admin/users">👥 Пользователи</a>
-                <button id="logoutBtn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">🚪 Выйти</button>
+                <a href="/admin"><i class="fas fa-comments"></i> Чаты</a>
+                <a href="/admin/users"><i class="fas fa-users"></i> Пользователи</a>
+                <button id="logoutBtn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
             </div>
         </div>
     </div>
@@ -26,50 +27,53 @@
     <div class="container" id="adminPanel" style="display: none;">
         <div class="stats-grid">
             <div class="stat-card unread">
+                <i class="fas fa-envelope" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statUnread">0</h3>
-                <p>Непрочитанные</p>
+                <p><i class="fas fa-envelope"></i> Непрочитанные</p>
             </div>
             <div class="stat-card">
+                <i class="fas fa-comment-dots" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statActive">0</h3>
-                <p>Активные</p>
+                <p><i class="fas fa-comment-dots"></i> Активные</p>
             </div>
             <div class="stat-card">
+                <i class="fas fa-chart-line" style="position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.2;"></i>
                 <h3 id="statTotal">0</h3>
-                <p>Всего</p>
+                <p><i class="fas fa-chart-line"></i> Всего</p>
             </div>
         </div>
 
         <div class="chats-container">
             <div class="chats-list">
                 <div class="chats-list-header">
-                    <span>💬 Чаты</span>
-                    <button class="refresh-btn" onclick="loadChats()">🔄</button>
+                    <span><i class="fas fa-comments"></i> Чаты</span>
+                    <button class="refresh-btn" onclick="loadChats()"><i class="fas fa-sync-alt"></i></button>
                 </div>
                 <div class="chats-list-items" id="chatsList">
-                    <div style="padding: 40px; text-align: center;">Загрузка чатов...</div>
+                    <div style="padding: 40px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка чатов...</div>
                 </div>
             </div>
 
             <div class="chat-detail" id="chatDetail" style="display: none;">
                 <div class="chat-detail-header">
                     <div class="chat-detail-user">
-                        <h3 id="chatUserName">Пользователь</h3>
-                        <p id="chatUserEmail">email@example.com</p>
+                        <h3><i class="fas fa-user"></i> <span id="chatUserName">Пользователь</span></h3>
+                        <p><i class="fas fa-envelope"></i> <span id="chatUserEmail">email@example.com</span></p>
                     </div>
                 </div>
                 <div class="messages-container" id="messagesContainer"></div>
                 <div class="reply-form">
                     <textarea id="replyMessage" placeholder="Введите ответ..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply();}"></textarea>
                     <div class="reply-form-actions">
-                        <span>Enter для отправки</span>
-                        <button class="btn btn-primary" onclick="sendReply()">📤 Отправить</button>
+                        <span><i class="fas fa-keyboard"></i> Enter для отправки</span>
+                        <button class="btn btn-primary" onclick="sendReply()"><i class="fas fa-paper-plane"></i> Отправить</button>
                     </div>
                 </div>
             </div>
 
             <div class="chat-detail" id="emptyState">
                 <div class="empty-state">
-                    <div class="empty-state-icon">💬</div>
+                    <i class="fas fa-comment-dots" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                     <h3>Выберите чат</h3>
                     <p>Выберите чат из списка слева</p>
                 </div>
@@ -78,14 +82,13 @@
     </div>
 
     <div class="container" id="loadingPanel" style="text-align: center; padding: 50px;">
-        <div class="loading"><div class="loading-spinner"></div><span>Проверка авторизации...</span></div>
+        <div class="loading"><div class="loading-spinner"></div><span><i class="fas fa-shield-alt"></i> Проверка авторизации...</span></div>
     </div>
 
     <script>
         let currentChatId = null;
         let messagesInterval = null;
 
-        // Выход
         async function logout() {
             try {
                 await fetch('/api/admin/logout', { method: 'POST' });
@@ -93,7 +96,6 @@
             window.location.href = '/admin/login';
         }
 
-        // Проверка авторизации
         async function checkAuth() {
             try {
                 const res = await fetch('/api/admin/me');
@@ -131,19 +133,19 @@
                 const container = document.getElementById('chatsList');
                 
                 if (!data.success || !data.chats || data.chats.length === 0) {
-                    container.innerHTML = '<div style="padding: 40px; text-align: center;">Нет чатов</div>';
+                    container.innerHTML = '<div style="padding: 40px; text-align: center;"><i class="fas fa-inbox"></i> Нет чатов</div>';
                     return;
                 }
 
                 container.innerHTML = data.chats.map(chat => `
                     <div class="chat-item ${chat.unread_count > 0 ? 'unread' : ''} ${currentChatId === chat.id ? 'active' : ''}" onclick="openChat(${chat.id})">
                         <div class="chat-item-header">
-                            <span class="chat-item-name">${escapeHtml(chat.user_name || 'Аноним')}</span>
+                            <span class="chat-item-name"><i class="fas fa-user-circle"></i> ${escapeHtml(chat.user_name || 'Аноним')}</span>
                             <span class="chat-item-time">${formatTime(chat.updated_at)}</span>
                         </div>
                         <div class="chat-item-last-message">${escapeHtml(chat.last_message || 'Нет сообщений')}</div>
                         <span class="chat-item-status status-${chat.is_closed ? 'closed' : 'active'}">
-                            ${chat.is_closed ? '🔒 Закрыт' : '🟢 Активен'}
+                            ${chat.is_closed ? '<i class="fas fa-lock"></i> Закрыт' : '<i class="fas fa-circle" style="color: #10b981;"></i> Активен'}
                             ${chat.unread_count > 0 ? ` • ${chat.unread_count} новых` : ''}
                         </span>
                     </div>
@@ -199,7 +201,7 @@
             msgDiv.id = `msg-${id}`;
             const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
             msgDiv.innerHTML = `
-                <div class="message-meta">${type === 'user' ? '👤 Пользователь' : '🛡️ Вы'} • ${timeStr}</div>
+                <div class="message-meta">${type === 'user' ? '<i class="fas fa-user"></i> Пользователь' : '<i class="fas fa-shield-alt"></i> Вы'} • ${timeStr}</div>
                 <p class="message-text">${escapeHtml(text)}</p>
             `;
             document.getElementById('messagesContainer').appendChild(msgDiv);
@@ -217,7 +219,7 @@
             if (!message || !currentChatId) return;
             const btn = document.querySelector('.reply-form .btn');
             btn.disabled = true;
-            btn.textContent = '⏳...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
             try {
                 const res = await fetch(`/api/admin/chat/${currentChatId}/message`, {
                     method: 'POST',
@@ -235,7 +237,7 @@
                 alert('Ошибка отправки');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📤 Отправить';
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить';
             }
         }
 
