@@ -2057,6 +2057,238 @@ app.get('/:shortCode', (req, res) => {
     });
 });
 
+// ========== ТЕГИ - НОВЫЕ ФУНКЦИИ ==========
+
+// Получение всех тегов пользователя для автодополнения
+app.get('/api/tags/all', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT DISTINCT t.name, COUNT(*) as count 
+        FROM tags t
+        JOIN link_tags lt ON t.id = lt.tag_id
+        JOIN links l ON lt.link_id = l.id
+        WHERE l.user_id = $1
+        GROUP BY t.name
+        ORDER BY t.name ASC
+    `, [userId], (err, tags) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(tags || []);
+    });
+});
+
+// Обновление тегов у ссылки
+app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
+    const { linkId } = req.params;
+    const { tags } = req.body;
+    const userId = req.session.userId;
+    
+    // Проверяем, что ссылка принадлежит пользователю
+    db.get('SELECT id FROM links WHERE id = $1 AND user_id = $2', [linkId, userId], (err, link) => {
+        if (err || !link) {
+            return res.status(404).json({ error: 'Ссылка не найдена' });
+        }
+        
+        // Удаляем старые теги
+        db.run('DELETE FROM link_tags WHERE link_id = $1', [linkId], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            // Обновляем поле tags в таблице links
+            const tagsString = tags || '';
+            db.run('UPDATE links SET tags = $1 WHERE id = $2', [tagsString, linkId], (err) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                // Добавляем новые теги
+                if (tagsString && tagsString.trim()) {
+                    const tagList = tagsString.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+                    
+                    let completed = 0;
+                    if (tagList.length === 0) {
+                        return res.json({ success: true, message: 'Теги обновлены' });
+                    }
+                    
+                    tagList.forEach(tagName => {
+                        db.run('INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [tagName], (err) => {
+                            db.get('SELECT id FROM tags WHERE name = $1', [tagName], (err, tag) => {
+                                if (!err && tag) {
+                                    db.run('INSERT INTO link_tags (link_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [linkId, tag.id], () => {
+                                        completed++;
+                                        if (completed === tagList.length) {
+                                            res.json({ success: true, message: 'Теги обновлены' });
+                                        }
+                                    });
+                                } else {
+                                    completed++;
+                                    if (completed === tagList.length) {
+                                        res.json({ success: true, message: 'Теги обновлены' });
+                                    }
+                                }
+                            });
+                        });
+                    });
+                } else {
+                    res.json({ success: true, message: 'Теги обновлены' });
+                }
+            });
+        });
+    });
+});
+
+// Фильтрация ссылок по тегам (поддерживает несколько тегов)
+app.get('/api/links/filter', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { tags, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    if (!tags) {
+        return res.status(400).json({ error: 'Укажите теги для фильтрации' });
+    }
+    
+    const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+    
+    if (tagList.length === 0) {
+        return res.status(400).json({ error: 'Укажите хотя бы один тег' });
+    }
+    
+    // Строим запрос для поиска ссылок, содержащих ВСЕ указанные теги
+    let query = `
+        SELECT l.*, COUNT(DISTINCT t.id) as matched_tags
+        FROM links l
+        JOIN link_tags lt ON l.id = lt.link_id
+        JOIN tags t ON lt.tag_id = t.id
+        WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+        GROUP BY l.id
+        HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+        ORDER BY l.created_at DESC
+        LIMIT $${tagList.length + 2} OFFSET $${tagList.length + 3}
+    `;
+    
+    const params = [userId, ...tagList, parseInt(limit), offset];
+    
+    db.all(query, params, (err, links) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Получаем общее количество
+        const countQuery = `
+            SELECT COUNT(*) as total FROM (
+                SELECT l.id
+                FROM links l
+                JOIN link_tags lt ON l.id = lt.link_id
+                JOIN tags t ON lt.tag_id = t.id
+                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+                GROUP BY l.id
+                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+            )
+        `;
+        
+        db.get(countQuery, [userId, ...tagList], (err, countResult) => {
+            res.json({
+                data: links || [],
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: countResult?.total || 0,
+                    pages: Math.ceil((countResult?.total || 0) / parseInt(limit))
+                },
+                filters: { tags: tagList }
+            });
+        });
+    });
+});
+
+// Рекомендация тегов на основе URL
+app.get('/api/tags/recommend', requireAuth, (req, res) => {
+    const { url } = req.query;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL обязателен' });
+    }
+    
+    const recommendations = [];
+    
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname;
+        const pathParts = urlObj.pathname.split('/').filter(p => p);
+        
+        // Рекомендации на основе домена
+        if (hostname.includes('github')) recommendations.push('github', 'code', 'development');
+        if (hostname.includes('youtube')) recommendations.push('video', 'youtube', 'media');
+        if (hostname.includes('google')) recommendations.push('google', 'search');
+        if (hostname.includes('docs') || hostname.includes('documentation')) recommendations.push('docs', 'documentation');
+        if (hostname.includes('news')) recommendations.push('news', 'articles');
+        if (hostname.includes('shop') || hostname.includes('store') || hostname.includes('market')) recommendations.push('shop', 'shopping');
+        
+        // Рекомендации на основе пути URL
+        if (pathParts.some(p => p.includes('blog'))) recommendations.push('blog', 'article');
+        if (pathParts.some(p => p.includes('tutorial'))) recommendations.push('tutorial', 'learning');
+        if (pathParts.some(p => p.includes('api'))) recommendations.push('api', 'integration');
+        if (pathParts.some(p => p.includes('login'))) recommendations.push('auth', 'login');
+        if (pathParts.some(p => p.match(/^\d{4}$/))) recommendations.push('archive');
+        
+        // Убираем дубликаты
+        const unique = [...new Set(recommendations)];
+        
+        res.json({ recommendations: unique.slice(0, 5) });
+    } catch (e) {
+        res.json({ recommendations: [] });
+    }
+});
+
+// Экспорт ссылок с фильтрацией по тегам
+app.get('/api/links/export', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { tags, format = 'csv' } = req.query;
+    
+    let query = `
+        SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
+        FROM links l
+        WHERE l.user_id = $1
+    `;
+    const params = [userId];
+    
+    // Фильтрация по тегам
+    if (tags && tags.trim()) {
+        const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+        if (tagList.length > 0) {
+            query = `
+                SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
+                FROM links l
+                JOIN link_tags lt ON l.id = lt.link_id
+                JOIN tags t ON lt.tag_id = t.id
+                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+                GROUP BY l.id
+                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+            `;
+            params.push(...tagList);
+        }
+    }
+    
+    query += ' ORDER BY l.created_at DESC';
+    
+    db.all(query, params, (err, links) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        if (format === 'json') {
+            res.json({ success: true, links });
+            return;
+        }
+        
+        // Экспорт в CSV
+        let csv = '\uFEFFID,Оригинальный URL,Короткая ссылка,Алиас,Клики,Теги,Дата создания\n';
+        links.forEach(link => {
+            const shortUrl = `${req.protocol}://${req.get('host')}/${link.short_code}`;
+            csv += `"${link.id}","${(link.original_url || '').replace(/"/g, '""')}","${shortUrl}","${link.custom_alias || ''}","${link.clicks || 0}","${link.tags_string || ''}","${link.created_at}"\n`;
+        });
+        
+        const filename = tags ? `linksnap-export-tag-${tags.replace(/,/g, '-')}.csv` : 'linksnap-export-all.csv';
+        
+        res.header('Content-Type', 'text/csv;charset=utf-8');
+        res.header('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csv);
+    });
+});
+
 app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
