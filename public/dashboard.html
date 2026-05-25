@@ -284,29 +284,60 @@
         function renderCharts(deviceStats) {
             const ctxDevices = document.getElementById('devicesChart').getContext('2d');
             if (devicesChart) devicesChart.destroy();
-            const deviceLabels = []; const deviceData = [];
+            
+            const deviceLabels = [];
+            const deviceData = [];
             const backgroundColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#6b7280'];
+            
             if (deviceStats && deviceStats.length > 0) {
-                deviceStats.forEach((stat, index) => {
+                deviceStats.forEach((stat) => {
                     let label = 'Другие';
-                    if (stat.device_type === 'desktop') label = '<i class="fas fa-desktop"></i> Десктоп';
-                    else if (stat.device_type === 'mobile') label = '<i class="fas fa-mobile-alt"></i> Мобильные';
-                    else if (stat.device_type === 'tablet') label = '<i class="fas fa-tablet-alt"></i> Планшеты';
-                    else if (stat.device_type === 'bot') label = '<i class="fas fa-robot"></i> Боты';
-                    else label = '<i class="fas fa-question-circle"></i> ' + (stat.device_type || 'Неизвестно');
-                    deviceLabels.push(label);
+                    let icon = '❓';
+                    if (stat.device_type === 'desktop') { label = 'Десктоп'; icon = '🖥️'; }
+                    else if (stat.device_type === 'mobile') { label = 'Мобильные'; icon = '📱'; }
+                    else if (stat.device_type === 'tablet') { label = 'Планшеты'; icon = '📟'; }
+                    else if (stat.device_type === 'bot') { label = 'Боты'; icon = '🤖'; }
+                    else { label = stat.device_type || 'Неизвестно'; icon = '❓'; }
+                    
+                    deviceLabels.push(`${icon} ${label}`);
                     deviceData.push(stat.count);
                 });
-            } else { deviceLabels.push('Нет данных'); deviceData.push(1); }
+            } else {
+                deviceLabels.push('📭 Нет данных');
+                deviceData.push(1);
+            }
+            
             devicesChart = new Chart(ctxDevices, {
                 type: 'doughnut',
-                data: { labels: deviceLabels, datasets: [{ data: deviceData, backgroundColor: backgroundColors.slice(0, deviceLabels.length), borderWidth: 0, hoverOffset: 10 }] },
+                data: {
+                    labels: deviceLabels,
+                    datasets: [{
+                        data: deviceData,
+                        backgroundColor: backgroundColors.slice(0, deviceLabels.length),
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') || '#333', font: { size: 12 } } },
-                        tooltip: { callbacks: { label: function(context) { const total = context.dataset.data.reduce((a, b) => a + b, 0); const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0; return `${context.label}: ${context.raw} (${percentage}%)`; } } }
+                        legend: { 
+                            position: 'bottom',
+                            labels: { 
+                                color: getComputedStyle(document.body).getPropertyValue('--text-primary') || '#333',
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                }
+                            }
+                        }
                     }
                 }
             });
