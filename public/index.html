@@ -191,6 +191,37 @@
             text-decoration: none;
         }
         
+        /* Автодополнение тегов */
+        .tag-input-wrapper {
+            position: relative;
+        }
+        .tag-suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        .tag-suggestions-dropdown.show {
+            display: block;
+        }
+        .tag-suggestion-item {
+            padding: var(--space-sm) var(--space-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: var(--text-sm);
+        }
+        .tag-suggestion-item:hover {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+        
         /* Карточки функций */
         .feature-grid {
             display: grid;
@@ -324,6 +355,17 @@
                         <input type="text" id="customAlias" class="form-control" placeholder="my-link">
                         <small style="color: var(--text-muted);">Только латиница, цифры, дефис и подчеркивание</small>
                     </div>
+                    
+                    <!-- НОВОЕ: Поле для тегов при создании ссылки -->
+                    <div class="form-group">
+                        <label class="form-label">🏷️ Теги (через запятую)</label>
+                        <div class="tag-input-wrapper">
+                            <input type="text" id="tagsInput" class="form-control" placeholder="работа, важное, клиент, проект">
+                            <div id="tagSuggestions" class="tag-suggestions-dropdown"></div>
+                        </div>
+                        <small style="color: var(--text-muted);">Необязательно. Помогут найти ссылку позже</small>
+                    </div>
+                    
                     <button onclick="shortenUrl()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-md);">
                         🚀 Сократить!
                     </button>
@@ -423,6 +465,7 @@
     <script>
         let currentUserPlan = 'free';
         let currentUserName = '';
+        let allTagsList = [];
 
         // Экранирование HTML
         function escapeHtml(text) {
@@ -442,6 +485,7 @@
                     showUserPanel(user.username);
                     updateQRStylePanel();
                     updatePlanNotice();
+                    loadAllTagsForAutocomplete();
                     return true;
                 } else {
                     showAuthButtons();
@@ -503,6 +547,62 @@
             }
         }
 
+        // Загрузка всех тегов для автодополнения
+        async function loadAllTagsForAutocomplete() {
+            try {
+                const res = await fetch('/api/tags/all');
+                const tags = await res.json();
+                allTagsList = tags || [];
+            } catch (e) {
+                console.error('Ошибка загрузки тегов:', e);
+            }
+        }
+
+        // Автодополнение тегов при вводе
+        function setupTagAutocomplete() {
+            const tagsInput = document.getElementById('tagsInput');
+            const suggestionsDiv = document.getElementById('tagSuggestions');
+            
+            if (!tagsInput) return;
+            
+            tagsInput.addEventListener('input', function() {
+                const value = this.value.toLowerCase();
+                const lastTag = value.split(',').pop().trim();
+                
+                if (lastTag.length < 1) {
+                    suggestionsDiv.classList.remove('show');
+                    return;
+                }
+                
+                const filteredTags = allTagsList
+                    .map(t => t.name)
+                    .filter(tag => tag.toLowerCase().includes(lastTag) && !value.toLowerCase().includes(tag.toLowerCase()));
+                
+                if (filteredTags.length > 0) {
+                    suggestionsDiv.innerHTML = filteredTags.slice(0, 5).map(tag => 
+                        `<div class="tag-suggestion-item" onclick="insertTag('${escapeHtml(tag)}')">🏷️ ${escapeHtml(tag)}</div>`
+                    ).join('');
+                    suggestionsDiv.classList.add('show');
+                } else {
+                    suggestionsDiv.classList.remove('show');
+                }
+            });
+            
+            tagsInput.addEventListener('blur', function() {
+                setTimeout(() => suggestionsDiv.classList.remove('show'), 200);
+            });
+        }
+        
+        function insertTag(tag) {
+            const tagsInput = document.getElementById('tagsInput');
+            let value = tagsInput.value;
+            const parts = value.split(',');
+            parts.pop();
+            parts.push(tag);
+            tagsInput.value = parts.join(', ') + (parts.length > 0 ? ', ' : '');
+            tagsInput.focus();
+        }
+
         function openTab(tabId, event) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tablink').forEach(btn => btn.classList.remove('active'));
@@ -510,12 +610,14 @@
             if (event && event.currentTarget) event.currentTarget.classList.add('active');
         }
 
-        // Сокращение ссылки
+        // Сокращение ссылки (с тегами!)
         async function shortenUrl() {
             const urlInput = document.getElementById('urlInput');
             const customAliasInput = document.getElementById('customAlias');
+            const tagsInput = document.getElementById('tagsInput');
             const url = urlInput.value.trim();
             const customAlias = customAliasInput.value.trim();
+            const tags = tagsInput.value.trim();
             const resultDiv = document.getElementById('result');
             
             if (!url) {
@@ -534,6 +636,7 @@
             try {
                 const body = { originalUrl: url };
                 if (customAlias) body.customAlias = customAlias;
+                if (tags) body.tags = tags;
                 
                 const resp = await fetch('/api/shorten', {
                     method: 'POST',
@@ -544,6 +647,7 @@
                 const data = await resp.json();
                 
                 if (resp.ok) {
+                    const tagsDisplay = tags ? `<div style="margin-top: var(--space-sm);"><small>🏷️ Теги: ${escapeHtml(tags)}</small></div>` : '';
                     resultDiv.innerHTML = `
                         <div class="alert alert-success">
                             ✅ Ссылка готова!<br>
@@ -551,6 +655,7 @@
                                 ${escapeHtml(data.shortUrl)}
                             </a><br>
                             <small style="color: var(--text-muted); word-break: break-all;">${escapeHtml(data.originalUrl)}</small>
+                            ${tagsDisplay}
                             <div style="margin-top: var(--space-md);">
                                 <button onclick="copyToClipboard('${escapeHtml(data.shortUrl)}')" class="btn btn-secondary btn-sm">📋 Копировать</button>
                                 <button onclick="window.open('${escapeHtml(data.shortUrl)}', '_blank')" class="btn btn-primary btn-sm">🔗 Перейти</button>
@@ -559,6 +664,9 @@
                     `;
                     urlInput.value = '';
                     customAliasInput.value = '';
+                    tagsInput.value = '';
+                    // Обновляем список тегов для автодополнения
+                    loadAllTagsForAutocomplete();
                 } else {
                     resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
                 }
@@ -710,6 +818,7 @@
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
+            setupTagAutocomplete();
             
             document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') shortenUrl();
@@ -727,6 +836,7 @@
         window.copyQRCode = copyQRCode;
         window.copyToClipboard = copyToClipboard;
         window.logout = logout;
+        window.insertTag = insertTag;
     </script>
 
     <script src="/chat-widget.js?v=5" defer></script>
