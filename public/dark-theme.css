@@ -1,40 +1,31 @@
 /* ===========================================
-   LinkSnap - Тёмная тема (Неоморфизм)
+   LinkSnap - Dark Theme v3.0
+   Clean & Accessible
    =========================================== */
 
 body.dark-theme {
     --primary: #818cf8;
     --primary-dark: #6366f1;
-    --primary-light: #312e81;
-    --secondary: #a78bfa;
+    --primary-light: #a78bfa;
+    --primary-bg: rgba(129, 140, 248, 0.12);
     
-    --dark: #f3f4f6;
-    --gray-800: #e5e7eb;
-    --gray-700: #d1d5db;
-    --gray-600: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-400: #4b5563;
-    --gray-300: #374151;
-    --gray-200: #1f2937;
-    --gray-100: #111827;
-    --light: #0f172a;
-    
-    --gradient-primary: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
-    --gradient-success: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-    --gradient-danger: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-    
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-    --shadow-neumorphic: 8px 8px 16px rgba(0, 0, 0, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.05);
-    
-    --surface: #1e293b;
-    --surface-light: #334155;
-    --surface-dark: #0f172a;
     --text-primary: #f1f5f9;
     --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
+    --text-inverse: #0f172a;
+    
+    --bg-primary: #1e293b;
+    --bg-secondary: #0f172a;
+    --bg-tertiary: #334155;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    
+    --gradient-primary: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+    
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-theme {
@@ -44,189 +35,87 @@ body.dark-theme {
 body.dark-theme .container {
     background: rgba(30, 41, 59, 0.95);
     backdrop-filter: blur(10px);
-    border-color: rgba(255, 255, 255, 0.1);
 }
 
-body.dark-theme .card,
-body.dark-theme .analytics-card,
-body.dark-theme .feature-card,
-body.dark-theme .pricing-card,
-body.dark-theme .control-group,
-body.dark-theme .chart-container,
-body.dark-theme .recent-links,
-body.dark-theme .settings-section,
-body.dark-theme .dashboard-card {
-    background: rgba(51, 65, 85, 0.7);
-    backdrop-filter: blur(5px);
-    border-color: rgba(255, 255, 255, 0.1);
+body.dark-theme .card {
+    background: var(--bg-primary);
+    border-color: rgba(255, 255, 255, 0.05);
 }
 
 body.dark-theme .form-control,
 body.dark-theme input,
 body.dark-theme textarea,
 body.dark-theme select {
-    background: var(--surface-dark);
-    border-color: var(--gray-500);
+    background: var(--bg-secondary);
+    border-color: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
 body.dark-theme .form-control:focus,
-body.dark-theme input:focus {
+body.dark-theme input:focus,
+body.dark-theme textarea:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
 }
 
-body.dark-theme .user-info,
-body.dark-theme .history-item,
-body.dark-theme .result-item,
-body.dark-theme .file-item,
-body.dark-theme .faq-item {
-    background: rgba(15, 23, 42, 0.7);
-    border-color: var(--gray-600);
+body.dark-theme .user-info {
+    background: rgba(129, 140, 248, 0.1);
 }
 
-body.dark-theme .tablink {
+body.dark-theme .nav-btn {
+    background: var(--bg-tertiary);
     color: var(--text-secondary);
 }
 
-body.dark-theme .tablink.active {
-    background: rgba(129, 140, 248, 0.2);
-    color: var(--primary);
-}
-
-body.dark-theme .tablink:not(.active):hover {
-    background: var(--surface-dark);
-}
-
-body.dark-theme .alert-success {
-    background: rgba(5, 150, 105, 0.2);
-    border-color: #34d399;
-    color: #a7f3d0;
-}
-
-body.dark-theme .alert-error {
-    background: rgba(220, 38, 38, 0.2);
-    border-color: #f87171;
-    color: #fecaca;
-}
-
-body.dark-theme .alert-warning {
-    background: rgba(217, 119, 6, 0.2);
-    border-color: #fbbf24;
-    color: #fde68a;
-}
-
-body.dark-theme .alert-info {
-    background: rgba(37, 99, 235, 0.2);
-    border-color: #60a5fa;
-    color: #bfdbfe;
-}
-
-body.dark-theme .stat-card {
+body.dark-theme .nav-btn:hover {
     background: var(--gradient-primary);
-}
-
-body.dark-theme .site-title {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-body.dark-theme .breadcrumb a {
-    background: rgba(129, 140, 248, 0.15);
-    color: var(--primary);
-}
-
-body.dark-theme .breadcrumb a:hover {
-    background: rgba(129, 140, 248, 0.25);
+    color: white;
 }
 
 body.dark-theme table {
-    background: var(--surface-dark);
+    background: var(--bg-primary);
 }
 
 body.dark-theme td {
-    border-bottom-color: var(--gray-600);
-    color: var(--text-secondary);
+    border-bottom-color: var(--bg-tertiary);
 }
 
 body.dark-theme tbody tr:hover {
-    background: var(--surface-light);
+    background: var(--bg-secondary);
+}
+
+body.dark-theme .alert-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #6ee7b7;
+    border-color: #10b981;
+}
+
+body.dark-theme .alert-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border-color: #ef4444;
+}
+
+body.dark-theme .alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fcd34d;
+    border-color: #f59e0b;
+}
+
+body.dark-theme .alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+    border-color: #3b82f6;
 }
 
 body.dark-theme .empty-state {
-    background: var(--surface-dark);
-    border-color: var(--gray-600);
-    color: var(--text-muted);
-}
-
-body.dark-theme .drop-area,
-body.dark-theme .file-upload {
-    background: var(--surface-dark);
-    border-color: var(--gray-500);
-}
-
-body.dark-theme .drop-area.dragover,
-body.dark-theme .file-upload.dragover {
-    background: rgba(129, 140, 248, 0.1);
-    border-color: var(--primary);
-}
-
-body.dark-theme .preview-area {
-    background: var(--surface-dark);
-}
-
-body.dark-theme .auth-form {
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(10px);
-}
-
-body.dark-theme .auth-form h1 {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-body.dark-theme .comparison-table {
-    background: var(--surface-dark);
-    border-color: var(--gray-600);
-}
-
-body.dark-theme .comparison-table th {
-    background: var(--surface-light);
-}
-
-body.dark-theme .faq-question:hover {
-    background: var(--surface-light);
-    color: var(--primary);
-}
-
-body.dark-theme .faq-toggle {
-    background: rgba(129, 140, 248, 0.15);
-}
-
-body.dark-theme .progress-bar {
-    background: var(--surface-dark);
-}
-
-body.dark-theme .theme-slider:before {
-    background-color: var(--surface-light);
-}
-
-body.dark-theme .btn-secondary {
-    background: var(--gray-700);
-}
-
-body.dark-theme .btn-secondary:hover {
-    background: var(--gray-600);
+    background: var(--bg-secondary);
+    border-color: var(--bg-tertiary);
 }
 
 body.dark-theme .tag {
     background: rgba(129, 140, 248, 0.15);
-    color: var(--primary);
-    border-color: rgba(129, 140, 248, 0.3);
+    color: var(--primary-light);
 }
 
 body.dark-theme .tag:hover {
@@ -234,368 +123,26 @@ body.dark-theme .tag:hover {
     color: white;
 }
 
+body.dark-theme .auth-form {
+    background: var(--bg-primary);
+}
+
+body.dark-theme .breadcrumb a {
+    color: var(--primary-light);
+}
+
+body.dark-theme .stat-card {
+    background: var(--gradient-primary);
+}
+
 body.dark-theme ::-webkit-scrollbar-track {
-    background: var(--gray-200);
+    background: var(--bg-tertiary);
 }
 
 body.dark-theme ::-webkit-scrollbar-thumb {
-    background: var(--gray-600);
+    background: var(--text-muted);
 }
 
 body.dark-theme ::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
-/* ===== Стили для админ-панели ===== */
-
-/* Общие стили админ-панели */
-body.dark-theme .admin-header {
-    background: rgba(30, 41, 59, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .admin-nav a {
-    background: rgba(15, 23, 42, 0.6);
-    color: var(--text-secondary);
-}
-
-body.dark-theme .admin-nav a:hover {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    box-shadow: 0 4px 12px rgba(129, 140, 248, 0.4);
-}
-
-/* Статистика в админ-панели */
-body.dark-theme .stat-card {
-    background: rgba(51, 65, 85, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .stat-card h3 {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-body.dark-theme .stat-card p {
-    color: var(--text-secondary);
-}
-
-body.dark-theme .stat-card.unread {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.2));
-    border-color: rgba(245, 158, 11, 0.4);
-}
-
-body.dark-theme .stat-card.unread::after {
-    background: #fbbf24;
-    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
-}
-
-/* Список чатов */
-body.dark-theme .chats-list {
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .chats-list-header {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .chat-item {
-    border-bottom-color: var(--gray-600);
-}
-
-body.dark-theme .chat-item:hover {
-    background: linear-gradient(90deg, rgba(129, 140, 248, 0.1), transparent);
-}
-
-body.dark-theme .chat-item.active {
-    background: linear-gradient(90deg, rgba(129, 140, 248, 0.2), transparent);
-}
-
-body.dark-theme .chat-item.unread {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.1), transparent);
-}
-
-body.dark-theme .chat-item-name {
-    color: var(--text-primary);
-}
-
-body.dark-theme .chat-item-time {
-    color: var(--text-muted);
-}
-
-body.dark-theme .chat-item-last-message {
-    color: var(--text-secondary);
-}
-
-body.dark-theme .status-active {
-    background: linear-gradient(135deg, rgba(5, 150, 105, 0.2), rgba(16, 185, 129, 0.25));
-    color: #6ee7b7;
-    border-color: rgba(16, 185, 129, 0.4);
-}
-
-body.dark-theme .status-closed {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(239, 68, 68, 0.25));
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.4);
-}
-
-/* Детали чата */
-body.dark-theme .chat-detail {
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .chat-detail-header {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .chat-detail-user h3 {
-    color: var(--text-primary);
-}
-
-body.dark-theme .chat-detail-user p {
-    color: var(--text-secondary);
-}
-
-body.dark-theme .messages-container {
-    background: linear-gradient(180deg, var(--gray-200) 0%, var(--gray-900) 100%);
-}
-
-body.dark-theme .message-user {
-    background: var(--surface);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .message-user .message-meta {
-    color: var(--text-muted);
-}
-
-body.dark-theme .message-admin {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-}
-
-body.dark-theme .message-text {
-    color: var(--text-primary);
-}
-
-/* Форма ответа */
-body.dark-theme .reply-form {
-    background: var(--surface);
-    border-top-color: var(--gray-600);
-}
-
-body.dark-theme .reply-form textarea {
-    background: var(--gray-900);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .reply-form textarea:focus {
-    background: var(--surface);
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
-}
-
-body.dark-theme .reply-form textarea::placeholder {
-    color: var(--text-muted);
-}
-
-body.dark-theme .reply-form-actions span {
-    color: var(--text-muted);
-}
-
-/* Пустое состояние */
-body.dark-theme .empty-state {
-    background: linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(167, 139, 250, 0.08));
-    color: var(--text-muted);
-}
-
-body.dark-theme .empty-state h3 {
-    color: var(--text-primary);
-}
-
-body.dark-theme .empty-state p {
-    color: var(--text-secondary);
-}
-
-/* Загрузка */
-body.dark-theme .loading {
-    color: var(--text-primary);
-}
-
-body.dark-theme .loading-spinner {
-    border-color: rgba(129, 140, 248, 0.2);
-    border-top-color: var(--primary);
-}
-
-/* Фильтры и таблицы в админ-панели */
-body.dark-theme .filter-bar {
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .filter-bar label {
-    color: var(--text-primary);
-}
-
-body.dark-theme .filter-bar select {
-    background: var(--gray-900);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .filter-bar select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
-}
-
-body.dark-theme .filter-bar button {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-}
-
-body.dark-theme .users-table {
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .users-table th {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-}
-
-body.dark-theme .users-table td {
-    border-bottom-color: var(--gray-600);
-    color: var(--text-secondary);
-}
-
-body.dark-theme .users-table tr:hover {
-    background: linear-gradient(90deg, rgba(129, 140, 248, 0.08), transparent);
-}
-
-body.dark-theme .plan-badge {
-    box-shadow: var(--shadow-sm);
-}
-
-body.dark-theme .change-plan-btn {
-    background: var(--gray-900);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .change-plan-btn:hover {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    box-shadow: 0 4px 12px rgba(129, 140, 248, 0.4);
-}
-
-/* Модальное окно */
-body.dark-theme .modal {
-    background: rgba(0, 0, 0, 0.75);
-}
-
-body.dark-theme .modal-content {
-    background: var(--surface);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .modal-content h3 {
-    color: var(--text-primary);
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-body.dark-theme #modalUserName {
-    background: linear-gradient(135deg, var(--gray-800), var(--gray-900));
-    border-color: var(--gray-600);
-    color: var(--text-secondary);
-}
-
-body.dark-theme .modal-content select {
-    background: var(--gray-900);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .modal-content select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
-}
-
-body.dark-theme .modal-actions .btn-secondary {
-    background: var(--gray-800);
-    color: var(--text-primary);
-    border-color: var(--gray-600);
-}
-
-body.dark-theme .modal-actions .btn-secondary:hover {
-    background: var(--gray-700);
-}
-
-body.dark-theme .modal-actions .btn-primary {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-}
-
-/* Страница входа */
-body.dark-theme .login-card {
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(20px);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-theme .login-header h1 {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-body.dark-theme .login-header p {
-    color: var(--text-secondary);
-}
-
-body.dark-theme .form-group label {
-    color: var(--text-primary);
-}
-
-body.dark-theme .form-group input {
-    background: var(--gray-900);
-    border-color: var(--gray-600);
-    color: var(--text-primary);
-}
-
-body.dark-theme .form-group input:focus {
-    background: var(--surface);
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
-}
-
-body.dark-theme .form-group input::placeholder {
-    color: var(--text-muted);
-}
-
-body.dark-theme .login-btn {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-}
-
-body.dark-theme .login-btn:hover {
-    box-shadow: 0 8px 25px rgba(129, 140, 248, 0.4);
-}
-
-body.dark-theme .back-link {
-    border-top-color: var(--gray-700);
-}
-
-body.dark-theme .back-link a {
-    background: rgba(129, 140, 248, 0.15);
-    color: var(--primary);
-}
-
-body.dark-theme .back-link a:hover {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    color: white;
+    background: var(--text-secondary);
 }

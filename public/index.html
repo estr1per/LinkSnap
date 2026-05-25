@@ -3,315 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinkSnap — короткие ссылки и QR-коды</title>
+    <title>LinkSnap — Короткие ссылки и QR-коды</title>
+    <meta name="description" content="Сокращайте ссылки, создавайте красивые QR-коды, конвертируйте файлы и редактируйте изображения в одном сервисе">
+    <meta name="theme-color" content="#6366f1">
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23grad)'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔗</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%236366f1'/><stop offset='100%25' stop-color='%23a855f7'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23grad)'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔗</text></svg>">
     <style>
-        * { box-sizing: border-box; }
-        
-        .hero { 
-            text-align: center; 
-            margin: 48px 0 64px; 
-        }
-        .hero h1 { 
-            font-size: 3.5rem; 
-            margin-bottom: 16px; 
-        }
-        .hero p { 
-            font-size: 1.25rem; 
-            color: var(--text-secondary); 
-            max-width: 600px; 
-            margin: 0 auto 32px; 
-        }
-        
-        .feature-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 24px; 
-            margin: 48px 0; 
-        }
-        .feature-card { 
-            background: var(--surface); 
-            border-radius: var(--radius-lg); 
-            padding: 32px; 
-            text-align: center; 
-            transition: all 0.3s ease; 
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(5px);
-            cursor: pointer; 
-        }
-        .feature-card:hover { 
-            transform: translateY(-8px); 
-            box-shadow: var(--shadow-xl); 
-            border-color: var(--primary); 
-        }
-        .feature-icon { 
-            font-size: 3rem; 
-            margin-bottom: 16px; 
-        }
-        .feature-card h3 { 
-            font-size: 1.5rem; 
-            margin-bottom: 12px; 
-        }
-        .feature-card p { 
-            color: var(--text-secondary); 
-            margin-bottom: 16px; 
-        }
-        .badge { 
-            background: var(--gradient-primary); 
-            color: white; 
-            font-size: 0.75rem; 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            display: inline-block; 
-            font-weight: 600;
-        }
-        
-        .tabs { 
-            display: flex; 
-            justify-content: center; 
-            gap: 12px; 
-            margin: 32px 0; 
-        }
-        .tablink { 
-            background: transparent; 
-            border: none; 
-            padding: 12px 32px; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            border-radius: var(--radius-full); 
-            transition: all 0.2s; 
-            cursor: pointer; 
-            color: var(--text-secondary);
-        }
-        .tablink.active {
-            background: var(--gradient-primary);
-            color: white;
-        }
-        .tablink:not(.active):hover {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .qr-container { 
-            text-align: center; 
-            margin-top: 24px; 
-        }
-        .qr-container img { 
-            max-width: 250px; 
-            border-radius: var(--radius-lg); 
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25); 
-            margin: 16px auto;
-            border: 4px solid white;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .qr-container img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
-        }
-        
-        .download-buttons { 
-            display: flex; 
-            gap: 12px; 
-            justify-content: center; 
-            margin-top: 16px; 
-        }
-        .qr-result-card {
-            background: white;
-            padding: 24px;
-            border-radius: var(--radius-lg);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        .hero {
             text-align: center;
-            animation: qrSlideIn 0.4s ease;
-            margin-top: 20px;
+            padding: var(--space-4xl) 0;
         }
-        @keyframes qrSlideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .hero h1 {
+            font-size: var(--text-5xl);
+            margin-bottom: var(--space-lg);
         }
-        
-        .qr-url {
-            margin-top: 16px;
-            padding: 12px;
-            background: var(--gray-100);
-            border-radius: var(--radius-md);
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            word-break: break-all;
+        .hero p {
+            font-size: var(--text-xl);
+            max-width: 600px;
+            margin: 0 auto var(--space-xl);
         }
-        
-        .url-input-group {
-            margin-bottom: 16px;
-        }
-        .url-input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-        
-        /* Новая панель стилизации QR-кода */
-        .qr-style-panel {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-            border: 2px solid var(--primary-light);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark-theme .qr-style-panel {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-color: var(--primary);
-        }
-        .qr-style-header {
+        .hero-buttons {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            gap: var(--space-md);
+            justify-content: center;
             flex-wrap: wrap;
-            gap: 8px;
         }
-        .qr-style-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-primary);
-        }
-        .qr-style-badge {
-            background: var(--gradient-primary);
-            color: white;
-            font-size: 0.75rem;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        .qr-style-grid {
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: var(--space-xl);
+            margin: var(--space-4xl) 0;
         }
-        .qr-style-item {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .qr-style-item label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-        .color-picker {
-            width: 100%;
-            height: 40px;
-            border: 2px solid var(--gray-300);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            padding: 4px;
-        }
-        .dark-theme .color-picker {
-            border-color: var(--gray-600);
-        }
-        .form-range {
-            width: 100%;
-            cursor: pointer;
-        }
-        select.form-control {
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            border: 2px solid var(--gray-300);
-            background: white;
-            cursor: pointer;
-        }
-        .dark-theme select.form-control {
-            background: var(--surface-dark);
-            color: var(--text-primary);
-            border-color: var(--gray-600);
-        }
-        
-        .qr-free-notice {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-            border-left: 4px solid #ffc107;
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            font-size: 0.9rem;
-            color: #856404;
-            margin-bottom: 16px;
-        }
-        .dark-theme .qr-free-notice {
-            background: linear-gradient(135deg, #2d2a1f 0%, #3d3625 100%);
-            color: #ffc107;
-            border-left-color: #ffc107;
-        }
-        .qr-free-notice a {
-            color: #856404;
-            font-weight: 600;
-            text-decoration: underline;
-        }
-        .dark-theme .qr-free-notice a {
-            color: #ffc107;
-        }
-        
-        .logo-upload-area {
-            border: 1px dashed var(--gray-400);
-            border-radius: var(--radius-md);
-            padding: 8px;
+        .feature-card {
             text-align: center;
+            padding: var(--space-xl);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            transition: all var(--transition-base);
             cursor: pointer;
-            background: var(--surface);
+            border: 1px solid rgba(0, 0, 0, 0.03);
         }
-        .logo-preview {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-            margin-top: 8px;
-            border-radius: 8px;
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--primary-light);
         }
-        
-        /* Стили для сообщений о плане */
-        .plan-upgrade-notice {
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-            border-radius: var(--radius-md);
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            color: #3730a3;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
         }
-        .dark-theme .plan-upgrade-notice {
-            background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
-            color: #a78bfa;
+        .feature-card h3 {
+            margin-bottom: var(--space-sm);
         }
-        .plan-upgrade-notice a {
-            color: #4f46e5;
-            font-weight: 700;
-            text-decoration: none;
+        .feature-card p {
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-md);
         }
-        .dark-theme .plan-upgrade-notice a {
-            color: #818cf8;
+        .footer {
+            text-align: center;
+            padding-top: var(--space-3xl);
+            margin-top: var(--space-3xl);
+            border-top: 1px solid var(--bg-tertiary);
+            color: var(--text-muted);
+            font-size: var(--text-sm);
         }
-        
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .feature-grid { grid-template-columns: 1fr; }
-            .tabs { flex-direction: column; align-items: center; }
-            .tablink { width: 100%; max-width: 300px; }
-            .qr-style-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: var(--text-3xl); }
+            .hero p { font-size: var(--text-base); }
+            .hero-buttons { flex-direction: column; align-items: center; }
+            .hero-buttons .btn { width: 100%; max-width: 280px; }
         }
     </style>
 </head>
@@ -323,11 +85,11 @@
                 <a href="/" class="site-title">LinkSnap</a>
             </div>
             <div class="user-nav">
-                <div id="authButtons" class="nav-buttons">
-                    <a href="/login" class="nav-btn">Вход</a>
-                    <a href="/register" class="nav-btn">Регистрация</a>
+                <div id="authButtons" class="btn-group">
+                    <a href="/login" class="btn btn-secondary">Вход</a>
+                    <a href="/register" class="btn btn-primary">Регистрация</a>
                 </div>
-                <div id="authorizedBlock" style="display: none; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div id="authorizedBlock" style="display: none; align-items: center; gap: var(--space-md); flex-wrap: wrap;">
                     <div class="user-info">
                         <div class="user-avatar" id="userAvatar"></div>
                         <span class="user-name" id="userGreeting"></span>
@@ -351,155 +113,66 @@
             </div>
         </header>
 
-        <div class="hero">
-            <h1>Короткие ссылки, мощные инструменты.</h1>
+        <section class="hero">
+            <h1>Короткие ссылки,<br>мощные инструменты</h1>
             <p>Сокращайте ссылки, создавайте стильные QR‑коды, конвертируйте файлы и редактируйте изображения — всё в одном сервисе.</p>
-            <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn">Начать бесплатно →</a>
-        </div>
+            <div class="hero-buttons">
+                <a href="/register" class="btn btn-primary btn-lg" id="getStartedBtn">🚀 Начать бесплатно</a>
+                <a href="/pricing" class="btn btn-secondary btn-lg">💰 Сравнить тарифы</a>
+            </div>
+        </section>
 
-        <div class="tabs">
-            <button class="tablink active" onclick="openTab('shorten-tab', event)">🔗 Сократить ссылку</button>
-            <button class="tablink" onclick="openTab('qrcode-tab', event)">📱 QR‑код</button>
-        </div>
-
-        <!-- Вкладка сокращения ссылок -->
-        <div id="shorten-tab" class="tab-content active">
-            <div class="card">
-                <div class="card-body">
-                    <div class="url-input-group">
-                        <label>🔗 Введите длинную ссылку</label>
-                        <input type="url" id="urlInput" class="form-control form-control-lg" placeholder="https://example.com/very/long/url">
-                    </div>
-                    <div class="url-input-group">
-                        <label>✏️ Кастомный алиас (необязательно)</label>
-                        <input type="text" id="customAlias" class="form-control" placeholder="my-link">
-                        <small style="color: var(--text-muted);">Только латиница, цифры, дефис и подчеркивание</small>
-                    </div>
-                    <button onclick="shortenUrl()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 20px;">
-                        🚀 Сократить!
-                    </button>
-                    <div id="result"></div>
+        <section>
+            <h2 class="text-center">Всё необходимое в одном месте</h2>
+            <div class="feature-grid">
+                <div class="feature-card" onclick="window.location.href='/batch'">
+                    <div class="feature-icon">📦</div>
+                    <h3>Массовое создание</h3>
+                    <p>Создавайте до 100 ссылок за раз из CSV или списка URL</p>
+                    <span class="tag">Популярное</span>
+                </div>
+                <div class="feature-card" onclick="window.location.href='/dashboard'">
+                    <div class="feature-icon">📊</div>
+                    <h3>Аналитика</h3>
+                    <p>Отслеживайте переходы, устройства и источники трафика</p>
+                    <span class="tag">Новое</span>
+                </div>
+                <div class="feature-card" onclick="window.location.href='/converter'">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Конвертер файлов</h3>
+                    <p>Конвертируйте изображения и документы в нужный формат</p>
+                    <span class="tag">Бесплатно</span>
+                </div>
+                <div class="feature-card" onclick="window.location.href='/image-editor'">
+                    <div class="feature-icon">✂️</div>
+                    <h3>Редактор изображений</h3>
+                    <p>Изменяйте размер, формат и применяйте фильтры</p>
+                    <span class="tag">Удобно</span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Вкладка QR-кода -->
-        <div id="qrcode-tab" class="tab-content">
-            <div class="card">
-                <div class="card-body">
-                    <div class="url-input-group">
-                        <label>📱 Введите ссылку для QR-кода</label>
-                        <input type="url" id="qrcodeInput" class="form-control form-control-lg" placeholder="https://example.com">
-                    </div>
-                    
-                    <!-- Уведомление о текущем плане -->
-                    <div id="planNotice" class="plan-upgrade-notice" style="display: none;">
-                        <span>⭐ Ваш тариф: <strong id="currentPlanName">Бесплатный</strong></span>
-                        <a href="/pricing">⬆️ Улучшить тариф</a>
-                    </div>
-                    
-                    <!-- Панель стилизации QR-кода (доступна только для Premium/Business) -->
-                    <div id="qrStylePanel" class="qr-style-panel" style="display: none;">
-                        <div class="qr-style-header">
-                            <span class="qr-style-title">🎨 Стилизация QR-кода</span>
-                            <span class="qr-style-badge">⭐ Премиум / Бизнес</span>
-                        </div>
-                        <div class="qr-style-grid">
-                            <div class="qr-style-item">
-                                <label>🎨 Цвет QR-кода</label>
-                                <input type="color" id="qrColor" class="color-picker" value="#667eea">
-                            </div>
-                            <div class="qr-style-item">
-                                <label>📄 Цвет фона</label>
-                                <input type="color" id="qrBgColor" class="color-picker" value="#ffffff">
-                            </div>
-                            <div class="qr-style-item">
-                                <label>📏 Размер (px)</label>
-                                <input type="range" id="qrSize" class="form-range" min="100" max="600" value="200">
-                                <span id="qrSizeValue">200px</span>
-                            </div>
-                            <div class="qr-style-item">
-                                <label>🖼️ Отступ</label>
-                                <input type="range" id="qrMargin" class="form-range" min="0" max="10" value="1">
-                                <span id="qrMarginValue">1</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="qrFreeNotice" class="qr-free-notice" style="display: none;">
-                        <span>💡 Стилизация QR-кодов (цвет, размер, фон) доступна на тарифах <a href="/pricing">⭐ Премиум и 💼 Бизнес</a></span>
-                    </div>
-                    
-                    <button onclick="generateQRCode()" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;">
-                        ⚡ Сгенерировать QR-код
-                    </button>
-                    <div id="qrcodeResult"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Карточки функций -->
-        <div class="feature-grid">
-            <div class="feature-card" onclick="window.location.href='/batch'">
-                <div class="feature-icon">📦</div>
-                <h3>Массовое создание</h3>
-                <p>Создавайте до 100 ссылок за раз из CSV или списка URL.</p>
-                <span class="badge">Популярное</span>
-            </div>
-            <div class="feature-card" onclick="window.location.href='/dashboard'">
-                <div class="feature-icon">📊</div>
-                <h3>Аналитика</h3>
-                <p>Отслеживайте переходы, устройства и источники трафика.</p>
-                <span class="badge">Новое</span>
-            </div>
-            <div class="feature-card" onclick="window.location.href='/converter'">
-                <div class="feature-icon">🔄</div>
-                <h3>Конвертер файлов</h3>
-                <p>Конвертируйте изображения и документы в нужный формат.</p>
-                <span class="badge">Бесплатно</span>
-            </div>
-            <div class="feature-card" onclick="window.location.href='/image-editor'">
-                <div class="feature-icon">✂️</div>
-                <h3>Редактор изображений</h3>
-                <p>Изменяйте размер, формат и применяйте фильтры.</p>
-                <span class="badge">Удобно</span>
-            </div>
-        </div>
-
-        <footer style="text-align: center; margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--gray-300); color: var(--text-muted);">
-            <p>LinkSnap © 2024 — всё для работы со ссылками и файлами.</p>
+        <footer class="footer">
+            <p>LinkSnap © 2024 — всё для работы со ссылками и файлами</p>
         </footer>
     </div>
 
     <script>
         let currentUserPlan = 'free';
-        let currentUserName = '';
 
-        // Функция экранирования HTML
-        function escapeHtml(text) {
-            if (!text) return '';
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return String(text).replace(/[&<>"']/g, m => map[m]);
-        }
-
-        // Проверка авторизации и получение плана
         async function checkAuth() {
             try {
                 const res = await fetch('/api/user');
                 if (res.ok) {
                     const user = await res.json();
                     currentUserPlan = user.plan_type || 'free';
-                    currentUserName = user.username;
                     showUserPanel(user.username);
-                    updateQRStylePanel();
-                    updatePlanNotice();
                     return true;
                 } else {
                     showAuthButtons();
                     return false;
                 }
             } catch(e) {
-                console.error('Ошибка проверки авторизации:', e);
                 showAuthButtons();
                 return false;
             }
@@ -525,220 +198,6 @@
             window.location.href = '/';
         }
 
-        // Обновление уведомления о плане
-        function updatePlanNotice() {
-            const notice = document.getElementById('planNotice');
-            const planNameSpan = document.getElementById('currentPlanName');
-            const planNames = { free: 'Бесплатный', premium: '⭐ Премиум', business: '💼 Бизнес' };
-            
-            if (planNameSpan) {
-                planNameSpan.textContent = planNames[currentUserPlan] || 'Бесплатный';
-            }
-            
-            if (notice && currentUserPlan === 'free') {
-                notice.style.display = 'flex';
-            } else if (notice) {
-                notice.style.display = 'none';
-            }
-        }
-
-        // Обновление панели стилизации в зависимости от тарифа
-        function updateQRStylePanel() {
-            const stylePanel = document.getElementById('qrStylePanel');
-            const freeNotice = document.getElementById('qrFreeNotice');
-            
-            if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
-                if (stylePanel) stylePanel.style.display = 'block';
-                if (freeNotice) freeNotice.style.display = 'none';
-            } else {
-                if (stylePanel) stylePanel.style.display = 'none';
-                if (freeNotice) freeNotice.style.display = 'block';
-            }
-        }
-
-        // Переключение вкладок
-        function openTab(tabId, event) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tablink').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            if (event && event.currentTarget) event.currentTarget.classList.add('active');
-            else {
-                document.querySelectorAll('.tablink').forEach(btn => {
-                    if ((tabId === 'shorten-tab' && btn.textContent.includes('Сократить')) ||
-                        (tabId === 'qrcode-tab' && btn.textContent.includes('QR'))) {
-                        btn.classList.add('active');
-                    }
-                });
-            }
-        }
-
-        // Сокращение ссылки
-        async function shortenUrl() {
-            const urlInput = document.getElementById('urlInput');
-            const customAliasInput = document.getElementById('customAlias');
-            const url = urlInput.value.trim();
-            const customAlias = customAliasInput.value.trim();
-            const resultDiv = document.getElementById('result');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
-                return;
-            }
-            
-            const auth = await checkAuth();
-            if (!auth) {
-                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для сокращения ссылок <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Создание короткой ссылки...</span></div>';
-            
-            try {
-                const body = { originalUrl: url };
-                if (customAlias) body.customAlias = customAlias;
-                
-                const resp = await fetch('/api/shorten', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                
-                const data = await resp.json();
-                
-                if (resp.ok) {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            ✅ Ссылка готова!<br>
-                            <a href="${escapeHtml(data.shortUrl)}" target="_blank" style="font-size: 1.2rem; font-weight: bold; word-break: break-all;">
-                                ${escapeHtml(data.shortUrl)}
-                            </a><br>
-                            <small style="color: var(--text-muted); word-break: break-all;">${escapeHtml(data.originalUrl)}</small>
-                            <div style="margin-top: 16px;">
-                                <button onclick="copyToClipboard('${escapeHtml(data.shortUrl)}')" class="btn btn-sm btn-secondary">📋 Копировать</button>
-                                <button onclick="window.open('${escapeHtml(data.shortUrl)}', '_blank')" class="btn btn-sm btn-primary">🔗 Перейти</button>
-                            </div>
-                        </div>
-                    `;
-                    urlInput.value = '';
-                    customAliasInput.value = '';
-                } else {
-                    resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
-                }
-            } catch(e) {
-                console.error('Ошибка:', e);
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка соединения с сервером</div>';
-            }
-        }
-
-        // Генерация QR-кода с поддержкой стилизации
-        async function generateQRCode() {
-            const urlInput = document.getElementById('qrcodeInput');
-            const url = urlInput.value.trim();
-            const resultDiv = document.getElementById('qrcodeResult');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Введите ссылку</div>';
-                return;
-            }
-            
-            const auth = await checkAuth();
-            if (!auth) {
-                resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Для создания QR-кода <a href="/login">войдите</a>.</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Генерация QR-кода...</span></div>';
-            
-            try {
-                let qrUrl = `/api/qrcode?url=${encodeURIComponent(url)}`;
-                
-                // Добавляем параметры стилизации для Premium/Business
-                if (currentUserPlan === 'premium' || currentUserPlan === 'business') {
-                    const color = document.getElementById('qrColor')?.value || '#667eea';
-                    const bgColor = document.getElementById('qrBgColor')?.value || '#ffffff';
-                    const size = document.getElementById('qrSize')?.value || 200;
-                    const margin = document.getElementById('qrMargin')?.value || 1;
-                    
-                    qrUrl += `&color=${encodeURIComponent(color)}&bgColor=${encodeURIComponent(bgColor)}&size=${size}&margin=${margin}`;
-                }
-                
-                const resp = await fetch(qrUrl);
-                const data = await resp.json();
-                
-                if (resp.ok) {
-                    let styleInfo = '';
-                    if (data.options && (currentUserPlan === 'premium' || currentUserPlan === 'business')) {
-                        styleInfo = `
-                            <div class="qr-style-info" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 12px;">
-                                🎨 Цвет: ${data.options.color || '#667eea'} | 
-                                📄 Фон: ${data.options.bgColor || '#ffffff'} | 
-                                📏 Размер: ${data.options.size || 200}px
-                            </div>
-                        `;
-                    }
-                    
-                    resultDiv.innerHTML = `
-                        <div class="qr-result-card">
-                            <img src="${escapeHtml(data.qrImageData)}" alt="QR Code" style="max-width: 100%; border-radius: 12px;">
-                            <div class="qr-url">${escapeHtml(url)}</div>
-                            ${styleInfo}
-                            <div class="download-buttons">
-                                <button onclick="downloadQR('${escapeHtml(data.qrImageData)}', 'png')" class="btn btn-sm btn-secondary">📥 Скачать PNG</button>
-                                <button onclick="copyQRCode('${escapeHtml(data.qrImageData)}')" class="btn btn-sm btn-secondary">📋 Копировать</button>
-                            </div>
-                        </div>
-                    `;
-                    urlInput.value = '';
-                } else {
-                    if (data.requiresUpgrade) {
-                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Перейти на Премиум →</a></div>`;
-                    } else if (data.limitsReached) {
-                        resultDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${escapeHtml(data.error)} <a href="/pricing">Улучшить тариф →</a></div>`;
-                    } else {
-                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${escapeHtml(data.error)}</div>`;
-                    }
-                }
-            } catch(e) {
-                console.error('Ошибка:', e);
-                resultDiv.innerHTML = '<div class="alert alert-error">❌ Ошибка генерации QR-кода</div>';
-            }
-        }
-
-        // Скачать QR-код
-        function downloadQR(dataUrl, format) {
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = `qrcode-${Date.now()}.${format}`;
-            link.click();
-        }
-
-        // Копировать QR-код
-        async function copyQRCode(dataUrl) {
-            try {
-                const blob = await (await fetch(dataUrl)).blob();
-                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-                alert('✅ QR-код скопирован в буфер обмена!');
-            } catch(e) {
-                alert('❌ Не удалось скопировать QR-код');
-            }
-        }
-
-        // Копировать текст
-        async function copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                alert('✅ Ссылка скопирована!');
-            } catch(e) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('✅ Ссылка скопирована!');
-            }
-        }
-
         // Тёмная тема
         (function() {
             const themeToggle = document.getElementById('themeToggle');
@@ -760,43 +219,10 @@
             }
         })();
 
-        // Обработчики для ползунков
-        const qrSizeSlider = document.getElementById('qrSize');
-        const qrSizeValue = document.getElementById('qrSizeValue');
-        if (qrSizeSlider && qrSizeValue) {
-            qrSizeSlider.addEventListener('input', () => { qrSizeValue.textContent = `${qrSizeSlider.value}px`; });
-        }
-        
-        const qrMarginSlider = document.getElementById('qrMargin');
-        const qrMarginValue = document.getElementById('qrMarginValue');
-        if (qrMarginSlider && qrMarginValue) {
-            qrMarginSlider.addEventListener('input', () => { qrMarginValue.textContent = qrMarginSlider.value; });
-        }
-
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            
-            // Обработка Enter в полях ввода
-            document.getElementById('urlInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') shortenUrl();
-            });
-            document.getElementById('qrcodeInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') generateQRCode();
-            });
-        });
-
-        // Глобальные функции для onclick
-        window.openTab = openTab;
-        window.shortenUrl = shortenUrl;
-        window.generateQRCode = generateQRCode;
-        window.downloadQR = downloadQR;
-        window.copyQRCode = copyQRCode;
-        window.copyToClipboard = copyToClipboard;
+        document.addEventListener('DOMContentLoaded', checkAuth);
         window.logout = logout;
     </script>
 
-    <!-- Виджет чата поддержки -->
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
 </html>
