@@ -503,14 +503,30 @@
                     container.innerHTML = '<div class="empty-state">📭 Нет созданных QR-кодов</div>';
                     return;
                 }
-                container.innerHTML = qrcodes.map(qr => `
+                container.innerHTML = qrcodes.map(qr => {
+                    const hasStyle = qr.color !== '#667eea' || qr.bg_color !== '#ffffff' || (qr.size && qr.size !== 200) || (qr.margin && qr.margin !== 1);
+                    const styleBadge = hasStyle ? `<span class="badge" style="background: var(--gradient-primary); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">🎨 Стилизован</span>` : '';
+                    const styleInfo = hasStyle ? `
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; margin-right: 12px;">
+                                <span style="width: 12px; height: 12px; background: ${qr.color || '#667eea'}; border-radius: 3px; border: 1px solid var(--gray-300);"></span>
+                                ${qr.color || '#667eea'}
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px; margin-right: 12px;">
+                                Фон: <span style="width: 12px; height: 12px; background: ${qr.bg_color || '#ffffff'}; border-radius: 3px; border: 1px solid var(--gray-300);"></span>
+                            </span>
+                            <span>${qr.size || 200}px</span>
+                        </div>
+                    ` : '';
+                    return `
                     <div class="history-item">
                         <div style="display: flex; gap: 15px; align-items: flex-start;">
-                            <div style="background: white; padding: 12px; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                                <img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm); border: 2px solid var(--primary);">
+                            <div style="background: ${qr.bg_color || '#ffffff'}; padding: 12px; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                <img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm); border: 2px solid ${qr.color || 'var(--primary)'};">
                             </div>
                             <div style="flex: 1;">
-                                <div><strong>📱 QR-код</strong> <span class="history-date">${new Date(qr.created_at).toLocaleDateString()}</span></div>
+                                <div><strong>📱 QR-код</strong> ${styleBadge} <span class="history-date">${new Date(qr.created_at).toLocaleDateString()}</span></div>
+                                ${styleInfo}
                                 <div class="history-url" style="margin: 8px 0;">${escapeHtml(qr.original_url)}</div>
                                 <div style="margin-top: 10px;">
                                     <button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-sm btn-secondary">📥 Скачать PNG</button>
@@ -519,7 +535,7 @@
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (e) {
                 container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
             }

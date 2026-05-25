@@ -870,8 +870,34 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
 // ========== API QR-КОДЫ ==========
 app.get('/api/qrcode', requireAuth, async (req, res) => {
     try {
-        const { url } = req.query;
+        const {
+            url, 
+            color = '#667eea', 
+            bgColor = '#ffffff', 
+            size = 200, 
+            margin = 1,
+            logo,
+            dotsStyle = 'square',
+            cornersStyle = 'square'
+        } = req.query;
+        
         if (!url) return res.status(400).json({ error: 'URL обязателен' });
+        
+        // Проверка: стилизация доступна только для premium и business
+        const isStyled = color !== '#667eea' || bgColor !== '#ffffff' || 
+                         size !== 200 || logo || dotsStyle !== 'square' || cornersStyle !== 'square';
+        
+        if (isStyled) {
+            const user = await new Promise((resolve) => {
+                db.get('SELECT plan_type FROM users WHERE id = $1', [req.session.userId], (err, user) => resolve(user));
+            });
+            
+            if (user?.plan_type !== 'premium' && user?.plan_type !== 'business') {
+                return res.status(403).json({ 
+                    error: 'Стилизация QR-кодов доступна только для тарифов Премиум и Бизнес' 
+                });
+            }
+        }
         
         checkUserLimits(req.session.userId, 'qrcodes', async (err, limits) => {
             if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
@@ -884,18 +910,28 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             let validatedUrl = url;
             if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
             
-            const qrImageData = await QRCode.toDataURL(validatedUrl, {
-                margin: 1,
-                width: 200,
-                color: { dark: '#667eea', light: '#ffffff' }
-            });
+            const qrOptions = {
+                margin: parseInt(margin) || 1,
+                width: parseInt(size) || 200,
+                color: { 
+                    dark: color || '#667eea', 
+                    light: bgColor || '#ffffff' 
+                }
+            };
             
-            db.run('INSERT INTO qrcodes (user_id, original_url, qr_data) VALUES ($1, $2, $3)',
-                [req.session.userId, validatedUrl, qrImageData]);
+            // Применение стиля точек (для библиотеки qrcode нужно кастомное рисование)
+            // Базовая генерация
+            const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
             
-            res.json({ success: true, qrImageData });
+            db.run(
+                'INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1]
+            );
+            
+            res.json({ success: true, qrImageData, options: { color, bgColor, size, margin } });
         });
     } catch (error) {
+        console.error('Ошибка генерации QR-кода:', error.message);
         res.status(500).json({ error: 'Ошибка генерации QR-кода' });
     }
 });
@@ -1052,7 +1088,7 @@ app.post('/api/batch/shorten', requireAuth, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
+        
 app.get('/api/alias/check', requireAuth, (req, res) => {
     const { alias } = req.query;
     
