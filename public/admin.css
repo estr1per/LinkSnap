@@ -699,7 +699,6 @@ body::before {
 }
 
 .chat-item-name::before {
-    content: '💬';
     font-size: 0.9rem;
     opacity: 0.6;
 }
@@ -775,7 +774,6 @@ body::before {
 }
 
 .chat-detail-user h3::before {
-    content: '👤';
     font-size: 1rem;
     opacity: 0.9;
 }
@@ -844,7 +842,6 @@ body::before {
 }
 
 .message-user::before {
-    content: '👤';
     position: absolute;
     left: -35px;
     top: 50%;
@@ -860,7 +857,6 @@ body::before {
 }
 
 .message-admin::before {
-    content: '🛡️';
     position: absolute;
     right: -35px;
     top: 50%;
