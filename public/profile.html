@@ -11,22 +11,22 @@
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
     <style>
         .settings-section {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid var(--surface-light);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-xl);
+            border: 1px solid var(--bg-tertiary);
         }
         .settings-section h3 {
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-sm);
             border-bottom: 2px solid var(--primary);
             display: inline-block;
         }
         .info-row {
             display: flex;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--surface-light);
+            padding: var(--space-sm) 0;
+            border-bottom: 1px solid var(--bg-tertiary);
         }
         .info-label {
             width: 150px;
@@ -41,8 +41,8 @@
         /* Фильтр по тегам */
         .tag-filter-bar {
             display: flex;
-            gap: 10px;
-            margin-bottom: 1rem;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
             flex-wrap: wrap;
             align-items: center;
         }
@@ -53,15 +53,15 @@
         .selected-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
+            gap: var(--space-sm);
+            margin: var(--space-md) 0;
         }
         .selected-tag {
             background: var(--gradient-primary);
             color: white;
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -81,98 +81,100 @@
             overflow-y: auto;
         }
         .history-item {
-            background: var(--surface-light);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            transition: all 0.2s;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            transition: all var(--transition-base);
+            border: 1px solid var(--bg-tertiary);
         }
         .history-item:hover {
             transform: translateX(5px);
-            background: var(--primary-light);
+            border-color: var(--primary-light);
         }
         .history-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 8px;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-sm);
         }
         .history-url {
-            font-size: 0.85rem;
+            font-size: var(--text-sm);
             color: var(--text-secondary);
             word-break: break-all;
-            margin-top: 0.25rem;
+            margin-top: var(--space-xs);
         }
         .history-date {
-            font-size: 0.75rem;
+            font-size: var(--text-xs);
             color: var(--text-muted);
         }
         
         /* Редактор тегов */
         .tag-editor {
             display: flex;
-            gap: 8px;
-            margin-top: 10px;
+            gap: var(--space-sm);
+            margin-top: var(--space-md);
             flex-wrap: wrap;
             align-items: center;
         }
         .tag-editor input {
             flex: 1;
             min-width: 150px;
-            padding: 6px 10px;
-            font-size: 0.85rem;
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--text-sm);
         }
         .tag-suggestions {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 5px;
+            gap: var(--space-xs);
+            margin-top: var(--space-sm);
         }
         .tag-suggestion {
             background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--transition-base);
+            color: var(--text-secondary);
         }
         .tag-suggestion:hover {
-            background: var(--primary);
+            background: var(--gradient-primary);
             color: white;
         }
         .btn-group {
             display: flex;
-            gap: 0.5rem;
+            gap: var(--space-sm);
             flex-wrap: wrap;
         }
         .btn-sm {
-            padding: 4px 10px;
-            font-size: 0.75rem;
+            padding: var(--space-xs) var(--space-md);
+            font-size: var(--text-sm);
         }
         
         /* Облако тегов */
         .tag-cloud {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: var(--surface-light);
-            border-radius: var(--radius-md);
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            padding: var(--space-lg);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
         }
         .tag {
             background: var(--primary-bg);
             color: var(--primary);
-            padding: 4px 12px;
+            padding: 6px 14px;
             border-radius: var(--radius-full);
-            font-size: 0.85rem;
+            font-size: var(--text-sm);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--transition-base);
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
         .tag:hover {
             background: var(--gradient-primary);
@@ -181,10 +183,10 @@
         }
         .tag .count {
             background: rgba(0, 0, 0, 0.1);
-            border-radius: 999px;
-            padding: 0.1rem 0.4rem;
-            margin-left: 0.3rem;
-            font-size: 0.7rem;
+            border-radius: var(--radius-full);
+            padding: 2px 6px;
+            margin-left: 4px;
+            font-size: var(--text-xs);
         }
         .tag.active-filter {
             background: var(--gradient-primary);
@@ -195,27 +197,62 @@
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: var(--space-sm);
+            margin-top: var(--space-lg);
         }
         
-        /* Рекомендации тегов */
-        .tag-recommendations {
-            margin-top: 8px;
-            padding: 8px;
-            background: var(--surface-dark);
-            border-radius: var(--radius-md);
+        /* План-бадж */
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            background: var(--gradient-primary);
+            color: white;
         }
-        .tag-recommendations span {
-            font-size: 0.7rem;
+        
+        /* Прогресс-бар лимитов */
+        .limit-progress {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-full);
+            height: 8px;
+            overflow: hidden;
+            margin: var(--space-sm) 0;
+        }
+        .limit-progress-fill {
+            background: var(--gradient-primary);
+            height: 100%;
+            width: 0%;
+            transition: width var(--transition-slow);
+        }
+        
+        /* API ключ */
+        .api-key {
+            background: var(--bg-secondary);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            font-family: monospace;
+            word-break: break-all;
+            margin: var(--space-md) 0;
+            border: 1px solid var(--primary);
+        }
+        
+        /* Пустое состояние */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-3xl);
             color: var(--text-muted);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
         }
         
         @media (max-width: 768px) {
             .info-row { flex-direction: column; }
-            .info-label { width: 100%; margin-bottom: 0.25rem; }
+            .info-label { width: 100%; margin-bottom: var(--space-xs); }
             .tag-filter-bar { flex-direction: column; align-items: stretch; }
             .tag-editor { flex-direction: column; }
+            .settings-section { padding: var(--space-lg); }
         }
     </style>
 </head>
@@ -302,9 +339,9 @@
         <!-- История ссылок -->
         <div class="settings-section">
             <h3>🔗 История ссылок</h3>
-            <div class="btn-group" style="margin-bottom: 1rem;">
-                <button onclick="loadLinksHistory(1)" class="btn btn-sm btn-secondary">🔄 Обновить</button>
-                <button onclick="clearLinksHistory()" class="btn btn-sm btn-danger">🗑️ Очистить все ссылки</button>
+            <div class="btn-group" style="margin-bottom: var(--space-lg);">
+                <button onclick="loadLinksHistory(1)" class="btn btn-secondary btn-sm">🔄 Обновить</button>
+                <button onclick="clearLinksHistory()" class="btn btn-danger btn-sm">🗑️ Очистить все ссылки</button>
             </div>
             <div id="linksHistory" class="history-list">
                 <div class="loading">
@@ -317,9 +354,9 @@
         <!-- История QR-кодов -->
         <div class="settings-section">
             <h3>📱 История QR-кодов</h3>
-            <div class="btn-group" style="margin-bottom: 1rem;">
-                <button onclick="loadQRCodesHistory()" class="btn btn-sm btn-secondary">🔄 Обновить</button>
-                <button onclick="clearQRCodesHistory()" class="btn btn-sm btn-danger">🗑️ Очистить QR-коды</button>
+            <div class="btn-group" style="margin-bottom: var(--space-lg);">
+                <button onclick="loadQRCodesHistory()" class="btn btn-secondary btn-sm">🔄 Обновить</button>
+                <button onclick="clearQRCodesHistory()" class="btn btn-danger btn-sm">🗑️ Очистить QR-коды</button>
             </div>
             <div id="qrcodesHistory" class="history-list">
                 <div class="loading">
@@ -384,7 +421,7 @@
 
                 let apiHtml = '';
                 if (data.plan === 'business') {
-                    apiHtml = `<div style="margin-top: 1rem;"><button onclick="generateApiKey()" class="btn btn-primary">🔑 Сгенерировать API ключ</button><div id="apiKeyDisplay" class="api-key" style="display:none;"></div></div>`;
+                    apiHtml = `<div style="margin-top: var(--space-lg);"><button onclick="generateApiKey()" class="btn btn-primary btn-sm">🔑 Сгенерировать API ключ</button><div id="apiKeyDisplay" class="api-key" style="display:none;"></div></div>`;
                 }
 
                 document.getElementById('planInfo').innerHTML = `
@@ -393,7 +430,7 @@
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, linksPercent)}%;"></div></div>
                     <div class="info-row"><div class="info-label">QR-коды в этом месяце:</div><div class="info-value">${data.limits.currentQR} из ${maxQR}</div></div>
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, qrPercent)}%;"></div></div>
-                    <div class="info-row" style="margin-top: 1rem;"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm">🔄 Сменить тариф</a></div></div>
+                    <div class="info-row" style="margin-top: var(--space-lg);"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm">🔄 Сменить тариф</a></div></div>
                     ${apiHtml}
                 `;
             } catch (e) {
@@ -401,7 +438,6 @@
             }
         }
 
-        // Загрузка всех тегов для автодополнения
         async function loadAllTags() {
             try {
                 const res = await fetch('/api/tags/all');
@@ -414,7 +450,6 @@
             }
         }
 
-        // Загрузка облака тегов
         async function loadTagCloud() {
             try {
                 const res = await fetch('/api/tags/cloud');
@@ -439,7 +474,6 @@
             }
         }
 
-        // Добавление тега в фильтр
         function addFilterTag() {
             const input = document.getElementById('tagFilterInput');
             const tag = input.value.trim().toLowerCase();
@@ -451,7 +485,6 @@
             input.value = '';
         }
 
-        // Переключение тега из облака
         function toggleFilterTag(tag) {
             if (filterTags.includes(tag)) {
                 filterTags = filterTags.filter(t => t !== tag);
@@ -460,10 +493,9 @@
             }
             renderSelectedTags();
             applyFilter();
-            loadTagCloud(); // Обновляем подсветку
+            loadTagCloud();
         }
 
-        // Отображение выбранных тегов
         function renderSelectedTags() {
             const container = document.getElementById('selectedTags');
             if (filterTags.length === 0) {
@@ -492,7 +524,6 @@
             loadTagCloud();
         }
 
-        // Применение фильтра
         async function applyFilter() {
             const container = document.getElementById('linksHistory');
             
@@ -525,7 +556,6 @@
             container.innerHTML = links.map(link => renderLinkItem(link)).join('');
         }
 
-        // Загрузка истории ссылок
         async function loadLinksHistory(page = 1) {
             if (filterTags.length > 0) {
                 await applyFilter();
@@ -571,19 +601,18 @@
                         <button onclick="saveTags(${link.id}, this)" class="btn btn-primary btn-sm">💾 Сохранить</button>
                     </div>
                     <div class="tag-suggestions" id="suggestions-${link.id}"></div>
-                    <div style="margin-top: 8px;">
-                        <a href="/${link.short_code}" target="_blank" class="btn btn-sm btn-secondary">🔗 Перейти</a>
-                        <button onclick="deleteLink(${link.id})" class="btn btn-sm btn-danger">🗑️ Удалить</button>
+                    <div style="margin-top: var(--space-md);">
+                        <a href="/${link.short_code}" target="_blank" class="btn btn-secondary btn-sm">🔗 Перейти</a>
+                        <button onclick="deleteLink(${link.id})" class="btn btn-danger btn-sm">🗑️ Удалить</button>
                     </div>
                 </div>
             `;
         }
 
-        // Рекомендация тегов
         let recommendTimeout;
         async function recommendTags(inputElement, linkId) {
             clearTimeout(recommendTimeout);
-            const url = inputElement.value;
+            const url = document.querySelector(`.history-item[data-link-id="${linkId}"] .history-url`)?.innerText;
             if (!url || url.length < 10) return;
             
             recommendTimeout = setTimeout(async () => {
@@ -615,11 +644,12 @@
                 if (!tags.includes(tag)) {
                     tags.push(tag);
                     input.value = tags.join(', ');
+                    // Триггерим событие input для сохранения
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             }
         }
 
-        // Сохранение тегов
         async function saveTags(linkId, button) {
             const input = button.previousElementSibling;
             const tags = input.value;
@@ -646,6 +676,11 @@
                     alert('✅ Теги сохранены');
                     await loadTagCloud();
                     await loadAllTags();
+                    if (filterTags.length > 0) {
+                        await applyFilter();
+                    } else {
+                        await loadLinksHistory(currentPage);
+                    }
                 } else {
                     alert('❌ Ошибка: ' + data.error);
                 }
@@ -673,7 +708,6 @@
             }
         }
 
-        // Экспорт отфильтрованных ссылок
         async function exportFilteredLinks() {
             try {
                 let url = `/api/links/export?format=csv`;
@@ -696,6 +730,7 @@
 
         function renderPagination(pagination) {
             const container = document.getElementById('pagination');
+            if (!pagination) return;
             currentPage = pagination.page;
             totalPages = pagination.pages;
 
@@ -706,11 +741,11 @@
 
             let html = '';
             if (currentPage > 1) {
-                html += `<button onclick="loadLinksHistory(${currentPage - 1})" class="btn btn-sm btn-secondary">← Назад</button>`;
+                html += `<button onclick="loadLinksHistory(${currentPage - 1})" class="btn btn-secondary btn-sm">← Назад</button>`;
             }
-            html += `<span style="padding: 0.25rem 1rem;">Стр. ${currentPage} из ${totalPages}</span>`;
+            html += `<span style="padding: 0 var(--space-md);">Стр. ${currentPage} из ${totalPages}</span>`;
             if (currentPage < totalPages) {
-                html += `<button onclick="loadLinksHistory(${currentPage + 1})" class="btn btn-sm btn-secondary">Вперед →</button>`;
+                html += `<button onclick="loadLinksHistory(${currentPage + 1})" class="btn btn-secondary btn-sm">Вперед →</button>`;
             }
             container.innerHTML = html;
         }
@@ -726,16 +761,16 @@
                 }
                 container.innerHTML = qrcodes.map(qr => `
                     <div class="history-item">
-                        <div style="display: flex; gap: 15px; align-items: flex-start;">
-                            <div style="background: ${qr.bg_color || '#ffffff'}; padding: 12px; border-radius: var(--radius-md);">
+                        <div style="display: flex; gap: var(--space-lg); align-items: flex-start; flex-wrap: wrap;">
+                            <div style="background: ${qr.bg_color || '#ffffff'}; padding: var(--space-md); border-radius: var(--radius-md);">
                                 <img src="${qr.qr_data}" style="width: 100px; height: 100px; border-radius: var(--radius-sm);">
                             </div>
                             <div style="flex: 1;">
                                 <div><strong>📱 QR-код</strong> <span class="history-date">${new Date(qr.created_at).toLocaleDateString()}</span></div>
-                                <div class="history-url" style="margin: 8px 0;">${escapeHtml(qr.original_url)}</div>
+                                <div class="history-url" style="margin: var(--space-sm) 0;">${escapeHtml(qr.original_url)}</div>
                                 <div>
-                                    <button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-sm btn-secondary">📥 Скачать PNG</button>
-                                    <a href="${escapeHtml(qr.original_url)}" target="_blank" class="btn btn-sm btn-primary">🔗 Открыть ссылку</a>
+                                    <button onclick="downloadQR('${qr.qr_data}', 'png')" class="btn btn-secondary btn-sm">📥 Скачать PNG</button>
+                                    <a href="${escapeHtml(qr.original_url)}" target="_blank" class="btn btn-primary btn-sm">🔗 Открыть ссылку</a>
                                 </div>
                             </div>
                         </div>
@@ -758,6 +793,8 @@
             const res = await fetch('/api/links', { method: 'DELETE' });
             const data = await res.json();
             alert(data.message);
+            filterTags = [];
+            renderSelectedTags();
             await loadLinksHistory(1);
             await loadPlanInfo();
             await loadTagCloud();
@@ -795,11 +832,13 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
         }
 
-        // Инициализация обработчиков для рекомендаций (делегирование)
+        // Инициализация обработчиков для рекомендаций
         document.addEventListener('input', function(e) {
             if (e.target.classList && e.target.classList.contains('tag-input')) {
-                const linkId = e.target.getAttribute('data-link-id');
-                recommendTags(e.target, linkId);
+                const linkId = parseInt(e.target.getAttribute('data-link-id'));
+                if (linkId) {
+                    recommendTags(e.target, linkId);
+                }
             }
         });
 

@@ -26,7 +26,7 @@ app.set('trust proxy', 1);
 
 // ========== ЛОГИРОВАНИЕ ВСЕХ ЗАПРОСОВ ==========
 app.use((req, res, next) => {
-    console.log(`📝 ${req.method} ${req.url} - Session userId: ${req.session?.userId || 'none'}, adminId: ${req.session?.adminId || 'none'}`);
+    console.log(`📝 ${req.method} ${req.url} - userId: ${req.session?.userId || 'none'}`);
     next();
 });
 
@@ -217,11 +217,7 @@ const uploadMultiple = multer({
 async function cleanupTempFile(filePath) {
     try { 
         if (fs.existsSync(filePath)) await fs.promises.unlink(filePath); 
-    } catch(e) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Ошибка удаления файла:', e.message);
-        }
-    }
+    } catch(e) {}
 }
 
 async function cleanupTempFiles(filePaths) {
@@ -232,18 +228,16 @@ async function cleanupTempFiles(filePaths) {
 
 function escapeHtml(text) {
     if (!text) return '';
-    return text.replace(/[&<>"]/g, m => ({ 
-        '&': '&amp;', 
-        '<': '&lt;', 
-        '>': '&gt;',
-        '"': '&quot;'
-    }[m] || m));
+    return text.replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m] || m));
 }
 
 function generateRandomCode(length) {
-    return crypto.randomBytes(Math.ceil(length / 2))
-        .toString('hex')
-        .slice(0, length);
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
 
 function generateApiKey() {
@@ -617,6 +611,497 @@ app.get('/api/user', (req, res) => {
         });
 });
 
+// ========== API СОКРАЩЕНИЕ ССЫЛОК (исправленная версия) ==========
+app.post('/api/shorten', requireAuth, async (req, res) => {
+    try {
+        const { originalUrl, customAlias, title, tags } = req.body;
+        const userId = req.session.userId;
+        
+        if (!originalUrl) {
+            return res.status(400).json({ error: 'URL обязателен' });
+        }
+        
+        let validatedUrl = originalUrl.trim();
+        if (validatedUrl.length > 2000) {
+            return res.status(400).json({ error: 'URL слишком длинный (максимум 2000 символов)' });
+        }
+        
+        if (!validatedUrl.startsWith('http://') && !validatedUrl.startsWith('https://')) {
+            validatedUrl = 'https://' + validatedUrl;
+        }
+        
+        try {
+            new URL(validatedUrl);
+        } catch {
+            return res.status(400).json({ error: 'Некорректный URL' });
+        }
+        
+        // Обработка кастомного алиаса
+        let finalShortCode = null;
+        let isCustomAlias = false;
+        
+        if (customAlias && customAlias.trim() !== '') {
+            isCustomAlias = true;
+            const alias = customAlias.trim().toLowerCase();
+            
+            if (alias.length < 3 || alias.length > 30) {
+                return res.status(400).json({ error: 'Алиас должен быть от 3 до 30 символов' });
+            }
+            
+            if (!/^[a-zA-Z0-9_-]+$/.test(alias)) {
+                return res.status(400).json({ error: 'Алиас может содержать только латиницу, цифры, дефис и подчеркивание' });
+            }
+            
+            const reserved = ['api', 'login', 'register', 'dashboard', 'admin', 'profile', 
+                            'analytics', 'batch', 'pricing', 'converter', 'image-editor', 
+                            'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css',
+                            'manifest.json', 'sw.js', 'favicon.ico', 'icons'];
+            if (reserved.includes(alias)) {
+                return res.status(400).json({ error: 'Этот алиас зарезервирован системой' });
+            }
+            
+            const user = await new Promise((resolve) => {
+                db.get('SELECT plan_type FROM users WHERE id = $1', [userId], (err, user) => resolve(user));
+            });
+            
+            if (user?.plan_type === 'free') {
+                return res.status(403).json({ error: 'Кастомные алиасы доступны только для тарифов Премиум и Бизнес' });
+            }
+            
+            const existing = await new Promise((resolve) => {
+                db.get('SELECT id FROM links WHERE short_code = $1 OR custom_alias = $2', [alias, alias], (err, result) => {
+                    resolve(result);
+                });
+            });
+            
+            if (existing) {
+                return res.status(400).json({ error: 'Этот алиас уже занят' });
+            }
+            
+            finalShortCode = alias;
+        }
+        
+        if (!finalShortCode) {
+            finalShortCode = generateRandomCode(6);
+            let isUnique = false;
+            while (!isUnique) {
+                const existing = await new Promise((resolve) => {
+                    db.get('SELECT id FROM links WHERE short_code = $1', [finalShortCode], (err, result) => {
+                        resolve(result);
+                    });
+                });
+                if (!existing) {
+                    isUnique = true;
+                } else {
+                    finalShortCode = generateRandomCode(6);
+                }
+            }
+        }
+        
+        checkUserLimits(userId, 'links', async (err, limits) => {
+            if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
+            if (!limits.allowed) {
+                return res.status(403).json({ 
+                    error: `Превышен лимит: ${limits.current}/${limits.limit} ссылок в месяц. Обновите тариф.` 
+                });
+            }
+            
+            const host = req.get('host') || `localhost:${port}`;
+            const protocol = req.protocol || 'https';
+            
+            db.run(
+                `INSERT INTO links (user_id, original_url, short_code, custom_alias, title, tags) 
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+                [userId, validatedUrl, finalShortCode, isCustomAlias ? finalShortCode : null, title || null, tags || null],
+                function(err, result) {
+                    if (err) {
+                        console.error('Ошибка INSERT:', err.message);
+                        return res.status(500).json({ error: 'Ошибка сохранения ссылки: ' + err.message });
+                    }
+                    
+                    const linkId = result.lastID;
+                    
+                    if (tags && tags.trim() && linkId) {
+                        const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+                        tagList.forEach(tagName => {
+                            db.run('INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [tagName]);
+                            db.get('SELECT id FROM tags WHERE name = $1', [tagName], (err, tag) => {
+                                if (!err && tag) {
+                                    db.run('INSERT INTO link_tags (link_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [linkId, tag.id]);
+                                }
+                            });
+                        });
+                    }
+                    
+                    res.json({ 
+                        success: true, 
+                        originalUrl: validatedUrl,
+                        shortUrl: `${protocol}://${host}/${finalShortCode}`,
+                        shortCode: finalShortCode,
+                        isCustom: isCustomAlias,
+                        id: linkId
+                    });
+                });
+        });
+    } catch (error) {
+        console.error('Ошибка сокращения ссылки:', error.message);
+        res.status(500).json({ error: 'Ошибка сервера: ' + error.message });
+    }
+});
+
+// ========== API QR-КОДЫ ==========
+app.get('/api/qrcode', requireAuth, async (req, res) => {
+    try {
+        const { url, color = '#667eea', bgColor = '#ffffff', size = 200, margin = 1 } = req.query;
+        
+        if (!url) return res.status(400).json({ error: 'URL обязателен' });
+        
+        const isStyled = color !== '#667eea' || bgColor !== '#ffffff' || size !== 200 || margin !== 1;
+        
+        if (isStyled) {
+            const user = await new Promise((resolve) => {
+                db.get('SELECT plan_type FROM users WHERE id = $1', [req.session.userId], (err, user) => resolve(user));
+            });
+            
+            if (user?.plan_type !== 'premium' && user?.plan_type !== 'business') {
+                return res.status(403).json({ 
+                    error: 'Стилизация QR-кодов доступна только для тарифов Премиум и Бизнес',
+                    requiresUpgrade: true
+                });
+            }
+        }
+        
+        checkUserLimits(req.session.userId, 'qrcodes', async (err, limits) => {
+            if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
+            if (!limits.allowed) {
+                return res.status(403).json({ 
+                    error: `Превышен лимит: ${limits.current}/${limits.limit} QR-кодов в месяц. Обновите тариф.`,
+                    limitsReached: true
+                });
+            }
+            
+            let validatedUrl = url;
+            if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
+            
+            try {
+                const qrOptions = {
+                    errorCorrectionLevel: 'H',
+                    margin: parseInt(margin) || 1,
+                    width: parseInt(size) || 200,
+                    color: {
+                        dark: color || '#667eea',
+                        light: bgColor || '#ffffff'
+                    }
+                };
+                
+                const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
+                
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
+                        function(err) {
+                            if (err) reject(err);
+                            else resolve(this.lastID);
+                        }
+                    );
+                });
+                
+                res.json({ 
+                    success: true, 
+                    qrImageData,
+                    options: { color, bgColor, size: parseInt(size), margin: parseInt(margin) }
+                });
+                
+            } catch (genError) {
+                console.error('Ошибка генерации QR:', genError);
+                res.status(500).json({ error: 'Ошибка генерации QR-кода' });
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка QR-кода:', error.message);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/qrcodes', requireAuth, (req, res) => {
+    db.all('SELECT * FROM qrcodes WHERE user_id = $1 ORDER BY created_at DESC',
+        [req.session.userId],
+        (err, qrcodes) => {
+            if (err) return res.status(500).json({ error: 'Ошибка сервера' });
+            res.json(qrcodes || []);
+        });
+});
+
+// ========== API ДЛЯ ТЕГОВ (НОВЫЕ ФУНКЦИИ) ==========
+
+// Получение всех тегов пользователя для автодополнения
+app.get('/api/tags/all', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT DISTINCT t.name, COUNT(*) as count 
+        FROM tags t
+        JOIN link_tags lt ON t.id = lt.tag_id
+        JOIN links l ON lt.link_id = l.id
+        WHERE l.user_id = $1
+        GROUP BY t.name
+        ORDER BY t.name ASC
+    `, [userId], (err, tags) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(tags || []);
+    });
+});
+
+// Облако тегов
+app.get('/api/tags/cloud', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT t.name, COUNT(*) as count 
+        FROM tags t
+        JOIN link_tags lt ON t.id = lt.tag_id
+        JOIN links l ON lt.link_id = l.id
+        WHERE l.user_id = $1
+        GROUP BY t.name
+        ORDER BY count DESC
+        LIMIT 30
+    `, [userId], (err, tags) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(tags || []);
+    });
+});
+
+// Обновление тегов у ссылки
+app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
+    const { linkId } = req.params;
+    const { tags } = req.body;
+    const userId = req.session.userId;
+    
+    db.get('SELECT id FROM links WHERE id = $1 AND user_id = $2', [linkId, userId], (err, link) => {
+        if (err || !link) {
+            return res.status(404).json({ error: 'Ссылка не найдена' });
+        }
+        
+        db.run('DELETE FROM link_tags WHERE link_id = $1', [linkId], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            const tagsString = tags || '';
+            db.run('UPDATE links SET tags = $1 WHERE id = $2', [tagsString, linkId], (err) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                if (tagsString && tagsString.trim()) {
+                    const tagList = tagsString.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+                    
+                    if (tagList.length === 0) {
+                        return res.json({ success: true, message: 'Теги обновлены' });
+                    }
+                    
+                    let completed = 0;
+                    tagList.forEach(tagName => {
+                        db.run('INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [tagName]);
+                        db.get('SELECT id FROM tags WHERE name = $1', [tagName], (err, tag) => {
+                            if (!err && tag) {
+                                db.run('INSERT INTO link_tags (link_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [linkId, tag.id], () => {
+                                    completed++;
+                                    if (completed === tagList.length) {
+                                        res.json({ success: true, message: 'Теги обновлены' });
+                                    }
+                                });
+                            } else {
+                                completed++;
+                                if (completed === tagList.length) {
+                                    res.json({ success: true, message: 'Теги обновлены' });
+                                }
+                            }
+                        });
+                    });
+                } else {
+                    res.json({ success: true, message: 'Теги обновлены' });
+                }
+            });
+        });
+    });
+});
+
+// Фильтрация ссылок по тегам
+app.get('/api/links/filter', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { tags, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    if (!tags) {
+        return res.status(400).json({ error: 'Укажите теги для фильтрации' });
+    }
+    
+    const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+    
+    if (tagList.length === 0) {
+        return res.status(400).json({ error: 'Укажите хотя бы один тег' });
+    }
+    
+    const query = `
+        SELECT l.*, COUNT(DISTINCT t.id) as matched_tags
+        FROM links l
+        JOIN link_tags lt ON l.id = lt.link_id
+        JOIN tags t ON lt.tag_id = t.id
+        WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+        GROUP BY l.id
+        HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+        ORDER BY l.created_at DESC
+        LIMIT $${tagList.length + 2} OFFSET $${tagList.length + 3}
+    `;
+    
+    const params = [userId, ...tagList, parseInt(limit), offset];
+    
+    db.all(query, params, (err, links) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const countQuery = `
+            SELECT COUNT(*) as total FROM (
+                SELECT l.id
+                FROM links l
+                JOIN link_tags lt ON l.id = lt.link_id
+                JOIN tags t ON lt.tag_id = t.id
+                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+                GROUP BY l.id
+                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+            )
+        `;
+        
+        db.get(countQuery, [userId, ...tagList], (err, countResult) => {
+            res.json({
+                data: links || [],
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: countResult?.total || 0,
+                    pages: Math.ceil((countResult?.total || 0) / parseInt(limit))
+                },
+                filters: { tags: tagList }
+            });
+        });
+    });
+});
+
+// Рекомендация тегов на основе URL
+app.get('/api/tags/recommend', requireAuth, (req, res) => {
+    const { url } = req.query;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL обязателен' });
+    }
+    
+    const recommendations = [];
+    
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname;
+        const pathParts = urlObj.pathname.split('/').filter(p => p);
+        
+        if (hostname.includes('github')) recommendations.push('github', 'code', 'development');
+        if (hostname.includes('youtube')) recommendations.push('video', 'youtube', 'media');
+        if (hostname.includes('google')) recommendations.push('google', 'search');
+        if (hostname.includes('docs') || hostname.includes('documentation')) recommendations.push('docs', 'documentation');
+        if (hostname.includes('news')) recommendations.push('news', 'articles');
+        if (hostname.includes('shop') || hostname.includes('store') || hostname.includes('market')) recommendations.push('shop', 'shopping');
+        if (hostname.includes('telegram')) recommendations.push('telegram', 'social');
+        if (hostname.includes('instagram')) recommendations.push('instagram', 'social');
+        if (hostname.includes('facebook')) recommendations.push('facebook', 'social');
+        if (hostname.includes('twitter') || hostname.includes('x.com')) recommendations.push('twitter', 'social');
+        
+        if (pathParts.some(p => p.includes('blog'))) recommendations.push('blog', 'article');
+        if (pathParts.some(p => p.includes('tutorial'))) recommendations.push('tutorial', 'learning');
+        if (pathParts.some(p => p.includes('api'))) recommendations.push('api', 'integration');
+        if (pathParts.some(p => p.includes('login'))) recommendations.push('auth', 'login');
+        if (pathParts.some(p => p.match(/^\d{4}$/))) recommendations.push('archive');
+        
+        const unique = [...new Set(recommendations)];
+        res.json({ recommendations: unique.slice(0, 5) });
+    } catch (e) {
+        res.json({ recommendations: [] });
+    }
+});
+
+// Экспорт ссылок с фильтрацией по тегам
+app.get('/api/links/export', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { tags, format = 'csv' } = req.query;
+    
+    let query = `
+        SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
+        FROM links l
+        WHERE l.user_id = $1
+    `;
+    const params = [userId];
+    
+    if (tags && tags.trim()) {
+        const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+        if (tagList.length > 0) {
+            query = `
+                SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
+                FROM links l
+                JOIN link_tags lt ON l.id = lt.link_id
+                JOIN tags t ON lt.tag_id = t.id
+                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+                GROUP BY l.id
+                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
+            `;
+            params.push(...tagList);
+        }
+    }
+    
+    query += ' ORDER BY l.created_at DESC';
+    
+    db.all(query, params, (err, links) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        if (format === 'json') {
+            res.json({ success: true, links });
+            return;
+        }
+        
+        let csv = '\uFEFFID,Оригинальный URL,Короткая ссылка,Алиас,Клики,Теги,Дата создания\n';
+        links.forEach(link => {
+            const shortUrl = `${req.protocol}://${req.get('host')}/${link.short_code}`;
+            csv += `"${link.id}","${(link.original_url || '').replace(/"/g, '""')}","${shortUrl}","${link.custom_alias || ''}","${link.clicks || 0}","${link.tags_string || ''}","${link.created_at}"\n`;
+        });
+        
+        const filename = tags ? `linksnap-export-tag-${tags.replace(/,/g, '-')}.csv` : 'linksnap-export-all.csv';
+        
+        res.header('Content-Type', 'text/csv;charset=utf-8');
+        res.header('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csv);
+    });
+});
+
+// Удаление одной ссылки
+app.delete('/api/links/:linkId', requireAuth, (req, res) => {
+    const { linkId } = req.params;
+    const userId = req.session.userId;
+    
+    db.run('DELETE FROM links WHERE id = $1 AND user_id = $2', [linkId, userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Ссылка не найдена' });
+        res.json({ success: true, message: 'Ссылка удалена' });
+    });
+});
+
+app.delete('/api/links', requireAuth, (req, res) => {
+    db.run('DELETE FROM links WHERE user_id = $1', [req.session.userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, message: `Удалено ${this.changes} ссылок` });
+    });
+});
+
+app.delete('/api/qrcodes', requireAuth, (req, res) => {
+    db.run('DELETE FROM qrcodes WHERE user_id = $1', [req.session.userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, message: `Удалено ${this.changes} QR-кодов` });
+    });
+});
+
 // ========== API ПОИСК ПО ССЫЛКАМ ==========
 app.get('/api/links/search', requireAuth, (req, res) => {
     const { query } = req.query;
@@ -676,50 +1161,48 @@ app.get('/api/links', requireAuth, (req, res) => {
     });
 });
 
-// ========== API ОБЛАКО ТЕГОВ ==========
-app.get('/api/tags/cloud', requireAuth, (req, res) => {
+// ========== API АНАЛИТИКА ==========
+app.get('/api/analytics/summary', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
-    db.all(`
-        SELECT t.name, COUNT(*) as count 
-        FROM tags t
-        JOIN link_tags lt ON t.id = lt.tag_id
-        JOIN links l ON lt.link_id = l.id
-        WHERE l.user_id = $1
-        GROUP BY t.name
-        ORDER BY count DESC
-        LIMIT 30
-    `, [userId], (err, tags) => {
+    db.get(`
+        SELECT 
+            COUNT(*) as total_links, 
+            COALESCE(SUM(clicks), 0) as total_clicks, 
+            ROUND(AVG(clicks), 1) as avg_clicks, 
+            COALESCE(MAX(clicks), 0) as max_clicks 
+        FROM links WHERE user_id = $1
+    `, [userId], (err, overallStats) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(tags || []);
-    });
-});
-
-// ========== API РАСШИРЕННАЯ АНАЛИТИКА ==========
-app.get('/api/analytics/trends', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    
-    db.all(`
-        WITH daily_stats AS (
+        
+        db.all(`
             SELECT 
-                DATE_TRUNC('day', created_at) as day,
-                COUNT(*) as new_links,
-                SUM(COUNT(*)) OVER (ORDER BY DATE_TRUNC('day', created_at)) as cumulative_links
+                DATE(created_at) as date, 
+                COUNT(*) as created_links, 
+                COALESCE(SUM(clicks), 0) as total_clicks 
             FROM links 
             WHERE user_id = $1 
-            AND created_at > CURRENT_DATE - INTERVAL '30 days'
-            GROUP BY day
-        )
-        SELECT 
-            TO_CHAR(day, 'DD.MM') as date,
-            new_links,
-            cumulative_links,
-            ROUND(AVG(new_links) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 1) as moving_avg_7d
-        FROM daily_stats
-        ORDER BY day DESC
-    `, [userId], (err, stats) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(stats || []);
+            AND created_at >= CURRENT_TIMESTAMP - INTERVAL '30 days' 
+            GROUP BY DATE(created_at) 
+            ORDER BY date DESC
+        `, [userId], (err, weeklyStats) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            db.all(`
+                SELECT id, original_url, short_code, custom_alias, clicks, created_at 
+                FROM links WHERE user_id = $1 
+                ORDER BY clicks DESC LIMIT 10
+            `, [userId], (err, topLinks) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                res.json({
+                    success: true,
+                    overallStats: overallStats || { total_links: 0, total_clicks: 0, avg_clicks: 0, max_clicks: 0 },
+                    weeklyStats: weeklyStats || [],
+                    topLinks: topLinks || []
+                });
+            });
+        });
     });
 });
 
@@ -765,262 +1248,7 @@ app.get('/api/analytics/dashboard-stats', requireAuth, (req, res) => {
     });
 });
 
-// ========== API СОКРАЩЕНИЕ ССЫЛОК ==========
-app.post('/api/shorten', requireAuth, async (req, res) => {
-    try {
-        const { originalUrl, customAlias, title, tags } = req.body;
-        const userId = req.session.userId;
-        
-        if (!originalUrl) {
-            return res.status(400).json({ error: 'URL обязателен' });
-        }
-        
-        let validatedUrl = originalUrl.trim();
-        if (validatedUrl.length > 2000) {
-            return res.status(400).json({ error: 'URL слишком длинный (максимум 2000 символов)' });
-        }
-        
-        if (!validatedUrl.startsWith('http')) {
-            validatedUrl = 'https://' + validatedUrl;
-        }
-        
-        try {
-            new URL(validatedUrl);
-        } catch {
-            return res.status(400).json({ error: 'Некорректный URL' });
-        }
-        
-        if (customAlias && customAlias.trim() !== '') {
-            const user = await pool.query('SELECT plan_type FROM users WHERE id = $1', [userId]);
-            if (user.rows[0]?.plan_type === 'free') {
-                return res.status(403).json({ error: 'Кастомные алиасы доступны только для тарифов Премиум и Бизнес' });
-            }
-            
-            if (customAlias.length < 3 || customAlias.length > 30) {
-                return res.status(400).json({ error: 'Алиас должен быть от 3 до 30 символов' });
-            }
-            if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
-                return res.status(400).json({ error: 'Алиас может содержать только латиницу, цифры, дефис и подчеркивание' });
-            }
-            
-            const reserved = ['api', 'login', 'register', 'dashboard', 'admin', 'profile', 
-                            'analytics', 'batch', 'pricing', 'converter', 'image-editor'];
-            if (reserved.includes(customAlias.toLowerCase())) {
-                return res.status(400).json({ error: 'Этот алиас зарезервирован системой' });
-            }
-        }
-        
-        checkUserLimits(req.session.userId, 'links', (err, limits) => {
-            if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
-            if (!limits.allowed) {
-                return res.status(403).json({ 
-                    error: `Превышен лимит: ${limits.current}/${limits.limit} ссылок в месяц. Обновите тариф.` 
-                });
-            }
-            
-            const shortCode = customAlias || generateRandomCode(6);
-            const host = req.get('host') || `localhost:${port}`;
-            const protocol = req.protocol || 'https';
-            
-            db.run(
-                'INSERT INTO links (user_id, original_url, short_code, custom_alias, title, tags) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                [req.session.userId, validatedUrl, shortCode, customAlias || null, title || null, tags || null],
-                function(err, result) {
-                    if (err) {
-                        if (err.message.includes('UNIQUE')) {
-                            return res.status(400).json({ error: 'Этот алиас уже занят' });
-                        }
-                        return res.status(500).json({ error: 'Ошибка сохранения ссылки' });
-                    }
-                    
-                    const linkId = result.lastID;
-                    
-                    if (tags && linkId) {
-                        const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-                        tagList.forEach(tagName => {
-                            db.run('INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-                                [tagName], (err) => {
-                                    if (!err) {
-                                        db.get('SELECT id FROM tags WHERE name = $1', [tagName], (err, tag) => {
-                                            if (!err && tag) {
-                                                db.run('INSERT INTO link_tags (link_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                                                    [linkId, tag.id]);
-                                            }
-                                        });
-                                    }
-                                });
-                        });
-                    }
-                    
-                    res.json({ 
-                        success: true, 
-                        originalUrl: validatedUrl,
-                        shortUrl: `${protocol}://${host}/${shortCode}`,
-                        shortCode,
-                        id: linkId
-                    });
-                });
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-// ========== API QR-КОДЫ (исправленная версия) ==========
-app.get('/api/qrcode', requireAuth, async (req, res) => {
-    try {
-        const {
-            url, 
-            color = '#667eea', 
-            bgColor = '#ffffff', 
-            size = 200, 
-            margin = 1
-        } = req.query;
-        
-        if (!url) return res.status(400).json({ error: 'URL обязателен' });
-        
-        // Проверяем, использует ли пользователь премиум-стилизацию
-        const isStyled = color !== '#667eea' || bgColor !== '#ffffff' || 
-                         size !== 200 || margin !== 1;
-        
-        if (isStyled) {
-            const user = await new Promise((resolve) => {
-                db.get('SELECT plan_type FROM users WHERE id = $1', [req.session.userId], (err, user) => resolve(user));
-            });
-            
-            if (user?.plan_type !== 'premium' && user?.plan_type !== 'business') {
-                return res.status(403).json({ 
-                    error: 'Стилизация QR-кодов доступна только для тарифов Премиум и Бизнес',
-                    requiresUpgrade: true
-                });
-            }
-        }
-        
-        // Проверка лимитов
-        checkUserLimits(req.session.userId, 'qrcodes', async (err, limits) => {
-            if (err) return res.status(500).json({ error: 'Ошибка проверки лимитов' });
-            if (!limits.allowed) {
-                return res.status(403).json({ 
-                    error: `Превышен лимит: ${limits.current}/${limits.limit} QR-кодов в месяц. Обновите тариф.`,
-                    limitsReached: true
-                });
-            }
-            
-            let validatedUrl = url;
-            if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
-            
-            try {
-                // Настройки QR-кода
-                const qrOptions = {
-                    errorCorrectionLevel: 'H',
-                    margin: parseInt(margin) || 1,
-                    width: parseInt(size) || 200,
-                    color: {
-                        dark: color || '#667eea',
-                        light: bgColor || '#ffffff'
-                    }
-                };
-                
-                // Генерируем QR-код в base64
-                const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
-                
-                // Сохраняем в БД
-                await new Promise((resolve, reject) => {
-                    db.run(
-                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
-                        function(err) {
-                            if (err) reject(err);
-                            else resolve(this.lastID);
-                        }
-                    );
-                });
-                
-                res.json({ 
-                    success: true, 
-                    qrImageData,
-                    options: { color, bgColor, size: parseInt(size), margin: parseInt(margin) }
-                });
-                
-            } catch (genError) {
-                console.error('Ошибка генерации QR:', genError);
-                res.status(500).json({ error: 'Ошибка генерации QR-кода' });
-            }
-        });
-    } catch (error) {
-        console.error('Ошибка QR-кода:', error.message);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-app.get('/api/qrcodes', requireAuth, (req, res) => {
-    db.all('SELECT * FROM qrcodes WHERE user_id = $1 ORDER BY created_at DESC',
-        [req.session.userId],
-        (err, qrcodes) => {
-            if (err) return res.status(500).json({ error: 'Ошибка сервера' });
-            res.json(qrcodes || []);
-        });
-});
-
-app.delete('/api/links', requireAuth, (req, res) => {
-    db.run('DELETE FROM links WHERE user_id = $1', [req.session.userId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, message: `Удалено ${this.changes} ссылок` });
-    });
-});
-
-app.delete('/api/qrcodes', requireAuth, (req, res) => {
-    db.run('DELETE FROM qrcodes WHERE user_id = $1', [req.session.userId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, message: `Удалено ${this.changes} QR-кодов` });
-    });
-});
-
-app.get('/api/analytics/summary', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    
-    db.get(`
-        SELECT 
-            COUNT(*) as total_links, 
-            COALESCE(SUM(clicks), 0) as total_clicks, 
-            ROUND(AVG(clicks), 1) as avg_clicks, 
-            COALESCE(MAX(clicks), 0) as max_clicks 
-        FROM links WHERE user_id = $1
-    `, [userId], (err, overallStats) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        db.all(`
-            SELECT 
-                DATE(created_at) as date, 
-                COUNT(*) as created_links, 
-                COALESCE(SUM(clicks), 0) as total_clicks 
-            FROM links 
-            WHERE user_id = $1 
-            AND created_at >= CURRENT_TIMESTAMP - INTERVAL '30 days' 
-            GROUP BY DATE(created_at) 
-            ORDER BY date DESC
-        `, [userId], (err, weeklyStats) => {
-            if (err) return res.status(500).json({ error: err.message });
-            
-            db.all(`
-                SELECT id, original_url, short_code, custom_alias, clicks, created_at 
-                FROM links WHERE user_id = $1 
-                ORDER BY clicks DESC LIMIT 10
-            `, [userId], (err, topLinks) => {
-                if (err) return res.status(500).json({ error: err.message });
-                
-                res.json({
-                    success: true,
-                    overallStats: overallStats || { total_links: 0, total_clicks: 0, avg_clicks: 0, max_clicks: 0 },
-                    weeklyStats: weeklyStats || [],
-                    topLinks: topLinks || []
-                });
-            });
-        });
-    });
-});
-
+// ========== API МАССОВОЕ СОЗДАНИЕ ==========
 app.post('/api/batch/shorten', requireAuth, async (req, res) => {
     try {
         const { urls } = req.body;
@@ -1126,6 +1354,7 @@ app.get('/api/alias/check', requireAuth, (req, res) => {
         });
 });
 
+// ========== API ТАРИФЫ И ПРОФИЛЬ ==========
 app.get('/api/export/csv', requireAuth, (req, res) => {
     const { type } = req.query;
     const userId = req.session.userId;
@@ -1399,8 +1628,6 @@ app.post('/api/support/chat/:chatId/message', requireAuth, (req, res) => {
 });
 
 // ========== АДМИН ПАНЕЛЬ ==========
-
-// Вход в админку
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -1579,11 +1806,9 @@ app.patch('/api/admin/users/:userId/plan', requireAdminAuth, (req, res) => {
 });
 
 // ========== КОНВЕРТЕР ФАЙЛОВ ==========
-
 const imageFormats = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'avif'];
 const documentFormats = ['pdf', 'docx', 'txt', 'md', 'html'];
 
-// Конвертация ИЗОБРАЖЕНИЙ
 app.post('/api/convert/images', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
     let tempFiles = [];
     
@@ -1688,7 +1913,6 @@ app.post('/api/convert/images', requireAuth, uploadMultiple.array('files', 10), 
     }
 });
 
-// Конвертация ДОКУМЕНТОВ
 app.post('/api/convert/documents', requireAuth, uploadMultiple.array('files', 10), async (req, res) => {
     let tempFiles = [];
     
@@ -1930,111 +2154,13 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
     }
 });
 
-app.post('/api/image/resize', requireAuth, uploadSingle.single('image'), async (req, res) => {
-    try {
-        const { width, height, maintainAspectRatio = 'true' } = req.body;
-        if (!req.file) return res.status(400).json({ error: 'Изображение не загружено' });
-        
-        const inputPath = req.file.path;
-        const outputFilename = `${Date.now()}_resized${path.extname(req.file.originalname)}`;
-        const outputPath = path.join(uploadDir, outputFilename);
-        
-        let options = {};
-        if (width && height) {
-            options = maintainAspectRatio === 'true' 
-                ? { width: parseInt(width), height: parseInt(height), fit: 'inside' }
-                : { width: parseInt(width), height: parseInt(height) };
-        } else if (width) options = { width: parseInt(width) };
-        else if (height) options = { height: parseInt(height) };
-        else throw new Error('Укажите хотя бы ширину или высоту');
-        
-        await sharp(inputPath).resize(options).toFile(outputPath);
-        res.download(outputPath, `resized_${req.file.originalname}`, async (err) => {
-            await cleanupTempFile(inputPath);
-            await cleanupTempFile(outputPath);
-        });
-    } catch (error) {
-        if (req.file) await cleanupTempFile(req.file.path);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/image/format', requireAuth, uploadSingle.single('image'), async (req, res) => {
-    try {
-        const { targetFormat } = req.body;
-        if (!req.file) return res.status(400).json({ error: 'Изображение не загружено' });
-        if (!targetFormat) return res.status(400).json({ error: 'Не указан целевой формат' });
-        
-        const inputPath = req.file.path;
-        const outputFilename = `${Date.now()}_converted.${targetFormat}`;
-        const outputPath = path.join(uploadDir, outputFilename);
-        
-        await sharp(inputPath).toFormat(targetFormat).toFile(outputPath);
-        res.download(outputPath, `converted.${targetFormat}`, async (err) => {
-            await cleanupTempFile(inputPath);
-            await cleanupTempFile(outputPath);
-        });
-    } catch (error) {
-        if (req.file) await cleanupTempFile(req.file.path);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/image/rotate', requireAuth, uploadSingle.single('image'), async (req, res) => {
-    try {
-        const { degrees } = req.body;
-        if (!req.file) return res.status(400).json({ error: 'Изображение не загружено' });
-        
-        const angle = parseInt(degrees) || 0;
-        const inputPath = req.file.path;
-        const outputFilename = `${Date.now()}_rotated${path.extname(req.file.originalname)}`;
-        const outputPath = path.join(uploadDir, outputFilename);
-        
-        await sharp(inputPath).rotate(angle).toFile(outputPath);
-        res.download(outputPath, `rotated_${req.file.originalname}`, async (err) => {
-            await cleanupTempFile(inputPath);
-            await cleanupTempFile(outputPath);
-        });
-    } catch (error) {
-        if (req.file) await cleanupTempFile(req.file.path);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/image/filter', requireAuth, uploadSingle.single('image'), async (req, res) => {
-    try {
-        const { filter } = req.body;
-        if (!req.file) return res.status(400).json({ error: 'Изображение не загружено' });
-        
-        const inputPath = req.file.path;
-        const outputFilename = `${Date.now()}_filtered${path.extname(req.file.originalname)}`;
-        const outputPath = path.join(uploadDir, outputFilename);
-        
-        let transformer = sharp(inputPath);
-        switch (filter) {
-            case 'grayscale': transformer = transformer.grayscale(); break;
-            case 'blur': transformer = transformer.blur(5); break;
-            case 'sharpen': transformer = transformer.sharpen(); break;
-            default: throw new Error('Неизвестный фильтр');
-        }
-        
-        await transformer.toFile(outputPath);
-        res.download(outputPath, `filtered_${req.file.originalname}`, async (err) => {
-            await cleanupTempFile(inputPath);
-            await cleanupTempFile(outputPath);
-        });
-    } catch (error) {
-        if (req.file) await cleanupTempFile(req.file.path);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // ========== РЕДИРЕКТ ==========
 app.get('/:shortCode', (req, res) => {
     const { shortCode } = req.params;
     const excluded = ['api', 'login', 'register', 'profile', 'analytics', 'batch', 
                      'pricing', 'converter', 'image-editor', 'dashboard', 'favicon.ico',
-                     'admin', 'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css'];
+                     'admin', 'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css',
+                     'manifest.json', 'sw.js', 'icons'];
     
     if (excluded.includes(shortCode) || shortCode.includes('.')) {
         return res.status(404).send('Страница не найдена');
@@ -2057,238 +2183,6 @@ app.get('/:shortCode', (req, res) => {
     });
 });
 
-// ========== ТЕГИ - НОВЫЕ ФУНКЦИИ ==========
-
-// Получение всех тегов пользователя для автодополнения
-app.get('/api/tags/all', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    
-    db.all(`
-        SELECT DISTINCT t.name, COUNT(*) as count 
-        FROM tags t
-        JOIN link_tags lt ON t.id = lt.tag_id
-        JOIN links l ON lt.link_id = l.id
-        WHERE l.user_id = $1
-        GROUP BY t.name
-        ORDER BY t.name ASC
-    `, [userId], (err, tags) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(tags || []);
-    });
-});
-
-// Обновление тегов у ссылки
-app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
-    const { linkId } = req.params;
-    const { tags } = req.body;
-    const userId = req.session.userId;
-    
-    // Проверяем, что ссылка принадлежит пользователю
-    db.get('SELECT id FROM links WHERE id = $1 AND user_id = $2', [linkId, userId], (err, link) => {
-        if (err || !link) {
-            return res.status(404).json({ error: 'Ссылка не найдена' });
-        }
-        
-        // Удаляем старые теги
-        db.run('DELETE FROM link_tags WHERE link_id = $1', [linkId], (err) => {
-            if (err) return res.status(500).json({ error: err.message });
-            
-            // Обновляем поле tags в таблице links
-            const tagsString = tags || '';
-            db.run('UPDATE links SET tags = $1 WHERE id = $2', [tagsString, linkId], (err) => {
-                if (err) return res.status(500).json({ error: err.message });
-                
-                // Добавляем новые теги
-                if (tagsString && tagsString.trim()) {
-                    const tagList = tagsString.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-                    
-                    let completed = 0;
-                    if (tagList.length === 0) {
-                        return res.json({ success: true, message: 'Теги обновлены' });
-                    }
-                    
-                    tagList.forEach(tagName => {
-                        db.run('INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [tagName], (err) => {
-                            db.get('SELECT id FROM tags WHERE name = $1', [tagName], (err, tag) => {
-                                if (!err && tag) {
-                                    db.run('INSERT INTO link_tags (link_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [linkId, tag.id], () => {
-                                        completed++;
-                                        if (completed === tagList.length) {
-                                            res.json({ success: true, message: 'Теги обновлены' });
-                                        }
-                                    });
-                                } else {
-                                    completed++;
-                                    if (completed === tagList.length) {
-                                        res.json({ success: true, message: 'Теги обновлены' });
-                                    }
-                                }
-                            });
-                        });
-                    });
-                } else {
-                    res.json({ success: true, message: 'Теги обновлены' });
-                }
-            });
-        });
-    });
-});
-
-// Фильтрация ссылок по тегам (поддерживает несколько тегов)
-app.get('/api/links/filter', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    const { tags, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    
-    if (!tags) {
-        return res.status(400).json({ error: 'Укажите теги для фильтрации' });
-    }
-    
-    const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-    
-    if (tagList.length === 0) {
-        return res.status(400).json({ error: 'Укажите хотя бы один тег' });
-    }
-    
-    // Строим запрос для поиска ссылок, содержащих ВСЕ указанные теги
-    let query = `
-        SELECT l.*, COUNT(DISTINCT t.id) as matched_tags
-        FROM links l
-        JOIN link_tags lt ON l.id = lt.link_id
-        JOIN tags t ON lt.tag_id = t.id
-        WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
-        GROUP BY l.id
-        HAVING COUNT(DISTINCT t.id) = ${tagList.length}
-        ORDER BY l.created_at DESC
-        LIMIT $${tagList.length + 2} OFFSET $${tagList.length + 3}
-    `;
-    
-    const params = [userId, ...tagList, parseInt(limit), offset];
-    
-    db.all(query, params, (err, links) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        // Получаем общее количество
-        const countQuery = `
-            SELECT COUNT(*) as total FROM (
-                SELECT l.id
-                FROM links l
-                JOIN link_tags lt ON l.id = lt.link_id
-                JOIN tags t ON lt.tag_id = t.id
-                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
-                GROUP BY l.id
-                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
-            )
-        `;
-        
-        db.get(countQuery, [userId, ...tagList], (err, countResult) => {
-            res.json({
-                data: links || [],
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total: countResult?.total || 0,
-                    pages: Math.ceil((countResult?.total || 0) / parseInt(limit))
-                },
-                filters: { tags: tagList }
-            });
-        });
-    });
-});
-
-// Рекомендация тегов на основе URL
-app.get('/api/tags/recommend', requireAuth, (req, res) => {
-    const { url } = req.query;
-    
-    if (!url) {
-        return res.status(400).json({ error: 'URL обязателен' });
-    }
-    
-    const recommendations = [];
-    
-    try {
-        const urlObj = new URL(url);
-        const hostname = urlObj.hostname;
-        const pathParts = urlObj.pathname.split('/').filter(p => p);
-        
-        // Рекомендации на основе домена
-        if (hostname.includes('github')) recommendations.push('github', 'code', 'development');
-        if (hostname.includes('youtube')) recommendations.push('video', 'youtube', 'media');
-        if (hostname.includes('google')) recommendations.push('google', 'search');
-        if (hostname.includes('docs') || hostname.includes('documentation')) recommendations.push('docs', 'documentation');
-        if (hostname.includes('news')) recommendations.push('news', 'articles');
-        if (hostname.includes('shop') || hostname.includes('store') || hostname.includes('market')) recommendations.push('shop', 'shopping');
-        
-        // Рекомендации на основе пути URL
-        if (pathParts.some(p => p.includes('blog'))) recommendations.push('blog', 'article');
-        if (pathParts.some(p => p.includes('tutorial'))) recommendations.push('tutorial', 'learning');
-        if (pathParts.some(p => p.includes('api'))) recommendations.push('api', 'integration');
-        if (pathParts.some(p => p.includes('login'))) recommendations.push('auth', 'login');
-        if (pathParts.some(p => p.match(/^\d{4}$/))) recommendations.push('archive');
-        
-        // Убираем дубликаты
-        const unique = [...new Set(recommendations)];
-        
-        res.json({ recommendations: unique.slice(0, 5) });
-    } catch (e) {
-        res.json({ recommendations: [] });
-    }
-});
-
-// Экспорт ссылок с фильтрацией по тегам
-app.get('/api/links/export', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    const { tags, format = 'csv' } = req.query;
-    
-    let query = `
-        SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
-        FROM links l
-        WHERE l.user_id = $1
-    `;
-    const params = [userId];
-    
-    // Фильтрация по тегам
-    if (tags && tags.trim()) {
-        const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-        if (tagList.length > 0) {
-            query = `
-                SELECT l.id, l.original_url, l.short_code, l.custom_alias, l.clicks, l.created_at, l.tags as tags_string
-                FROM links l
-                JOIN link_tags lt ON l.id = lt.link_id
-                JOIN tags t ON lt.tag_id = t.id
-                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
-                GROUP BY l.id
-                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
-            `;
-            params.push(...tagList);
-        }
-    }
-    
-    query += ' ORDER BY l.created_at DESC';
-    
-    db.all(query, params, (err, links) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        if (format === 'json') {
-            res.json({ success: true, links });
-            return;
-        }
-        
-        // Экспорт в CSV
-        let csv = '\uFEFFID,Оригинальный URL,Короткая ссылка,Алиас,Клики,Теги,Дата создания\n';
-        links.forEach(link => {
-            const shortUrl = `${req.protocol}://${req.get('host')}/${link.short_code}`;
-            csv += `"${link.id}","${(link.original_url || '').replace(/"/g, '""')}","${shortUrl}","${link.custom_alias || ''}","${link.clicks || 0}","${link.tags_string || ''}","${link.created_at}"\n`;
-        });
-        
-        const filename = tags ? `linksnap-export-tag-${tags.replace(/,/g, '-')}.csv` : 'linksnap-export-all.csv';
-        
-        res.header('Content-Type', 'text/csv;charset=utf-8');
-        res.header('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(csv);
-    });
-});
-
 app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint не найден' });
 });
@@ -2297,7 +2191,6 @@ app.use('/api/*', (req, res) => {
 createTables()
     .then(() => createIndexes())
     .then(async () => {
-        // Создаем админа если нет
         await new Promise((resolve) => {
             db.get('SELECT COUNT(*) as count FROM admins', [], (err, result) => {
                 if (!err && result && parseInt(result.count) === 0) {
@@ -2320,7 +2213,6 @@ createTables()
         
         const server = app.listen(port, '0.0.0.0', () => {
             console.log(`\n🚀 Сервер LinkSnap запущен: http://localhost:${port}`);
-            console.log(`🌐 Домен: https://estr1per-linksnap-85ab.twc1.net`);
             console.log(`🔒 Режим: ${process.env.NODE_ENV || 'development'}`);
             console.log(`💾 База данных: PostgreSQL\n`);
         });
