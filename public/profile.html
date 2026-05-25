@@ -49,6 +49,36 @@
         .tag-filter-input {
             flex: 1;
             min-width: 200px;
+            position: relative;
+        }
+        .tag-filter-input input {
+            width: 100%;
+        }
+        .filter-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        .filter-suggestions.show {
+            display: block;
+        }
+        .filter-suggestion-item {
+            padding: var(--space-sm) var(--space-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: var(--text-sm);
+        }
+        .filter-suggestion-item:hover {
+            background: var(--primary-bg);
+            color: var(--primary);
         }
         .selected-tags {
             display: flex;
@@ -154,45 +184,6 @@
             font-size: var(--text-sm);
         }
         
-        /* Облако тегов */
-        .tag-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-sm);
-            margin-bottom: var(--space-lg);
-            padding: var(--space-lg);
-            background: var(--bg-secondary);
-            border-radius: var(--radius-lg);
-        }
-        .tag {
-            background: var(--primary-bg);
-            color: var(--primary);
-            padding: 6px 14px;
-            border-radius: var(--radius-full);
-            font-size: var(--text-sm);
-            cursor: pointer;
-            transition: all var(--transition-base);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .tag:hover {
-            background: var(--gradient-primary);
-            color: white;
-            transform: scale(1.05);
-        }
-        .tag .count {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: var(--radius-full);
-            padding: 2px 6px;
-            margin-left: 4px;
-            font-size: var(--text-xs);
-        }
-        .tag.active-filter {
-            background: var(--gradient-primary);
-            color: white;
-        }
-        
         /* Пагинация */
         .pagination {
             display: flex;
@@ -245,6 +236,19 @@
             color: var(--text-muted);
             background: var(--bg-secondary);
             border-radius: var(--radius-xl);
+        }
+        
+        /* Фильтр результат */
+        .filter-info {
+            background: var(--primary-bg);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
         }
         
         @media (max-width: 768px) {
@@ -309,30 +313,20 @@
             </div>
         </div>
 
-        <!-- Облако тегов -->
-        <div class="settings-section">
-            <h3>🏷️ Облако тегов</h3>
-            <div id="tagCloud" class="tag-cloud">
-                <div class="loading">
-                    <div class="loading-spinner"></div><span>Загрузка тегов...</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Фильтр по тегам -->
         <div class="settings-section">
             <h3>🔍 Фильтр по тегам</h3>
             <div class="tag-filter-bar">
                 <div class="tag-filter-input">
-                    <input type="text" id="tagFilterInput" class="form-control" placeholder="Введите тег и нажмите Добавить..." 
-                           list="tagList" autocomplete="off">
-                    <datalist id="tagList"></datalist>
+                    <input type="text" id="tagFilterInput" class="form-control" placeholder="Введите тег..." autocomplete="off">
+                    <div id="filterSuggestions" class="filter-suggestions"></div>
                 </div>
                 <button onclick="addFilterTag()" class="btn btn-primary btn-sm">➕ Добавить тег</button>
                 <button onclick="clearFilter()" class="btn btn-secondary btn-sm">🗑️ Очистить фильтр</button>
                 <button onclick="exportFilteredLinks()" class="btn btn-success btn-sm">📥 Экспорт CSV</button>
             </div>
             <div id="selectedTags" class="selected-tags"></div>
+            <div id="filterInfo" class="filter-info" style="display: none;"></div>
             <div id="filterResult"></div>
         </div>
 
@@ -370,8 +364,7 @@
         let currentPage = 1;
         let totalPages = 1;
         let filterTags = [];
-        let allTags = [];
-        let currentLinks = [];
+        let allTagsList = [];
 
         async function checkAuth() {
             try {
@@ -383,7 +376,6 @@
                 await loadUserInfo();
                 await loadPlanInfo();
                 await loadAllTags();
-                await loadTagCloud();
                 await loadLinksHistory(1);
                 await loadQRCodesHistory();
                 return true;
@@ -442,36 +434,57 @@
             try {
                 const res = await fetch('/api/tags/all');
                 const tags = await res.json();
-                allTags = tags || [];
-                const datalist = document.getElementById('tagList');
-                datalist.innerHTML = allTags.map(t => `<option value="${escapeHtml(t.name)}">`).join('');
+                allTagsList = tags || [];
             } catch (e) {
                 console.error('Ошибка загрузки тегов:', e);
             }
         }
 
-        async function loadTagCloud() {
-            try {
-                const res = await fetch('/api/tags/cloud');
-                const tags = await res.json();
-                const container = document.getElementById('tagCloud');
-
-                if (!tags || tags.length === 0) {
-                    container.innerHTML = '<p style="color: var(--text-muted);">Нет тегов. Добавьте теги при создании ссылок!</p>';
+        // Автодополнение для фильтра
+        function setupFilterAutocomplete() {
+            const input = document.getElementById('tagFilterInput');
+            const suggestionsDiv = document.getElementById('filterSuggestions');
+            
+            if (!input) return;
+            
+            input.addEventListener('input', function() {
+                const value = this.value.toLowerCase().trim();
+                
+                if (value.length < 1) {
+                    suggestionsDiv.classList.remove('show');
                     return;
                 }
-
-                const maxCount = Math.max(...tags.map(t => t.count));
-                container.innerHTML = tags.map(tag => {
-                    const size = 0.8 + (tag.count / maxCount) * 1.2;
-                    const isActive = filterTags.includes(tag.name);
-                    return `<span class="tag ${isActive ? 'active-filter' : ''}" style="font-size: ${size}rem;" onclick="toggleFilterTag('${escapeHtml(tag.name)}')">
-                        ${escapeHtml(tag.name)}<span class="count">${tag.count}</span>
-                    </span>`;
-                }).join('');
-            } catch (e) {
-                document.getElementById('tagCloud').innerHTML = '<p class="alert alert-error">Ошибка загрузки тегов</p>';
-            }
+                
+                const filteredTags = allTagsList
+                    .map(t => t.name)
+                    .filter(tag => tag.toLowerCase().includes(value) && !filterTags.includes(tag))
+                    .slice(0, 5);
+                
+                if (filteredTags.length > 0) {
+                    suggestionsDiv.innerHTML = filteredTags.map(tag => 
+                        `<div class="filter-suggestion-item" onclick="selectFilterTag('${escapeHtml(tag)}')">🏷️ ${escapeHtml(tag)}</div>`
+                    ).join('');
+                    suggestionsDiv.classList.add('show');
+                } else {
+                    suggestionsDiv.classList.remove('show');
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                setTimeout(() => suggestionsDiv.classList.remove('show'), 200);
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addFilterTag();
+                }
+            });
+        }
+        
+        function selectFilterTag(tag) {
+            document.getElementById('tagFilterInput').value = tag;
+            addFilterTag();
         }
 
         function addFilterTag() {
@@ -483,17 +496,7 @@
                 applyFilter();
             }
             input.value = '';
-        }
-
-        function toggleFilterTag(tag) {
-            if (filterTags.includes(tag)) {
-                filterTags = filterTags.filter(t => t !== tag);
-            } else {
-                filterTags.push(tag);
-            }
-            renderSelectedTags();
-            applyFilter();
-            loadTagCloud();
+            document.getElementById('filterSuggestions').classList.remove('show');
         }
 
         function renderSelectedTags() {
@@ -514,23 +517,28 @@
             filterTags = filterTags.filter(t => t !== tag);
             renderSelectedTags();
             applyFilter();
-            loadTagCloud();
         }
 
         function clearFilter() {
             filterTags = [];
             renderSelectedTags();
-            applyFilter();
-            loadTagCloud();
+            document.getElementById('filterInfo').style.display = 'none';
+            loadLinksHistory(1);
         }
 
         async function applyFilter() {
             const container = document.getElementById('linksHistory');
+            const filterInfo = document.getElementById('filterInfo');
             
             if (filterTags.length === 0) {
+                filterInfo.style.display = 'none';
                 await loadLinksHistory(1);
                 return;
             }
+            
+            filterInfo.style.display = 'flex';
+            filterInfo.innerHTML = `<span>🔍 Фильтр по тегам: <strong>${filterTags.join(', ')}</strong></span>
+                                    <button onclick="clearFilter()" class="btn btn-sm btn-secondary">✕ Очистить</button>`;
             
             container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Фильтрация...</span></div>';
             
@@ -540,7 +548,6 @@
                 const data = await res.json();
                 
                 if (data.data && data.data.length > 0) {
-                    currentLinks = data.data;
                     renderFilteredLinks(data.data);
                     document.getElementById('pagination').innerHTML = '';
                 } else {
@@ -569,8 +576,7 @@
                 const url = `/api/links?page=${page}&limit=10`;
                 const res = await fetch(url);
                 const data = await res.json();
-                currentLinks = data.data || [];
-                renderLinks(currentLinks);
+                renderLinks(data.data || []);
                 renderPagination(data.pagination);
             } catch (e) {
                 container.innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>';
@@ -587,7 +593,6 @@
         }
 
         function renderLinkItem(link) {
-            const tags = link.tags ? link.tags.split(',').map(t => t.trim()) : [];
             return `
                 <div class="history-item" data-link-id="${link.id}">
                     <div class="history-item-header">
@@ -644,7 +649,6 @@
                 if (!tags.includes(tag)) {
                     tags.push(tag);
                     input.value = tags.join(', ');
-                    // Триггерим событие input для сохранения
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             }
@@ -674,7 +678,6 @@
                 if (res.ok) {
                     input.setAttribute('data-original-tags', tags);
                     alert('✅ Теги сохранены');
-                    await loadTagCloud();
                     await loadAllTags();
                     if (filterTags.length > 0) {
                         await applyFilter();
@@ -697,8 +700,11 @@
             try {
                 const res = await fetch(`/api/links/${linkId}`, { method: 'DELETE' });
                 if (res.ok) {
-                    await loadLinksHistory(currentPage);
-                    await loadTagCloud();
+                    if (filterTags.length > 0) {
+                        await applyFilter();
+                    } else {
+                        await loadLinksHistory(currentPage);
+                    }
                     await loadAllTags();
                 } else {
                     alert('Ошибка удаления');
@@ -795,9 +801,9 @@
             alert(data.message);
             filterTags = [];
             renderSelectedTags();
+            document.getElementById('filterInfo').style.display = 'none';
             await loadLinksHistory(1);
             await loadPlanInfo();
-            await loadTagCloud();
             await loadAllTags();
         }
 
@@ -863,7 +869,10 @@
             }
         })();
 
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            setupFilterAutocomplete();
+        });
     </script>
     <script src="/chat-widget.js?v=5" defer></script>
 </body>
