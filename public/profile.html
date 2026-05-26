@@ -369,7 +369,7 @@
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, linksPercent)}%;"></div></div>
                     <div class="info-row"><div class="info-label"><i class="fas fa-qrcode"></i> QR-коды в этом месяце:</div><div class="info-value">${data.limits.currentQR} из ${maxQR}</div></div>
                     <div class="limit-progress"><div class="limit-progress-fill" style="width: ${Math.min(100, qrPercent)}%;"></div></div>
-                    <div class="info-row" style="margin-top: var(--space-lg);"><div class="info-label"></div><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm"><i class="fas fa-exchange-alt"></i> Сменить тариф</a></div></div>
+                    <div class="info-row" style="margin-top: var(--space-lg);"><div class="info-value"><a href="/pricing" class="btn btn-primary btn-sm"><i class="fas fa-exchange-alt"></i> Сменить тариф</a></div></div>
                     ${apiHtml}
                 `;
             } catch(e) { document.getElementById('planInfo').innerHTML = '<div class="alert alert-error">Ошибка загрузки</div>'; }
