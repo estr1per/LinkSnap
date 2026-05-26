@@ -589,6 +589,17 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
+    const userId = req.session.userId;
+    
+    // Закрываем чат пользователя при выходе
+    if (userId) {
+        db.run('UPDATE support_chats SET is_closed = 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND is_closed = 0', 
+            [userId], 
+            (err) => {
+                if (err) console.error('Ошибка закрытия чата при выходе:', err);
+            });
+    }
+    
     req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({ error: 'Ошибка при выходе' });

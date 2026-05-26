@@ -487,9 +487,13 @@
         }
 
         async function logout() {
-            try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
-            window.location.href = '/';
-        }
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+    } catch(e) {
+        console.error('Ошибка выхода:', e);
+    }
+    window.location.href = '/';
+}
 
         function updatePlanNotice() {
             const notice = document.getElementById('planNotice');

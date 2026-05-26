@@ -338,7 +338,15 @@
             } catch(e) { window.location.href = '/login'; return false; }
         }
 
-        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
+        async function logout() {
+    try {
+        // Отправляем запрос на выход, сервер закроет чат
+        await fetch('/api/logout', { method: 'POST' });
+    } catch(e) {
+        console.error('Ошибка выхода:', e);
+    }
+    window.location.href = '/login';
+}
 
         async function loadUserInfo() {
             try {
