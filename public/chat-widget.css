@@ -37,27 +37,21 @@
     50% { transform: scale(1.1); }
 }
 
-.chat-window {
-    position: absolute;
-    bottom: 80px;
-    right: 0;
-    width: 380px;
-    max-width: calc(100vw - 40px);
-    height: 500px;
-    max-height: calc(100vh - 100px);
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
+/* Гарантированная непрозрачность */
+.chat-window,
+.chat-body,
+.chat-messages,
+.chat-input-area {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
 }
 
-/* Тёмная тема для чата */
-body.dark-theme .chat-window {
-    background: #1e293b;
-    border-color: #334155;
+body.dark-theme .chat-window,
+body.dark-theme .chat-body,
+body.dark-theme .chat-messages,
+body.dark-theme .chat-input-area {
+    background: #1e293b !important;
+    background-color: #1e293b !important;
 }
 
 .chat-window.open {
