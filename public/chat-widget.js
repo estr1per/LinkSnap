@@ -48,29 +48,46 @@
     document.head.appendChild(link);
 
     async function initChat() {
-        if (isInitialized) return;
-        isInitialized = true;
+    if (isInitialized) return;
+    isInitialized = true;
+    
+    console.log('[Chat] Инициализация...');
+    
+    try {
+        const res = await fetch('/api/support/chat');
         
-        try {
-            const res = await fetch('/api/support/chat');
-            if (!res.ok) {
-                showNotAuthorized();
-                return;
-            }
-            const data = await res.json();
-            if (data.success && data.chat) {
-                chatId = data.chat.id;
-                isClosed = data.chat.is_closed === 1;
-                showChatInterface();
-                await loadMessages();
-                startPolling();
-            } else {
-                showNewChat();
-            }
-        } catch(e) {
+        if (!res.ok) {
             showNotAuthorized();
+            return;
         }
+        
+        const data = await res.json();
+        console.log('[Chat] Чат:', data);
+        
+        if (data.success && data.chat) {
+            chatId = data.chat.id;
+            isClosed = data.chat.is_closed === 1;
+            
+            // Если чат был переоткрыт, показываем уведомление
+            if (data.reopened) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const systemMsg = document.createElement('div');
+                systemMsg.className = 'chat-message system';
+                systemMsg.innerHTML = '<div class="message-text">🟢 Чат открыт. Можете задать вопрос.</div>';
+                messagesContainer.appendChild(systemMsg);
+            }
+            
+            showChatInterface();
+            await loadMessages();
+            startPolling();
+        } else {
+            showNewChat();
+        }
+    } catch(e) {
+        console.error('[Chat] Ошибка инициализации:', e);
+        showNotAuthorized();
     }
+}
 
     function showNotAuthorized() {
         const messagesContainer = document.getElementById('chatMessages');
@@ -95,19 +112,21 @@
     }
 
     function updateChatInputState() {
-        const inputArea = document.getElementById('chatInputArea');
-        const statusEl = document.getElementById('chatStatus');
-        
-        if (isClosed) {
+    const inputArea = document.getElementById('chatInputArea');
+    const statusEl = document.getElementById('chatStatus');
+    
+    if (isClosed) {
+        if (statusEl) {
             statusEl.style.display = 'block';
             statusEl.className = 'chat-status closed';
-            statusEl.textContent = '✅ Чат закрыт';
-            inputArea.style.display = 'none';
-        } else {
-            statusEl.style.display = 'none';
-            inputArea.style.display = 'block';
+            statusEl.textContent = '🔒 Чат закрыт администратором';
         }
+        if (inputArea) inputArea.style.display = 'none';
+    } else {
+        if (statusEl) statusEl.style.display = 'none';
+        if (inputArea) inputArea.style.display = 'block';
     }
+}
 
     async function loadMessages() {
         if (!chatId) return;

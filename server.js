@@ -1542,18 +1542,36 @@ app.post('/api/v1/shorten', requireApiKey, (req, res) => {
     });
 });
 
-// ========== ЧАТ ПОДДЕРЖКИ ==========
+// Получение или создание чата (открываем закрытый, если пользователь вернулся)
 app.get('/api/support/chat', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
+    // Сначала ищем чат пользователя
     db.get('SELECT * FROM support_chats WHERE user_id = $1', [userId], (err, chat) => {
         if (err) {
             return res.status(500).json({ error: 'Ошибка сервера' });
         }
         
         if (chat) {
-            res.json({ success: true, chat, exists: true });
+            // Если чат есть, но закрыт - открываем его снова
+            if (chat.is_closed === 1) {
+                db.run('UPDATE support_chats SET is_closed = 0, updated_at = CURRENT_TIMESTAMP WHERE id = $1', 
+                    [chat.id], 
+                    (updateErr) => {
+                        if (updateErr) {
+                            return res.status(500).json({ error: 'Ошибка открытия чата' });
+                        }
+                        // Возвращаем обновлённый чат
+                        db.get('SELECT * FROM support_chats WHERE id = $1', [chat.id], (err, updatedChat) => {
+                            res.json({ success: true, chat: updatedChat, exists: true, reopened: true });
+                        });
+                    });
+            } else {
+                // Чат уже активен
+                res.json({ success: true, chat, exists: true, reopened: false });
+            }
         } else {
+            // Создаём новый чат
             db.run(
                 'INSERT INTO support_chats (user_id) VALUES ($1) RETURNING id',
                 [userId],
@@ -1563,7 +1581,7 @@ app.get('/api/support/chat', requireAuth, (req, res) => {
                     }
                     
                     db.get('SELECT * FROM support_chats WHERE id = $1', [result.lastID], (err, newChat) => {
-                        res.json({ success: true, chat: newChat, exists: false });
+                        res.json({ success: true, chat: newChat, exists: false, reopened: false });
                     });
                 }
             );
