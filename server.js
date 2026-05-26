@@ -927,9 +927,10 @@ app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
 });
 
 // Фильтрация ссылок по тегам
+// Фильтрация ссылок по тегам (поддерживает несколько тегов - ЛЮБОЙ из выбранных)
 app.get('/api/links/filter', requireAuth, (req, res) => {
     const userId = req.session.userId;
-    const { tags, page = 1, limit = 20 } = req.query;
+    const { tags, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
     if (!tags) {
@@ -942,14 +943,15 @@ app.get('/api/links/filter', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Укажите хотя бы один тег' });
     }
     
+    // ИСПРАВЛЕНО: Ищем ссылки, у которых есть ХОТЯ БЫ ОДИН из выбранных тегов
     const query = `
-        SELECT l.*, COUNT(DISTINCT t.id) as matched_tags
+        SELECT DISTINCT l.*, COUNT(DISTINCT t.id) as matched_tags
         FROM links l
-        JOIN link_tags lt ON l.id = lt.link_id
-        JOIN tags t ON lt.tag_id = t.id
-        WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
+        LEFT JOIN link_tags lt ON l.id = lt.link_id
+        LEFT JOIN tags t ON lt.tag_id = t.id
+        WHERE l.user_id = $1 
+        AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
         GROUP BY l.id
-        HAVING COUNT(DISTINCT t.id) = ${tagList.length}
         ORDER BY l.created_at DESC
         LIMIT $${tagList.length + 2} OFFSET $${tagList.length + 3}
     `;
@@ -957,21 +959,27 @@ app.get('/api/links/filter', requireAuth, (req, res) => {
     const params = [userId, ...tagList, parseInt(limit), offset];
     
     db.all(query, params, (err, links) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error('Ошибка фильтрации:', err);
+            return res.status(500).json({ error: err.message });
+        }
         
+        // Подсчёт общего количества (без пагинации)
         const countQuery = `
-            SELECT COUNT(*) as total FROM (
-                SELECT l.id
-                FROM links l
-                JOIN link_tags lt ON l.id = lt.link_id
-                JOIN tags t ON lt.tag_id = t.id
-                WHERE l.user_id = $1 AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
-                GROUP BY l.id
-                HAVING COUNT(DISTINCT t.id) = ${tagList.length}
-            )
+            SELECT COUNT(DISTINCT l.id) as total
+            FROM links l
+            LEFT JOIN link_tags lt ON l.id = lt.link_id
+            LEFT JOIN tags t ON lt.tag_id = t.id
+            WHERE l.user_id = $1 
+            AND t.name IN (${tagList.map((_, i) => `$${i + 2}`).join(',')})
         `;
         
         db.get(countQuery, [userId, ...tagList], (err, countResult) => {
+            if (err) {
+                console.error('Ошибка подсчёта:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            
             res.json({
                 data: links || [],
                 pagination: {

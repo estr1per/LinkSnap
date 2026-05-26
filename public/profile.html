@@ -415,20 +415,42 @@
         function clearFilter() { filterTags = []; renderSelectedTags(); document.getElementById('filterInfo').style.display = 'none'; loadLinksHistory(1); }
 
         async function applyFilter() {
-            const container = document.getElementById('linksHistory');
-            const filterInfo = document.getElementById('filterInfo');
-            if (filterTags.length === 0) { filterInfo.style.display = 'none'; await loadLinksHistory(1); return; }
-            filterInfo.style.display = 'flex';
-            filterInfo.innerHTML = `<span><i class="fas fa-filter"></i> Фильтр по тегам: <strong>${filterTags.join(', ')}</strong></span><button onclick="clearFilter()" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Очистить</button>`;
-            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Фильтрация...</span></div>';
-            try {
-                const tagsParam = filterTags.join(',');
-                const res = await fetch(`/api/links/filter?tags=${encodeURIComponent(tagsParam)}&page=1&limit=50`);
-                const data = await res.json();
-                if (data.data && data.data.length > 0) { renderFilteredLinks(data.data); document.getElementById('pagination').innerHTML = ''; }
-                else { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет ссылок с выбранными тегами</div>'; }
-            } catch(e) { container.innerHTML = '<div class="alert alert-error">Ошибка фильтрации</div>'; }
+    const container = document.getElementById('linksHistory');
+    const filterInfo = document.getElementById('filterInfo');
+    
+    if (filterTags.length === 0) {
+        filterInfo.style.display = 'none';
+        await loadLinksHistory(1);
+        return;
+    }
+    
+    filterInfo.style.display = 'flex';
+    filterInfo.innerHTML = `<span><i class="fas fa-filter"></i> Фильтр по тегам: <strong>${filterTags.join(', ')}</strong> (показаны ссылки с любым из этих тегов)</span><button onclick="clearFilter()" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Очистить</button>`;
+    
+    container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Фильтрация...</span></div>';
+    
+    try {
+        const tagsParam = filterTags.join(',');
+        const currentPage = 1;
+        const res = await fetch(`/api/links/filter?tags=${encodeURIComponent(tagsParam)}&page=${currentPage}&limit=50`);
+        const data = await res.json();
+        
+        console.log('Фильтрация результатов:', data);
+        
+        if (data.data && data.data.length > 0) {
+            renderFilteredLinks(data.data);
+            // Показываем информацию о количестве найденных ссылок
+            const totalCount = data.pagination?.total || data.data.length;
+            filterInfo.innerHTML = `<span><i class="fas fa-filter"></i> Фильтр по тегам: <strong>${filterTags.join(', ')}</strong> — найдено ссылок: ${totalCount}</span><button onclick="clearFilter()" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Очистить</button>`;
+            document.getElementById('pagination').innerHTML = '';
+        } else {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет ссылок с выбранными тегами</div>';
         }
+    } catch(e) {
+        console.error('Ошибка фильтрации:', e);
+        container.innerHTML = '<div class="alert alert-error">Ошибка фильтрации</div>';
+    }
+}
 
         function renderFilteredLinks(links) { document.getElementById('linksHistory').innerHTML = links.map(link => renderLinkItem(link)).join(''); }
 
