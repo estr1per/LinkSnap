@@ -1,4 +1,4 @@
-// Виджет чата поддержки LinkSnap - РАБОЧАЯ ВЕРСИЯ
+// Виджет чата поддержки LinkSnap - УПРОЩЁННАЯ ВЕРСИЯ
 (function() {
     let chatId = null;
     let isClosed = false;
@@ -13,7 +13,7 @@
         <div class="chat-window" id="chatWindow">
             <div class="chat-header">
                 <h3>💬 Поддержка</h3>
-                <button class="chat-close" onclick="window.toggleChat()">×</button>
+                <button class="chat-close" id="chatCloseBtn">×</button>
             </div>
             <div id="chatStatus" class="chat-status" style="display: none;"></div>
             <div class="chat-body" id="chatBody">
@@ -30,13 +30,12 @@
                         id="chatInput" 
                         placeholder="Введите сообщение..."
                         rows="1"
-                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.sendMessage();}"
                     ></textarea>
-                    <button class="chat-send" id="chatSend" onclick="window.sendMessage()">📤</button>
+                    <button class="chat-send" id="chatSendBtn">📤</button>
                 </div>
             </div>
         </div>
-        <button class="chat-button" id="chatButton" onclick="window.toggleChat()" title="Чат поддержки">
+        <button class="chat-button" id="chatOpenBtn" title="Чат поддержки">
             💬
         </button>
     `;
@@ -46,8 +45,37 @@
     // Подключаем стили
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/chat-widget.css?v=6';
+    link.href = '/chat-widget.css?v=7';
     document.head.appendChild(link);
+
+    // Получаем элементы
+    const chatWindow = document.getElementById('chatWindow');
+    const openBtn = document.getElementById('chatOpenBtn');
+    const closeBtn = document.getElementById('chatCloseBtn');
+
+    // Открыть чат
+    function openChat() {
+        if (chatWindow) {
+            chatWindow.classList.add('open');
+            if (openBtn) openBtn.style.display = 'none';
+        }
+        setTimeout(() => {
+            const input = document.getElementById('chatInput');
+            if (input && !isClosed) input.focus();
+        }, 100);
+    }
+
+    // Закрыть чат
+    function closeChat() {
+        if (chatWindow) {
+            chatWindow.classList.remove('open');
+            if (openBtn) openBtn.style.display = 'flex';
+        }
+    }
+
+    // Обработчики
+    if (openBtn) openBtn.onclick = openChat;
+    if (closeBtn) closeBtn.onclick = closeChat;
 
     async function initChat() {
         if (isInitialized) return;
@@ -203,7 +231,7 @@
         
         if (!message || !chatId || isClosed) return;
 
-        const sendBtn = document.getElementById('chatSend');
+        const sendBtn = document.getElementById('chatSendBtn');
         if (sendBtn) sendBtn.disabled = true;
         if (input) input.value = '';
 
@@ -243,26 +271,16 @@
         console.log('[Chat] Polling запущен (5с)');
     }
 
-    window.toggleChat = function() {
-        const chatWindow = document.getElementById('chatWindow');
-        const chatButton = document.getElementById('chatButton');
-        
-        if (chatWindow) {
-            if (chatWindow.classList.contains('open')) {
-                chatWindow.classList.remove('open');
-                if (chatButton) chatButton.style.display = 'flex';
-            } else {
-                chatWindow.classList.add('open');
-                if (chatButton) chatButton.style.display = 'none';
-                setTimeout(() => {
-                    const input = document.getElementById('chatInput');
-                    if (input && input.offsetParent !== null && !isClosed) {
-                        input.focus();
-                    }
-                }, 100);
+    // Обработка Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            const input = document.getElementById('chatInput');
+            if (input && document.activeElement === input) {
+                e.preventDefault();
+                sendMessage();
             }
         }
-    };
+    });
 
     window.sendMessage = sendMessage;
 

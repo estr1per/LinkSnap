@@ -1,4 +1,4 @@
-/* Виджет чата поддержки LinkSnap - исправленная версия */
+/* Виджет чата поддержки LinkSnap - ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ */
 
 .chat-widget-container {
     position: fixed;
@@ -28,34 +28,25 @@
     box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
 }
 
-.chat-button.has-notification {
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* Гарантированная непрозрачность */
-.chat-window,
-.chat-body,
-.chat-messages,
-.chat-input-area {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-}
-
-body.dark-theme .chat-window,
-body.dark-theme .chat-body,
-body.dark-theme .chat-messages,
-body.dark-theme .chat-input-area {
-    background: #1e293b !important;
-    background-color: #1e293b !important;
+.chat-window {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 380px;
+    max-width: calc(100vw - 40px);
+    height: 500px;
+    max-height: calc(100vh - 100px);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
 }
 
 .chat-window.open {
-    display: flex;
+    display: flex !important;
 }
 
 .chat-header {
@@ -65,6 +56,7 @@ body.dark-theme .chat-input-area {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .chat-header h3 {
@@ -73,6 +65,7 @@ body.dark-theme .chat-input-area {
     display: flex;
     align-items: center;
     gap: 8px;
+    color: white;
 }
 
 .chat-close {
@@ -87,6 +80,7 @@ body.dark-theme .chat-input-area {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s;
 }
 
 .chat-close:hover {
@@ -98,10 +92,6 @@ body.dark-theme .chat-input-area {
     overflow-y: auto;
     padding: 16px;
     background: #f8fafc;
-}
-
-body.dark-theme .chat-body {
-    background: #0f172a;
 }
 
 .chat-messages {
@@ -116,6 +106,7 @@ body.dark-theme .chat-body {
     border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.4;
+    word-wrap: break-word;
 }
 
 .chat-message.user {
@@ -133,12 +124,6 @@ body.dark-theme .chat-body {
     border-bottom-left-radius: 4px;
 }
 
-body.dark-theme .chat-message.support {
-    background: #334155;
-    color: #f1f5f9;
-    border-color: #475569;
-}
-
 .chat-message.system {
     align-self: center;
     background: #f1f5f9;
@@ -147,15 +132,6 @@ body.dark-theme .chat-message.support {
     text-align: center;
     padding: 8px 16px;
     border-radius: 20px;
-}
-
-body.dark-theme .chat-message.system {
-    background: #1e293b;
-    color: #94a3b8;
-}
-
-.message-text {
-    word-wrap: break-word;
 }
 
 .message-time {
@@ -168,11 +144,7 @@ body.dark-theme .chat-message.system {
     padding: 16px;
     background: #ffffff;
     border-top: 1px solid #e2e8f0;
-}
-
-body.dark-theme .chat-input-area {
-    background: #1e293b;
-    border-top-color: #334155;
+    flex-shrink: 0;
 }
 
 .chat-input-wrapper {
@@ -191,12 +163,6 @@ body.dark-theme .chat-input-area {
     background: #ffffff;
     color: #1e293b;
     max-height: 100px;
-}
-
-body.dark-theme .chat-input {
-    background: #0f172a;
-    border-color: #475569;
-    color: #f1f5f9;
 }
 
 .chat-input:focus {
@@ -227,69 +193,6 @@ body.dark-theme .chat-input {
 .chat-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
-}
-
-/* Форма создания нового обращения */
-.chat-new-ticket {
-    padding: 16px;
-}
-
-.chat-new-ticket h4 {
-    margin: 0 0 16px 0;
-    font-size: 1rem;
-    color: #1e293b;
-}
-
-body.dark-theme .chat-new-ticket h4 {
-    color: #f1f5f9;
-}
-
-.chat-form-group {
-    margin-bottom: 12px;
-}
-
-.chat-form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-body.dark-theme .chat-form-group label {
-    color: #94a3b8;
-}
-
-.chat-form-group input,
-.chat-form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    background: #ffffff;
-    color: #1e293b;
-    box-sizing: border-box;
-}
-
-body.dark-theme .chat-form-group input,
-body.dark-theme .chat-form-group textarea {
-    background: #0f172a;
-    border-color: #475569;
-    color: #f1f5f9;
-}
-
-.chat-form-group textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-.chat-form-group input:focus,
-.chat-form-group textarea:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 .chat-status {
@@ -300,15 +203,47 @@ body.dark-theme .chat-form-group textarea {
     background: #f8fafc;
 }
 
+.chat-status.closed {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Тёмная тема */
+body.dark-theme .chat-window {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-theme .chat-body {
+    background: #0f172a;
+}
+
+body.dark-theme .chat-message.support {
+    background: #334155;
+    color: #f1f5f9;
+    border-color: #475569;
+}
+
+body.dark-theme .chat-message.system {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+body.dark-theme .chat-input-area {
+    background: #1e293b;
+    border-top-color: #334155;
+}
+
+body.dark-theme .chat-input {
+    background: #0f172a;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
 body.dark-theme .chat-status {
     background: #1e293b;
     border-bottom-color: #334155;
     color: #cbd5e1;
-}
-
-.chat-status.closed { 
-    background: #fee2e2; 
-    color: #dc2626;
 }
 
 body.dark-theme .chat-status.closed {
@@ -316,18 +251,11 @@ body.dark-theme .chat-status.closed {
     color: #f87171;
 }
 
-/* Адаптивность для мобильных */
+/* Мобильная адаптация */
 @media (max-width: 480px) {
     .chat-window {
-        width: calc(100vw - 20px);
-        height: calc(100vh - 100px);
-        bottom: 70px;
+        width: calc(100vw - 40px);
         right: -10px;
-    }
-    
-    .chat-button {
-        width: 50px;
-        height: 50px;
-        font-size: 1.3rem;
+        bottom: 70px;
     }
 }
