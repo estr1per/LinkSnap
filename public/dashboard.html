@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/dark-theme.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <style>
         .dashboard-grid {
             display: grid;
@@ -53,7 +52,7 @@
         }
         .charts-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: var(--space-xl);
             margin-bottom: var(--space-2xl);
         }
@@ -76,17 +75,18 @@
             max-height: 280px;
             width: 100% !important;
         }
-        .recent-links {
+        .recent-section {
             background: var(--bg-primary);
             border-radius: var(--radius-xl);
             padding: var(--space-xl);
             border: 1px solid var(--bg-tertiary);
+            margin-bottom: var(--space-xl);
         }
-        .recent-links h3 {
+        .recent-section h3 {
             margin-bottom: var(--space-lg);
             color: var(--text-primary);
         }
-        .recent-links h3 i {
+        .recent-section h3 i {
             margin-right: var(--space-sm);
             color: var(--primary);
         }
@@ -120,7 +120,7 @@
             font-size: var(--text-xs);
             margin-top: 4px;
         }
-        .recent-clicks {
+        .recent-stats {
             background: var(--primary-bg);
             padding: 4px 10px;
             border-radius: var(--radius-full);
@@ -140,11 +140,34 @@
             color: var(--text-secondary);
             font-size: var(--text-sm);
         }
+        .qr-item {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            margin-bottom: var(--space-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .qr-url {
+            flex: 1;
+            font-size: var(--text-sm);
+            word-break: break-all;
+            margin-right: var(--space-md);
+        }
+        .qr-stats {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
         @media (max-width: 768px) {
             .chart-container { padding: var(--space-lg); }
-            .recent-links { padding: var(--space-lg); }
+            .recent-section { padding: var(--space-lg); }
             .recent-item { flex-wrap: wrap; gap: var(--space-sm); }
-            .recent-clicks { margin-left: auto; }
+            .recent-stats { margin-left: auto; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .qr-item { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+            .qr-stats { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -182,6 +205,7 @@
             <p><i class="fas fa-chart-simple"></i> Статистика ваших ссылок и QR-кодов</p>
         </div>
 
+        <!-- Статистика ссылок -->
         <div class="dashboard-grid" id="statsGrid">
             <div class="dashboard-card">
                 <i class="fas fa-link"></i>
@@ -199,20 +223,50 @@
                 <div class="label">QR-кодов</div>
             </div>
             <div class="dashboard-card">
-                <i class="fas fa-trophy"></i>
-                <div class="value" id="topClicks">0</div>
-                <div class="label">Макс. кликов</div>
+                <i class="fas fa-eye"></i>
+                <div class="value" id="totalQRScans">0</div>
+                <div class="label">Сканирований QR</div>
             </div>
         </div>
 
+        <!-- Графики -->
         <div class="charts-grid">
             <div class="chart-container">
-                <h3><i class="fas fa-mobile-alt"></i> Устройства</h3>
+                <h3><i class="fas fa-chart-line"></i> Активность по часам</h3>
+                <canvas id="hourlyChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3><i class="fas fa-globe"></i> География переходов</h3>
+                <canvas id="geoChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3><i class="fas fa-mobile-alt"></i> Устройства (ссылки)</h3>
                 <canvas id="devicesChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3><i class="fas fa-mobile-alt"></i> Устройства (QR)</h3>
+                <canvas id="qrDevicesChart"></canvas>
             </div>
         </div>
 
-        <div class="recent-links">
+        <!-- Топ ссылок -->
+        <div class="recent-section">
+            <h3><i class="fas fa-trophy"></i> Топ 10 ссылок по кликам</h3>
+            <div id="topLinksList">
+                <div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>
+            </div>
+        </div>
+
+        <!-- Топ QR-кодов -->
+        <div class="recent-section">
+            <h3><i class="fas fa-qrcode"></i> Топ 10 QR-кодов по сканированиям</h3>
+            <div id="topQrList">
+                <div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>
+            </div>
+        </div>
+
+        <!-- Последние ссылки -->
+        <div class="recent-section">
             <h3><i class="fas fa-clock"></i> Последние ссылки</h3>
             <div id="recentLinksList">
                 <div class="loading"><div class="loading-spinner"></div><span>Загрузка...</span></div>
@@ -221,7 +275,10 @@
     </div>
 
     <script>
+        let hourlyChart = null;
+        let geoChart = null;
         let devicesChart = null;
+        let qrDevicesChart = null;
 
         async function checkAuth() {
             try {
@@ -236,111 +293,182 @@
                 else if (hour < 18) greeting = 'Добрый день';
                 else greeting = 'Добрый вечер';
                 document.getElementById('greetingText').innerHTML = `<i class="fas fa-hand-peace"></i> ${greeting}, ${user.username}!`;
-                await loadDashboardData();
+                await loadAllData();
                 return true;
             } catch(e) { window.location.href = '/login'; return false; }
         }
 
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
 
-        async function loadDashboardData() {
+        async function loadAllData() {
+            await loadLinksStats();
+            await loadQRStats();
+            await loadCharts();
+            await loadTopLinks();
+            await loadTopQr();
+            await loadRecentLinks();
+        }
+
+        async function loadLinksStats() {
             try {
-                const linksRes = await fetch('/api/links?limit=1000');
-                const linksData = await linksRes.json();
-                const links = Array.isArray(linksData) ? linksData : (linksData.data || []);
-                const analyticsRes = await fetch('/api/analytics/summary');
-                const analytics = await analyticsRes.json();
-                const statsRes = await fetch('/api/analytics/dashboard-stats');
-                const statsData = await statsRes.json();
-                const totalLinks = links?.length || 0;
-                const totalClicks = links?.reduce((sum, l) => sum + (l.clicks || 0), 0) || 0;
-                const maxClicks = Math.max(...(links?.map(l => l.clicks || 0) || [0]));
-                document.getElementById('totalLinks').textContent = totalLinks;
-                document.getElementById('totalClicks').textContent = totalClicks;
-                document.getElementById('topClicks').textContent = maxClicks;
-                const qrRes = await fetch('/api/qrcodes');
-                const qrcodes = await qrRes.json();
-                document.getElementById('totalQRCodes').textContent = qrcodes?.length || 0;
-                const recent = (links || []).slice(0, 10);
-                renderRecentLinks(recent);
-                renderCharts(statsData.devices || []);
-            } catch(e) { console.error('Ошибка загрузки:', e); }
+                const summary = await fetch('/api/analytics/summary').then(r => r.json());
+                document.getElementById('totalLinks').textContent = summary.overallStats?.total_links || 0;
+                document.getElementById('totalClicks').textContent = summary.overallStats?.total_clicks || 0;
+            } catch(e) { console.error('Ошибка загрузки статистики ссылок:', e); }
         }
 
-        function renderRecentLinks(links) {
-            const container = document.getElementById('recentLinksList');
-            if (!links || !links.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет созданных ссылок</div>'; return; }
-            container.innerHTML = links.map(link => `
-                <div class="recent-item">
-                    <div class="recent-url">
-                        <a href="/${escapeHtml(link.short_code)}" target="_blank"><i class="fas fa-external-link-alt"></i> /${escapeHtml(link.short_code)}</a>
-                        <small>${escapeHtml(link.original_url?.substring(0, 50) || '')}${link.original_url?.length > 50 ? '...' : ''}</small>
-                    </div>
-                    <div class="recent-clicks"><i class="fas fa-mouse-pointer"></i> ${link.clicks || 0}</div>
-                </div>
-            `).join('');
+        async function loadQRStats() {
+            try {
+                const stats = await fetch('/api/qrcodes/stats').then(r => r.json());
+                document.getElementById('totalQRCodes').textContent = stats.total_qrcodes || 0;
+                document.getElementById('totalQRScans').textContent = stats.total_scans || 0;
+            } catch(e) { console.error('Ошибка загрузки статистики QR:', e); }
         }
 
-        function renderCharts(deviceStats) {
-            const ctxDevices = document.getElementById('devicesChart').getContext('2d');
-            if (devicesChart) devicesChart.destroy();
-            
-            const deviceLabels = [];
-            const deviceData = [];
-            const backgroundColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#6b7280'];
-            
-            if (deviceStats && deviceStats.length > 0) {
-                deviceStats.forEach((stat) => {
-                    let label = 'Другие';
-                    let icon = '❓';
-                    if (stat.device_type === 'desktop') { label = 'Десктоп'; icon = '🖥️'; }
-                    else if (stat.device_type === 'mobile') { label = 'Мобильные'; icon = '📱'; }
-                    else if (stat.device_type === 'tablet') { label = 'Планшеты'; icon = '📟'; }
-                    else if (stat.device_type === 'bot') { label = 'Боты'; icon = '🤖'; }
-                    else { label = stat.device_type || 'Неизвестно'; icon = '❓'; }
-                    
-                    deviceLabels.push(`${icon} ${label}`);
-                    deviceData.push(stat.count);
+        async function loadCharts() {
+            try {
+                // Часы
+                const hourly = await fetch('/api/analytics/hourly').then(r => r.json());
+                if (hourlyChart) hourlyChart.destroy();
+                hourlyChart = new Chart(document.getElementById('hourlyChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
+                        datasets: [{
+                            label: 'Клики',
+                            data: hourly,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
                 });
-            } else {
-                deviceLabels.push('📭 Нет данных');
-                deviceData.push(1);
-            }
-            
-            devicesChart = new Chart(ctxDevices, {
-                type: 'doughnut',
-                data: {
-                    labels: deviceLabels,
-                    datasets: [{
-                        data: deviceData,
-                        backgroundColor: backgroundColors.slice(0, deviceLabels.length),
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { 
-                            position: 'bottom',
-                            labels: { 
-                                color: getComputedStyle(document.body).getPropertyValue('--text-primary') || '#333',
-                                font: { size: 12 }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                                    return `${context.label}: ${context.raw} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
+
+                // География
+                const geo = await fetch('/api/analytics/geo').then(r => r.json());
+                if (geoChart) geoChart.destroy();
+                geoChart = new Chart(document.getElementById('geoChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: geo.map(g => g.country),
+                        datasets: [{
+                            label: 'Переходы',
+                            data: geo.map(g => g.count),
+                            backgroundColor: '#10b981',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y' }
+                });
+
+                // Устройства (ссылки)
+                const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
+                const deviceLabels = [];
+                const deviceData = [];
+                const deviceColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
+                if (devices.devices && devices.devices.length > 0) {
+                    devices.devices.forEach(d => {
+                        let label = d.device_type === 'desktop' ? '💻 Десктоп' : d.device_type === 'mobile' ? '📱 Мобильные' : d.device_type === 'tablet' ? '📟 Планшеты' : d.device_type === 'bot' ? '🤖 Боты' : d.device_type;
+                        deviceLabels.push(label);
+                        deviceData.push(d.count);
+                    });
+                } else {
+                    deviceLabels.push('Нет данных');
+                    deviceData.push(1);
                 }
-            });
+                if (devicesChart) devicesChart.destroy();
+                devicesChart = new Chart(document.getElementById('devicesChart'), {
+                    type: 'doughnut',
+                    data: { labels: deviceLabels, datasets: [{ data: deviceData, backgroundColor: deviceColors, borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+                });
+
+                // Устройства (QR)
+                const qrDevices = await fetch('/api/qrcodes/devices').then(r => r.json());
+                const qrDeviceLabels = [];
+                const qrDeviceData = [];
+                if (qrDevices && qrDevices.length > 0) {
+                    qrDevices.forEach(d => {
+                        let label = d.device_type === 'desktop' ? '💻 Десктоп' : d.device_type === 'mobile' ? '📱 Мобильные' : d.device_type === 'tablet' ? '📟 Планшеты' : d.device_type;
+                        qrDeviceLabels.push(label);
+                        qrDeviceData.push(d.count);
+                    });
+                } else {
+                    qrDeviceLabels.push('Нет данных');
+                    qrDeviceData.push(1);
+                }
+                if (qrDevicesChart) qrDevicesChart.destroy();
+                qrDevicesChart = new Chart(document.getElementById('qrDevicesChart'), {
+                    type: 'doughnut',
+                    data: { labels: qrDeviceLabels, datasets: [{ data: qrDeviceData, backgroundColor: deviceColors, borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+                });
+
+            } catch(e) { console.error('Ошибка загрузки графиков:', e); }
+        }
+
+        async function loadTopLinks() {
+            try {
+                const summary = await fetch('/api/analytics/summary').then(r => r.json());
+                const container = document.getElementById('topLinksList');
+                if (!summary.topLinks || summary.topLinks.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет ссылок</div>';
+                    return;
+                }
+                container.innerHTML = summary.topLinks.map(link => `
+                    <div class="recent-item">
+                        <div class="recent-url">
+                            <a href="/${escapeHtml(link.short_code)}" target="_blank"><i class="fas fa-external-link-alt"></i> /${escapeHtml(link.short_code)}</a>
+                            <small>${escapeHtml(link.original_url?.substring(0, 60) || '')}${link.original_url?.length > 60 ? '...' : ''}</small>
+                        </div>
+                        <div class="recent-stats"><i class="fas fa-mouse-pointer"></i> ${link.clicks || 0} кликов</div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error('Ошибка загрузки топ ссылок:', e); }
+        }
+
+        async function loadTopQr() {
+            try {
+                const qrcodes = await fetch('/api/qrcodes/top?limit=10').then(r => r.json());
+                const container = document.getElementById('topQrList');
+                if (!qrcodes || qrcodes.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет QR-кодов</div>';
+                    return;
+                }
+                container.innerHTML = qrcodes.map(qr => `
+                    <div class="qr-item">
+                        <div class="qr-url">
+                            <i class="fas fa-qrcode"></i> ${escapeHtml(qr.original_url?.substring(0, 60) || '')}${qr.original_url?.length > 60 ? '...' : ''}
+                        </div>
+                        <div class="qr-stats">
+                            <span class="recent-stats"><i class="fas fa-eye"></i> ${qr.scans || 0} сканирований</span>
+                            ${qr.last_scanned ? `<span class="recent-stats"><i class="fas fa-clock"></i> ${new Date(qr.last_scanned).toLocaleDateString()}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error('Ошибка загрузки топ QR:', e); }
+        }
+
+        async function loadRecentLinks() {
+            try {
+                const res = await fetch('/api/links?limit=10');
+                const data = await res.json();
+                const container = document.getElementById('recentLinksList');
+                const links = data.data || [];
+                if (!links.length) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i> Нет созданных ссылок</div>';
+                    return;
+                }
+                container.innerHTML = links.map(link => `
+                    <div class="recent-item">
+                        <div class="recent-url">
+                            <a href="/${escapeHtml(link.short_code)}" target="_blank"><i class="fas fa-external-link-alt"></i> /${escapeHtml(link.short_code)}</a>
+                            <small>${escapeHtml(link.original_url?.substring(0, 60) || '')}${link.original_url?.length > 60 ? '...' : ''}</small>
+                        </div>
+                        <div class="recent-stats"><i class="fas fa-calendar"></i> ${new Date(link.created_at).toLocaleDateString()}</div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error('Ошибка загрузки последних ссылок:', e); }
         }
 
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
@@ -349,7 +477,13 @@
             const themeToggle = document.getElementById('themeToggle');
             const savedTheme = localStorage.getItem('linksnap-theme');
             if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); if (themeToggle) themeToggle.checked = true; }
-            if (themeToggle) { themeToggle.addEventListener('change', function() { if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); } else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); } setTimeout(() => loadDashboardData(), 50); }); }
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function() {
+                    if (this.checked) { document.body.classList.add('dark-theme'); localStorage.setItem('linksnap-theme', 'dark'); }
+                    else { document.body.classList.remove('dark-theme'); localStorage.setItem('linksnap-theme', 'light'); }
+                    setTimeout(() => loadAllData(), 50);
+                });
+            }
         })();
 
         document.addEventListener('DOMContentLoaded', checkAuth);

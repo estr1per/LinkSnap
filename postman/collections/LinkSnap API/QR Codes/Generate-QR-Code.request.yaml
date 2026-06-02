@@ -1,0 +1,13 @@
+$kind: http-request
+name: Generate QR Code
+method: GET
+url: '{{baseUrl}}/api/qrcode'
+order: 1000
+queryParams:
+  - key: url
+    value: 'https://example.com'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });

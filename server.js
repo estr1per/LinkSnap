@@ -17,6 +17,7 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const compression = require('compression');
 const crypto = require('crypto');
+const axios = require('axios');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -41,7 +42,7 @@ app.use(helmet({
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://ip-api.com"],
         },
     },
 }));
@@ -268,6 +269,29 @@ function checkUserLimits(userId, type, callback) {
     });
 }
 
+// ========== ФУНКЦИЯ ГЕОЛОКАЦИИ ==========
+async function getGeoInfo(ip) {
+    // Пропускаем localhost и внутренние IP
+    if (ip === '::1' || ip === '127.0.0.1' || ip === 'localhost' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+        return { country: 'Local', city: 'Local', countryCode: 'LOCAL' };
+    }
+    
+    try {
+        const response = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,city,countryCode`, { timeout: 3000 });
+        if (response.data.status === 'success') {
+            return {
+                country: response.data.country || 'Unknown',
+                city: response.data.city || 'Unknown',
+                countryCode: response.data.countryCode || 'UN'
+            };
+        }
+        return { country: 'Unknown', city: 'Unknown', countryCode: 'UN' };
+    } catch(e) {
+        console.error('Ошибка геолокации:', e.message);
+        return { country: 'Unknown', city: 'Unknown', countryCode: 'UN' };
+    }
+}
+
 // ========== СОЗДАНИЕ ТАБЛИЦ ==========
 const createTables = async () => {
     const tables = [
@@ -302,6 +326,8 @@ const createTables = async () => {
             bg_color TEXT DEFAULT '#ffffff',
             size INTEGER DEFAULT 200,
             margin INTEGER DEFAULT 1,
+            scans INTEGER DEFAULT 0,
+            last_scanned TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
         `CREATE TABLE IF NOT EXISTS link_clicks (
@@ -313,7 +339,19 @@ const createTables = async () => {
             referrer TEXT,
             device_type TEXT,
             country TEXT,
-            city TEXT
+            city TEXT,
+            country_code TEXT
+        )`,
+        `CREATE TABLE IF NOT EXISTS qrcode_scans (
+            id SERIAL PRIMARY KEY,
+            qrcode_id INTEGER REFERENCES qrcodes(id) ON DELETE CASCADE,
+            scan_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address TEXT,
+            user_agent TEXT,
+            device_type TEXT,
+            country TEXT,
+            city TEXT,
+            country_code TEXT
         )`,
         `CREATE TABLE IF NOT EXISTS subscriptions (
             id SERIAL PRIMARY KEY,
@@ -375,6 +413,12 @@ const createTables = async () => {
         )`
     ];
     
+    // Добавляем поле scans в qrcodes если его нет
+    try {
+        await pool.query(`ALTER TABLE qrcodes ADD COLUMN IF NOT EXISTS scans INTEGER DEFAULT 0`);
+        await pool.query(`ALTER TABLE qrcodes ADD COLUMN IF NOT EXISTS last_scanned TIMESTAMP`);
+    } catch(e) {}
+    
     for (const sql of tables) {
         await new Promise((resolve, reject) => {
             db.run(sql, [], (err) => {
@@ -394,7 +438,8 @@ const createIndexes = async () => {
         `CREATE INDEX IF NOT EXISTS idx_clicks_link_id ON link_clicks(link_id)`,
         `CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_qrcodes_user_id ON qrcodes(user_id)`,
-        `CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire)`
+        `CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire)`,
+        `CREATE INDEX IF NOT EXISTS idx_qrcode_scans_qrcode_id ON qrcode_scans(qrcode_id)`,
     ];
     
     for (const sql of indexes) {
@@ -486,7 +531,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
 app.get('/profile', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
-app.get('/analytics', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'analytics.html')));
+app.get('/analytics', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 app.get('/batch', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'batch.html')));
 app.get('/pricing', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'pricing.html')));
 app.get('/converter', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'converter.html')));
@@ -591,7 +636,6 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/logout', (req, res) => {
     const userId = req.session.userId;
     
-    // Закрываем чат пользователя при выходе
     if (userId) {
         db.run('UPDATE support_chats SET is_closed = 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND is_closed = 0', 
             [userId], 
@@ -623,7 +667,7 @@ app.get('/api/user', (req, res) => {
         });
 });
 
-// ========== API СОКРАЩЕНИЕ ССЫЛОК (исправленная версия) ==========
+// ========== API СОКРАЩЕНИЕ ССЫЛОК ==========
 app.post('/api/shorten', requireAuth, async (req, res) => {
     try {
         const { originalUrl, customAlias, title, tags } = req.body;
@@ -648,7 +692,6 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Некорректный URL' });
         }
         
-        // Обработка кастомного алиаса
         let finalShortCode = null;
         let isCustomAlias = false;
         
@@ -667,7 +710,7 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
             const reserved = ['api', 'login', 'register', 'dashboard', 'admin', 'profile', 
                             'analytics', 'batch', 'pricing', 'converter', 'image-editor', 
                             'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css',
-                            'manifest.json', 'sw.js', 'favicon.ico', 'icons'];
+                            'manifest.json', 'sw.js', 'favicon.ico', 'icons', 'qr'];
             if (reserved.includes(alias)) {
                 return res.status(400).json({ error: 'Этот алиас зарезервирован системой' });
             }
@@ -761,6 +804,64 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
     }
 });
 
+// ========== РЕДИРЕКТ ДЛЯ ССЫЛОК (С ГЕОЛОКАЦИЕЙ) ==========
+app.get('/:shortCode', async (req, res) => {
+    const { shortCode } = req.params;
+    const excluded = ['api', 'login', 'register', 'profile', 'analytics', 'batch', 
+                     'pricing', 'converter', 'image-editor', 'dashboard', 'favicon.ico',
+                     'admin', 'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css',
+                     'manifest.json', 'sw.js', 'icons', 'qr'];
+    
+    if (excluded.includes(shortCode) || shortCode.includes('.')) {
+        return res.status(404).send('Страница не найдена');
+    }
+    
+    db.get('SELECT id, original_url FROM links WHERE short_code = $1 AND is_active = 1', [shortCode], async (err, link) => {
+        if (err || !link) return res.redirect('/?error=link_not_found');
+        
+        const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        const userAgent = req.headers['user-agent'] || '';
+        let deviceType = 'desktop';
+        if (/mobile/i.test(userAgent)) deviceType = 'mobile';
+        else if (/tablet/i.test(userAgent)) deviceType = 'tablet';
+        else if (/bot|crawler|spider/i.test(userAgent)) deviceType = 'bot';
+        const referrer = req.headers['referer'] || req.headers['referrer'] || '';
+        
+        // Получаем геолокацию
+        const geo = await getGeoInfo(ip);
+        
+        db.run(`INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, device_type, country, city, country_code) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [link.id, ip, userAgent.substring(0, 500), referrer.substring(0, 500), deviceType, geo.country, geo.city, geo.countryCode]);
+        db.run('UPDATE links SET clicks = clicks + 1, last_clicked = CURRENT_TIMESTAMP WHERE id = $1', [link.id]);
+        res.redirect(link.original_url);
+    });
+});
+
+// ========== РЕДИРЕКТ ДЛЯ QR-КОДОВ ==========
+app.get('/qr/:id', async (req, res) => {
+    const qrId = req.params.id;
+    
+    db.get('SELECT id, original_url FROM qrcodes WHERE id = $1', [qrId], async (err, qrcode) => {
+        if (err || !qrcode) return res.status(404).send('QR-код не найден');
+        
+        const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        const userAgent = req.headers['user-agent'] || '';
+        let deviceType = 'desktop';
+        if (/mobile/i.test(userAgent)) deviceType = 'mobile';
+        else if (/tablet/i.test(userAgent)) deviceType = 'tablet';
+        
+        const geo = await getGeoInfo(ip);
+        
+        db.run(`INSERT INTO qrcode_scans (qrcode_id, ip_address, user_agent, device_type, country, city, country_code) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [qrId, ip, userAgent.substring(0, 500), deviceType, geo.country, geo.city, geo.countryCode]);
+        db.run('UPDATE qrcodes SET scans = scans + 1, last_scanned = CURRENT_TIMESTAMP WHERE id = $1', [qrId]);
+        
+        res.redirect(qrcode.original_url);
+    });
+});
+
 // ========== API QR-КОДЫ ==========
 app.get('/api/qrcode', requireAuth, async (req, res) => {
     try {
@@ -796,6 +897,26 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
             
             try {
+                // Создаём QR-код, который ведёт на трекинг-ссылку
+                const host = req.get('host') || `localhost:${port}`;
+                const protocol = req.protocol || 'https';
+                
+                // Сначала вставляем запись, чтобы получить ID
+                const result = await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
+                         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+                        [req.session.userId, validatedUrl, '', color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
+                        function(err) {
+                            if (err) reject(err);
+                            else resolve(this.lastID);
+                        }
+                    );
+                });
+                
+                const qrId = result;
+                const trackingUrl = `${protocol}://${host}/qr/${qrId}`;
+                
                 const qrOptions = {
                     errorCorrectionLevel: 'H',
                     margin: parseInt(margin) || 1,
@@ -806,23 +927,20 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
                     }
                 };
                 
-                const qrImageData = await QRCode.toDataURL(validatedUrl, qrOptions);
+                const qrImageData = await QRCode.toDataURL(trackingUrl, qrOptions);
                 
                 await new Promise((resolve, reject) => {
-                    db.run(
-                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [req.session.userId, validatedUrl, qrImageData, color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
-                        function(err) {
-                            if (err) reject(err);
-                            else resolve(this.lastID);
-                        }
-                    );
+                    db.run('UPDATE qrcodes SET qr_data = $1 WHERE id = $2', [qrImageData, qrId], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
                 });
                 
                 res.json({ 
                     success: true, 
                     qrImageData,
+                    qrId: qrId,
+                    trackingUrl: trackingUrl,
                     options: { color, bgColor, size: parseInt(size), margin: parseInt(margin) }
                 });
                 
@@ -846,9 +964,106 @@ app.get('/api/qrcodes', requireAuth, (req, res) => {
         });
 });
 
-// ========== API ДЛЯ ТЕГОВ (НОВЫЕ ФУНКЦИИ) ==========
+// ========== АНАЛИТИКА QR-КОДОВ ==========
 
-// Получение всех тегов пользователя для автодополнения
+// Общая статистика QR
+app.get('/api/qrcodes/stats', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.get(`
+        SELECT 
+            COUNT(*) as total_qrcodes,
+            COALESCE(SUM(scans), 0) as total_scans,
+            ROUND(AVG(scans), 1) as avg_scans,
+            MAX(scans) as max_scans
+        FROM qrcodes 
+        WHERE user_id = $1
+    `, [userId], (err, stats) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(stats || { total_qrcodes: 0, total_scans: 0, avg_scans: 0, max_scans: 0 });
+    });
+});
+
+// Тренды сканирований QR по дням
+app.get('/api/qrcodes/trends', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT 
+            DATE(scan_time) as date,
+            COUNT(*) as scans
+        FROM qrcode_scans qs
+        JOIN qrcodes q ON qs.qrcode_id = q.id
+        WHERE q.user_id = $1
+        AND scan_time > CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY DATE(scan_time)
+        ORDER BY date DESC
+    `, [userId], (err, trends) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(trends || []);
+    });
+});
+
+// Устройства для QR-кодов
+app.get('/api/qrcodes/devices', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT 
+            COALESCE(qs.device_type, 'unknown') as device_type,
+            COUNT(*) as count
+        FROM qrcode_scans qs
+        JOIN qrcodes q ON qs.qrcode_id = q.id
+        WHERE q.user_id = $1
+        GROUP BY qs.device_type
+        ORDER BY count DESC
+    `, [userId], (err, devices) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(devices || []);
+    });
+});
+
+// Геолокация для QR-кодов
+app.get('/api/qrcodes/geo', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT 
+            COALESCE(qs.country, 'Unknown') as country,
+            COUNT(*) as count
+        FROM qrcode_scans qs
+        JOIN qrcodes q ON qs.qrcode_id = q.id
+        WHERE q.user_id = $1
+        AND qs.country IS NOT NULL
+        AND qs.country != 'Unknown'
+        GROUP BY qs.country
+        ORDER BY count DESC
+        LIMIT 10
+    `, [userId], (err, geo) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(geo || []);
+    });
+});
+
+// Топ QR-кодов
+app.get('/api/qrcodes/top', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    db.all(`
+        SELECT id, original_url, scans, last_scanned, created_at
+        FROM qrcodes 
+        WHERE user_id = $1 
+        ORDER BY scans DESC 
+        LIMIT $2
+    `, [userId, limit], (err, qrcodes) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(qrcodes || []);
+    });
+});
+
+// ========== API ДЛЯ ТЕГОВ ==========
+
 app.get('/api/tags/all', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
@@ -866,7 +1081,6 @@ app.get('/api/tags/all', requireAuth, (req, res) => {
     });
 });
 
-// Облако тегов
 app.get('/api/tags/cloud', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
@@ -885,7 +1099,6 @@ app.get('/api/tags/cloud', requireAuth, (req, res) => {
     });
 });
 
-// Обновление тегов у ссылки
 app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
     const { linkId } = req.params;
     const { tags } = req.body;
@@ -937,8 +1150,6 @@ app.put('/api/links/:linkId/tags', requireAuth, (req, res) => {
     });
 });
 
-// Фильтрация ссылок по тегам
-// Фильтрация ссылок по тегам (поддерживает несколько тегов - ЛЮБОЙ из выбранных)
 app.get('/api/links/filter', requireAuth, (req, res) => {
     const userId = req.session.userId;
     const { tags, page = 1, limit = 50 } = req.query;
@@ -954,7 +1165,6 @@ app.get('/api/links/filter', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Укажите хотя бы один тег' });
     }
     
-    // ИСПРАВЛЕНО: Ищем ссылки, у которых есть ХОТЯ БЫ ОДИН из выбранных тегов
     const query = `
         SELECT DISTINCT l.*, COUNT(DISTINCT t.id) as matched_tags
         FROM links l
@@ -975,7 +1185,6 @@ app.get('/api/links/filter', requireAuth, (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         
-        // Подсчёт общего количества (без пагинации)
         const countQuery = `
             SELECT COUNT(DISTINCT l.id) as total
             FROM links l
@@ -1005,7 +1214,6 @@ app.get('/api/links/filter', requireAuth, (req, res) => {
     });
 });
 
-// Рекомендация тегов на основе URL
 app.get('/api/tags/recommend', requireAuth, (req, res) => {
     const { url } = req.query;
     
@@ -1044,7 +1252,6 @@ app.get('/api/tags/recommend', requireAuth, (req, res) => {
     }
 });
 
-// Экспорт ссылок с фильтрацией по тегам
 app.get('/api/links/export', requireAuth, (req, res) => {
     const userId = req.session.userId;
     const { tags, format = 'csv' } = req.query;
@@ -1096,7 +1303,6 @@ app.get('/api/links/export', requireAuth, (req, res) => {
     });
 });
 
-// Удаление одной ссылки
 app.delete('/api/links/:linkId', requireAuth, (req, res) => {
     const { linkId } = req.params;
     const userId = req.session.userId;
@@ -1268,6 +1474,51 @@ app.get('/api/analytics/dashboard-stats', requireAuth, (req, res) => {
     });
 });
 
+// Геолокация для ссылок
+app.get('/api/analytics/geo', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT 
+            COALESCE(country, 'Unknown') as country,
+            COUNT(*) as count
+        FROM link_clicks 
+        WHERE link_id IN (SELECT id FROM links WHERE user_id = $1)
+        AND country IS NOT NULL
+        AND country != 'Unknown'
+        AND country != 'Local'
+        GROUP BY country
+        ORDER BY count DESC
+        LIMIT 10
+    `, [userId], (err, geoStats) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(geoStats || []);
+    });
+});
+
+// Аналитика по часам
+app.get('/api/analytics/hourly', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    
+    db.all(`
+        SELECT 
+            EXTRACT(HOUR FROM click_time) as hour,
+            COUNT(*) as count
+        FROM link_clicks 
+        WHERE link_id IN (SELECT id FROM links WHERE user_id = $1)
+        GROUP BY hour
+        ORDER BY hour
+    `, [userId], (err, hourly) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const hours = Array(24).fill(0);
+        hourly.forEach(h => {
+            hours[parseInt(h.hour)] = parseInt(h.count);
+        });
+        res.json(hours);
+    });
+});
+
 // ========== API МАССОВОЕ СОЗДАНИЕ ==========
 app.post('/api/batch/shorten', requireAuth, async (req, res) => {
     try {
@@ -1397,14 +1648,14 @@ app.get('/api/export/csv', requireAuth, (req, res) => {
         });
     } else if (type === 'qrcodes') {
         db.all(`
-            SELECT id, original_url, color, bg_color, size, created_at 
+            SELECT id, original_url, color, bg_color, size, scans, created_at, last_scanned 
             FROM qrcodes WHERE user_id = $1 ORDER BY created_at DESC
         `, [userId], (err, qrcodes) => {
             if (err) return res.status(500).json({ error: err.message });
             
-            let csv = '\uFEFFID,Оригинальный URL,Цвет,Фон,Размер,Дата создания\n';
+            let csv = '\uFEFFID,Оригинальный URL,Цвет,Фон,Размер,Сканирований,Дата создания,Последнее сканирование\n';
             qrcodes.forEach(qr => {
-                csv += `${qr.id},"${(qr.original_url || '').replace(/"/g, '""')}","${qr.color}","${qr.bg_color}","${qr.size}","${qr.created_at}"\n`;
+                csv += `${qr.id},"${(qr.original_url || '').replace(/"/g, '""')}","${qr.color}","${qr.bg_color}","${qr.size}","${qr.scans || 0}","${qr.created_at}","${qr.last_scanned || ''}"\n`;
             });
             
             res.header('Content-Type', 'text/csv;charset=utf-8');
@@ -1542,18 +1793,16 @@ app.post('/api/v1/shorten', requireApiKey, (req, res) => {
     });
 });
 
-// Получение или создание чата (открываем закрытый, если пользователь вернулся)
+// ========== ЧАТ ПОДДЕРЖКИ ==========
 app.get('/api/support/chat', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
-    // Сначала ищем чат пользователя
     db.get('SELECT * FROM support_chats WHERE user_id = $1', [userId], (err, chat) => {
         if (err) {
             return res.status(500).json({ error: 'Ошибка сервера' });
         }
         
         if (chat) {
-            // Если чат есть, но закрыт - открываем его снова
             if (chat.is_closed === 1) {
                 db.run('UPDATE support_chats SET is_closed = 0, updated_at = CURRENT_TIMESTAMP WHERE id = $1', 
                     [chat.id], 
@@ -1561,17 +1810,14 @@ app.get('/api/support/chat', requireAuth, (req, res) => {
                         if (updateErr) {
                             return res.status(500).json({ error: 'Ошибка открытия чата' });
                         }
-                        // Возвращаем обновлённый чат
                         db.get('SELECT * FROM support_chats WHERE id = $1', [chat.id], (err, updatedChat) => {
                             res.json({ success: true, chat: updatedChat, exists: true, reopened: true });
                         });
                     });
             } else {
-                // Чат уже активен
                 res.json({ success: true, chat, exists: true, reopened: false });
             }
         } else {
-            // Создаём новый чат
             db.run(
                 'INSERT INTO support_chats (user_id) VALUES ($1) RETURNING id',
                 [userId],
@@ -1813,7 +2059,10 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
 
 app.get('/api/admin/users', requireAdminAuth, (req, res) => {
     const { plan } = req.query;
-    let query = `SELECT id, username, email, plan_type, created_at, (SELECT COUNT(*) FROM links WHERE user_id = users.id) as total_links, (SELECT COUNT(*) FROM qrcodes WHERE user_id = users.id) as total_qrcodes FROM users`;
+    let query = `SELECT id, username, email, plan_type, created_at, 
+                (SELECT COUNT(*) FROM links WHERE user_id = users.id) as total_links, 
+                (SELECT COUNT(*) FROM qrcodes WHERE user_id = users.id) as total_qrcodes 
+                FROM users`;
     const params = [];
     if (plan && ['free', 'premium', 'business'].includes(plan)) {
         query += ' WHERE plan_type = $1';
@@ -2190,35 +2439,6 @@ app.post('/api/image/edit', requireAuth, uploadSingle.single('image'), async (re
         if (req.file) await cleanupTempFile(req.file.path);
         res.status(500).json({ error: error.message });
     }
-});
-
-// ========== РЕДИРЕКТ ==========
-app.get('/:shortCode', (req, res) => {
-    const { shortCode } = req.params;
-    const excluded = ['api', 'login', 'register', 'profile', 'analytics', 'batch', 
-                     'pricing', 'converter', 'image-editor', 'dashboard', 'favicon.ico',
-                     'admin', 'style.css', 'dark-theme.css', 'chat-widget.js', 'chat-widget.css',
-                     'manifest.json', 'sw.js', 'icons'];
-    
-    if (excluded.includes(shortCode) || shortCode.includes('.')) {
-        return res.status(404).send('Страница не найдена');
-    }
-    
-    db.get('SELECT id, original_url FROM links WHERE short_code = $1 AND is_active = 1', [shortCode], (err, link) => {
-        if (err || !link) return res.redirect('/?error=link_not_found');
-        
-        const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-        const userAgent = req.headers['user-agent'] || '';
-        let deviceType = 'desktop';
-        if (/mobile/i.test(userAgent)) deviceType = 'mobile';
-        else if (/tablet/i.test(userAgent)) deviceType = 'tablet';
-        else if (/bot|crawler|spider/i.test(userAgent)) deviceType = 'bot';
-        const referrer = req.headers['referer'] || req.headers['referrer'] || '';
-        
-        db.run('INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, device_type) VALUES ($1, $2, $3, $4, $5)', [link.id, ip, userAgent.substring(0, 500), referrer.substring(0, 500), deviceType]);
-        db.run('UPDATE links SET clicks = clicks + 1, last_clicked = CURRENT_TIMESTAMP WHERE id = $1', [link.id]);
-        res.redirect(link.original_url);
-    });
 });
 
 app.use('/api/*', (req, res) => {

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get User Plan
+method: GET
+url: '{{baseUrl}}/api/user/plan'
+order: 1000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });
+      pm.test("Response is JSON", function() { pm.response.to.be.json; });

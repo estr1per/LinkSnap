@@ -1,0 +1,19 @@
+$kind: http-request
+name: Edit Image
+method: POST
+url: '{{baseUrl}}/api/image/edit'
+order: 1000
+body:
+  type: formdata
+  content:
+    - key: image
+      value: ''
+      type: text
+    - key: operations
+      value: ''
+      type: text
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });

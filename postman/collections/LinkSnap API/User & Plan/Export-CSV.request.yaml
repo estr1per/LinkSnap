@@ -1,0 +1,13 @@
+$kind: http-request
+name: Export CSV
+method: GET
+url: '{{baseUrl}}/api/export/csv'
+order: 4000
+queryParams:
+  - key: type
+    value: links
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });

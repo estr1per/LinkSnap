@@ -1,0 +1,14 @@
+$kind: http-request
+name: Get All Chats
+method: GET
+url: '{{baseUrl}}/api/admin/chats'
+order: 4000
+queryParams:
+  - key: status
+    value: open
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });
+      pm.test("Response is JSON", function() { pm.response.to.be.json; });

@@ -1,0 +1,24 @@
+$kind: http-request
+name: Shorten URL
+method: POST
+url: '{{baseUrl}}/api/shorten'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "url": "https://example.com",
+      "customAlias": "mylink"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });
+      pm.test("Response has short URL", function() {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property('shortUrl');
+      });

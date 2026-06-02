@@ -1,0 +1,22 @@
+name: LinkSnap Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:3000'
+    enabled: true
+    type: default
+  - key: apiKey
+    value: ''
+    enabled: true
+    type: default
+  - key: linkId
+    value: '1'
+    enabled: true
+    type: default
+  - key: chatId
+    value: '1'
+    enabled: true
+    type: default
+  - key: userId
+    value: '1'
+    enabled: true
+    type: default

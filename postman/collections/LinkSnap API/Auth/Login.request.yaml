@@ -1,0 +1,23 @@
+$kind: http-request
+method: POST
+url: "{{baseUrl}}/api/login"
+examples: .resources/Login.resources/examples
+order: 2000
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "test@example.com",
+      "password": "Test1234!"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });
+      pm.test("Response has user data", function() {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property('user');
+      });
+    language: text/javascript

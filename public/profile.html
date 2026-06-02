@@ -481,23 +481,23 @@
         }
 
         function renderLinkItem(link) {
-            return `<div class="history-item" data-link-id="${link.id}">
-                <div class="history-item-header">
-                    <div><strong><i class="fas fa-link"></i> /${escapeHtml(link.short_code)}</strong> <span class="history-date"><i class="far fa-calendar-alt"></i> ${new Date(link.created_at).toLocaleDateString()}</span></div>
-                    <span><i class="fas fa-mouse-pointer"></i> ${link.clicks || 0} кликов</span>
-                </div>
-                <div class="history-url"><i class="fas fa-external-link-alt"></i> ${escapeHtml(link.original_url)}</div>
-                <div class="tag-editor">
-                    <input type="text" class="form-control tag-input" placeholder="Теги через запятую" value="${escapeHtml(link.tags || '')}" data-link-id="${link.id}" data-original-tags="${escapeHtml(link.tags || '')}">
-                    <button onclick="saveTags(${link.id}, this)" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Сохранить</button>
-                </div>
-                <div class="tag-suggestions" id="suggestions-${link.id}"></div>
-                <div style="margin-top: var(--space-md);">
-                    <a href="/${link.short_code}" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-external-link-alt"></i> Перейти</a>
-                    <button onclick="deleteLink(${link.id})" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> Удалить</button>
-                </div>
-            </div>`;
-        }
+    return `<div class="history-item" data-link-id="${link.id}">
+        <div class="history-item-header">
+            <div><strong><i class="fas fa-link"></i> /${escapeHtml(link.short_code)}</strong> <span class="history-date"><i class="far fa-calendar-alt"></i> ${new Date(link.created_at).toLocaleDateString()}</span></div>
+            <!-- Удалено отображение кликов -->
+        </div>
+        <div class="history-url"><i class="fas fa-external-link-alt"></i> ${escapeHtml(link.original_url)}</div>
+        <div class="tag-editor">
+            <input type="text" class="form-control tag-input" placeholder="Теги через запятую" value="${escapeHtml(link.tags || '')}" data-link-id="${link.id}" data-original-tags="${escapeHtml(link.tags || '')}">
+            <button onclick="saveTags(${link.id}, this)" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Сохранить</button>
+        </div>
+        <div class="tag-suggestions" id="suggestions-${link.id}"></div>
+        <div style="margin-top: var(--space-md);">
+            <a href="/${link.short_code}" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-external-link-alt"></i> Перейти</a>
+            <button onclick="deleteLink(${link.id})" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> Удалить</button>
+        </div>
+    </div>`;
+}
 
         let recommendTimeout;
         async function recommendTags(inputElement, linkId) {

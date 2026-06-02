@@ -1,0 +1,6 @@
+$kind: collection
+name: LinkSnap API
+description: Complete API collection for the LinkSnap URL shortener and QR code service
+variables:
+  - key: baseUrl
+    value: 'http://localhost:3000'

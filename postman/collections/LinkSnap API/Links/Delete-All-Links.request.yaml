@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete All Links
+method: DELETE
+url: '{{baseUrl}}/api/links'
+order: 8000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", function() { pm.response.to.have.status(200); });
