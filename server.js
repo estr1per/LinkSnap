@@ -862,7 +862,7 @@ app.get('/qr/:id', async (req, res) => {
     });
 });
 
-// ========== API QR-КОДЫ ==========
+// ========== API QR-КОДЫ (С АНАЛИТИКОЙ, ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
 app.get('/api/qrcode', requireAuth, async (req, res) => {
     try {
         const { url, color = '#667eea', bgColor = '#ffffff', size = 200, margin = 1 } = req.query;
@@ -897,24 +897,19 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
             if (!validatedUrl.startsWith('http')) validatedUrl = 'https://' + validatedUrl;
             
             try {
-                // Создаём QR-код, который ведёт на трекинг-ссылку
                 const host = req.get('host') || `localhost:${port}`;
                 const protocol = req.protocol || 'https';
                 
-                // Сначала вставляем запись, чтобы получить ID
-                const result = await new Promise((resolve, reject) => {
-                    db.run(
-                        `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin) 
-                         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-                        [req.session.userId, validatedUrl, '', color, bgColor, parseInt(size) || 200, parseInt(margin) || 1],
-                        function(err) {
-                            if (err) reject(err);
-                            else resolve(this.lastID);
-                        }
-                    );
-                });
+                // ИСПРАВЛЕНО: используем pool.query вместо db.run для RETURNING id
+                const insertResult = await pool.query(
+                    `INSERT INTO qrcodes (user_id, original_url, qr_data, color, bg_color, size, margin, scans, last_scanned) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+                    [req.session.userId, validatedUrl, '', color, bgColor, parseInt(size) || 200, parseInt(margin) || 1, 0, null]
+                );
                 
-                const qrId = result;
+                const qrId = insertResult.rows[0].id;
+                
+                // Трекинг-ссылка для сбора аналитики
                 const trackingUrl = `${protocol}://${host}/qr/${qrId}`;
                 
                 const qrOptions = {
@@ -929,12 +924,8 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
                 
                 const qrImageData = await QRCode.toDataURL(trackingUrl, qrOptions);
                 
-                await new Promise((resolve, reject) => {
-                    db.run('UPDATE qrcodes SET qr_data = $1 WHERE id = $2', [qrImageData, qrId], (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    });
-                });
+                // Обновляем запись с QR-данными
+                await pool.query('UPDATE qrcodes SET qr_data = $1 WHERE id = $2', [qrImageData, qrId]);
                 
                 res.json({ 
                     success: true, 
@@ -946,7 +937,7 @@ app.get('/api/qrcode', requireAuth, async (req, res) => {
                 
             } catch (genError) {
                 console.error('Ошибка генерации QR:', genError);
-                res.status(500).json({ error: 'Ошибка генерации QR-кода' });
+                res.status(500).json({ error: 'Ошибка генерации QR-кода: ' + genError.message });
             }
         });
     } catch (error) {
