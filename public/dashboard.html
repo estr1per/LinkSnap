@@ -412,58 +412,6 @@
     }
 }
 
-        // Устройства
-        const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
-        const deviceLabels = [];
-        const deviceData = [];
-        const deviceColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
-        
-        if (devices.devices && devices.devices.length > 0) {
-            devices.devices.forEach(d => {
-                let label = d.device_type === 'desktop' ? '💻 Десктоп' : 
-                           d.device_type === 'mobile' ? '📱 Мобильные' : 
-                           d.device_type === 'tablet' ? '📟 Планшеты' : 
-                           d.device_type === 'bot' ? '🤖 Боты' : d.device_type || 'Другие';
-                deviceLabels.push(label);
-                deviceData.push(d.count);
-            });
-        } else {
-            deviceLabels.push('📭 Нет данных');
-            deviceData.push(1);
-        }
-        
-        if (devicesChart) devicesChart.destroy();
-        devicesChart = new Chart(document.getElementById('devicesChart'), {
-            type: 'doughnut',
-            data: { 
-                labels: deviceLabels, 
-                datasets: [{ 
-                    data: deviceData, 
-                    backgroundColor: deviceColors.slice(0, deviceLabels.length),
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: true, 
-                plugins: { 
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 1 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                                return `${context.label}: ${context.raw} (${percentage}%)`;
-                            }
-                        }
-                    }
-                } 
-            }
-        });
-
-    
-
         async function loadTopLinks() {
             try {
                 const summary = await fetch('/api/analytics/summary').then(r => r.json());
