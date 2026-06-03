@@ -243,10 +243,7 @@
                 <h3><i class="fas fa-mobile-alt"></i> Устройства (ссылки)</h3>
                 <canvas id="devicesChart"></canvas>
             </div>
-            <div class="chart-container">
-                <h3><i class="fas fa-mobile-alt"></i> Устройства (QR)</h3>
-                <canvas id="qrDevicesChart"></canvas>
-            </div>
+            
         </div>
 
         <!-- Топ ссылок -->
@@ -278,7 +275,7 @@
         let hourlyChart = null;
         let geoChart = null;
         let devicesChart = null;
-        let qrDevicesChart = null;
+
 
         async function checkAuth() {
             try {
@@ -396,13 +393,7 @@
                 } else {
                     qrDeviceLabels.push('Нет данных');
                     qrDeviceData.push(1);
-                }
-                if (qrDevicesChart) qrDevicesChart.destroy();
-                qrDevicesChart = new Chart(document.getElementById('qrDevicesChart'), {
-                    type: 'doughnut',
-                    data: { labels: qrDeviceLabels, datasets: [{ data: qrDeviceData, backgroundColor: deviceColors, borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-                });
+                };
 
             } catch(e) { console.error('Ошибка загрузки графиков:', e); }
         }

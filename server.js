@@ -1426,17 +1426,28 @@ app.get('/api/analytics/summary', requireAuth, (req, res) => {
 app.get('/api/analytics/dashboard-stats', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
+    // Статистика по устройствам
     db.all(`
         SELECT 
             COALESCE(device_type, 'unknown') as device_type, 
             COUNT(*) as count 
         FROM link_clicks 
         WHERE link_id IN (SELECT id FROM links WHERE user_id = $1)
+        AND device_type IS NOT NULL
         GROUP BY device_type
         ORDER BY count DESC
     `, [userId], (err, deviceStats) => {
-        if (err) deviceStats = [];
+        if (err) {
+            console.error('Ошибка устройств:', err);
+            deviceStats = [];
+        }
         
+        // Если нет данных по устройствам, возвращаем пустой массив
+        if (!deviceStats || deviceStats.length === 0) {
+            deviceStats = [];
+        }
+        
+        // Статистика по источникам
         db.all(`
             SELECT 
                 CASE 
@@ -1454,7 +1465,10 @@ app.get('/api/analytics/dashboard-stats', requireAuth, (req, res) => {
             ORDER BY count DESC
             LIMIT 10
         `, [userId], (err, sourceStats) => {
-            if (err) sourceStats = [];
+            if (err) {
+                console.error('Ошибка источников:', err);
+                sourceStats = [];
+            }
             
             res.json({
                 success: true,
@@ -1465,47 +1479,35 @@ app.get('/api/analytics/dashboard-stats', requireAuth, (req, res) => {
     });
 });
 
-// Геолокация для ссылок
-app.get('/api/analytics/geo', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    
-    db.all(`
-        SELECT 
-            COALESCE(country, 'Unknown') as country,
-            COUNT(*) as count
-        FROM link_clicks 
-        WHERE link_id IN (SELECT id FROM links WHERE user_id = $1)
-        AND country IS NOT NULL
-        AND country != 'Unknown'
-        AND country != 'Local'
-        GROUP BY country
-        ORDER BY count DESC
-        LIMIT 10
-    `, [userId], (err, geoStats) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(geoStats || []);
-    });
-});
 
-// Аналитика по часам
+
+/// Аналитика по часам (исправленная)
 app.get('/api/analytics/hourly', requireAuth, (req, res) => {
     const userId = req.session.userId;
     
     db.all(`
         SELECT 
-            EXTRACT(HOUR FROM click_time) as hour,
+            COALESCE(EXTRACT(HOUR FROM click_time)::integer, 0) as hour,
             COUNT(*) as count
         FROM link_clicks 
         WHERE link_id IN (SELECT id FROM links WHERE user_id = $1)
         GROUP BY hour
         ORDER BY hour
     `, [userId], (err, hourly) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error('Ошибка часовой аналитики:', err);
+            return res.status(500).json({ error: err.message });
+        }
         
         const hours = Array(24).fill(0);
-        hourly.forEach(h => {
-            hours[parseInt(h.hour)] = parseInt(h.count);
-        });
+        if (hourly && hourly.length > 0) {
+            hourly.forEach(h => {
+                const hourIndex = parseInt(h.hour);
+                if (hourIndex >= 0 && hourIndex < 24) {
+                    hours[hourIndex] = parseInt(h.count) || 0;
+                }
+            });
+        }
         res.json(hours);
     });
 });
