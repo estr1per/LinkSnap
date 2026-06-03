@@ -322,7 +322,6 @@
         
         if (hourlyChart) hourlyChart.destroy();
         
-        // Проверяем, что данные — массив из 24 чисел
         let chartData = Array(24).fill(0);
         if (hourly && hourly.length === 24) {
             chartData = hourly;
@@ -337,50 +336,81 @@
                     label: 'Клики',
                     data: chartData,
                     backgroundColor: '#6366f1',
-                    borderRadius: 8,
-                    barPercentage: 0.7,
-                    categoryPercentage: 0.9
+                    borderRadius: 8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Количество кликов',
-                            color: '#666'
-                        },
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Время (часы)',
-                            color: '#666'
-                        },
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `Кликов: ${context.raw}`;
-                            }
-                        }
-                    }
+                    y: { beginAtZero: true, title: { display: true, text: 'Количество кликов' }, ticks: { stepSize: 1, precision: 0 } },
+                    x: { title: { display: true, text: 'Время (часы)' }, ticks: { maxRotation: 45, minRotation: 45 } }
                 }
             }
         });
+
+        // Устройства (ИСПРАВЛЕНО)
+        const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
+        
+        const deviceLabels = [];
+        const deviceData = [];
+        const deviceColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
+        
+        // Фильтруем только реальные данные (исключаем фейковые)
+        if (devices.devices && devices.devices.length > 0) {
+            devices.devices.forEach(d => {
+                // Пропускаем фейковые/пустые записи
+                if (d.device_type && d.count > 0) {
+                    let label = d.device_type === 'desktop' ? '💻 Десктоп' : 
+                               d.device_type === 'mobile' ? '📱 Мобильные' : 
+                               d.device_type === 'tablet' ? '📟 Планшеты' : 
+                               d.device_type === 'bot' ? '🤖 Боты' : d.device_type;
+                    deviceLabels.push(label);
+                    deviceData.push(d.count);
+                }
+            });
+        }
+        
+        // Если нет данных, показываем заглушку
+        if (deviceData.length === 0) {
+            deviceLabels.push('📭 Нет данных');
+            deviceData.push(1);
+        }
+        
+        if (devicesChart) devicesChart.destroy();
+        devicesChart = new Chart(document.getElementById('devicesChart'), {
+            type: 'doughnut',
+            data: { 
+                labels: deviceLabels, 
+                datasets: [{ 
+                    data: deviceData, 
+                    backgroundColor: deviceColors.slice(0, deviceLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                plugins: { 
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = deviceData.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+
+    } catch(e) { 
+        console.error('Ошибка загрузки графиков:', e); 
+    }
+}
 
         // Устройства
         const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
@@ -432,10 +462,7 @@
             }
         });
 
-    } catch(e) { 
-        console.error('Ошибка загрузки графиков:', e); 
-    }
-}
+    
 
         async function loadTopLinks() {
             try {
