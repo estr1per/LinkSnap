@@ -316,50 +316,126 @@
         }
 
         async function loadCharts() {
-            try {
-                // Активность по часам
-                const hourly = await fetch('/api/analytics/hourly').then(r => r.json());
-                if (hourlyChart) hourlyChart.destroy();
-                hourlyChart = new Chart(document.getElementById('hourlyChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
-                        datasets: [{
-                            label: 'Клики',
-                            data: hourly,
-                            backgroundColor: '#6366f1',
-                            borderRadius: 8
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: true }
-                });
-
-                // Устройства
-                const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
-                const deviceLabels = [];
-                const deviceData = [];
-                const deviceColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
-                
-                if (devices.devices && devices.devices.length > 0) {
-                    devices.devices.forEach(d => {
-                        let label = d.device_type === 'desktop' ? '💻 Десктоп' : d.device_type === 'mobile' ? '📱 Мобильные' : d.device_type === 'tablet' ? '📟 Планшеты' : d.device_type === 'bot' ? '🤖 Боты' : d.device_type;
-                        deviceLabels.push(label);
-                        deviceData.push(d.count);
-                    });
-                } else {
-                    deviceLabels.push('📭 Нет данных');
-                    deviceData.push(1);
-                }
-                
-                if (devicesChart) devicesChart.destroy();
-                devicesChart = new Chart(document.getElementById('devicesChart'), {
-                    type: 'doughnut',
-                    data: { labels: deviceLabels, datasets: [{ data: deviceData, backgroundColor: deviceColors, borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-                });
-
-            } catch(e) { console.error('Ошибка загрузки графиков:', e); }
+    try {
+        // Активность по часам
+        const hourly = await fetch('/api/analytics/hourly').then(r => r.json());
+        
+        if (hourlyChart) hourlyChart.destroy();
+        
+        // Проверяем, что данные — массив из 24 чисел
+        let chartData = Array(24).fill(0);
+        if (hourly && hourly.length === 24) {
+            chartData = hourly;
         }
+        
+        hourlyChart = new Chart(document.getElementById('hourlyChart'), {
+            type: 'bar',
+            data: {
+                labels: ['0ч', '1ч', '2ч', '3ч', '4ч', '5ч', '6ч', '7ч', '8ч', '9ч', '10ч', '11ч', 
+                         '12ч', '13ч', '14ч', '15ч', '16ч', '17ч', '18ч', '19ч', '20ч', '21ч', '22ч', '23ч'],
+                datasets: [{
+                    label: 'Клики',
+                    data: chartData,
+                    backgroundColor: '#6366f1',
+                    borderRadius: 8,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.9
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество кликов',
+                            color: '#666'
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Время (часы)',
+                            color: '#666'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Кликов: ${context.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Устройства
+        const devices = await fetch('/api/analytics/dashboard-stats').then(r => r.json());
+        const deviceLabels = [];
+        const deviceData = [];
+        const deviceColors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
+        
+        if (devices.devices && devices.devices.length > 0) {
+            devices.devices.forEach(d => {
+                let label = d.device_type === 'desktop' ? '💻 Десктоп' : 
+                           d.device_type === 'mobile' ? '📱 Мобильные' : 
+                           d.device_type === 'tablet' ? '📟 Планшеты' : 
+                           d.device_type === 'bot' ? '🤖 Боты' : d.device_type || 'Другие';
+                deviceLabels.push(label);
+                deviceData.push(d.count);
+            });
+        } else {
+            deviceLabels.push('📭 Нет данных');
+            deviceData.push(1);
+        }
+        
+        if (devicesChart) devicesChart.destroy();
+        devicesChart = new Chart(document.getElementById('devicesChart'), {
+            type: 'doughnut',
+            data: { 
+                labels: deviceLabels, 
+                datasets: [{ 
+                    data: deviceData, 
+                    backgroundColor: deviceColors.slice(0, deviceLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                plugins: { 
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 1 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+
+    } catch(e) { 
+        console.error('Ошибка загрузки графиков:', e); 
+    }
+}
 
         async function loadTopLinks() {
             try {
