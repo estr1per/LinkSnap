@@ -804,7 +804,6 @@ app.post('/api/shorten', requireAuth, async (req, res) => {
     }
 });
 
-// ========== РЕДИРЕКТ ДЛЯ ССЫЛОК (С ГЕОЛОКАЦИЕЙ) ==========
 app.get('/:shortCode', async (req, res) => {
     const { shortCode } = req.params;
     const excluded = ['api', 'login', 'register', 'profile', 'analytics', 'batch', 
@@ -816,7 +815,7 @@ app.get('/:shortCode', async (req, res) => {
         return res.status(404).send('Страница не найдена');
     }
     
-    db.get('SELECT id, original_url FROM links WHERE short_code = $1 AND is_active = 1', [shortCode], async (err, link) => {
+    db.get('SELECT id, original_url FROM links WHERE short_code = $1 AND is_active = 1', [shortCode], (err, link) => {
         if (err || !link) return res.redirect('/?error=link_not_found');
         
         const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
@@ -827,13 +826,12 @@ app.get('/:shortCode', async (req, res) => {
         else if (/bot|crawler|spider/i.test(userAgent)) deviceType = 'bot';
         const referrer = req.headers['referer'] || req.headers['referrer'] || '';
         
-        // Получаем геолокацию
-        const geo = await getGeoInfo(ip);
-        
-        db.run(`INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, device_type, country, city, country_code) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [link.id, ip, userAgent.substring(0, 500), referrer.substring(0, 500), deviceType, geo.country, geo.city, geo.countryCode]);
+        // Вставляем клик БЕЗ геолокации
+        db.run(`INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, device_type) 
+                VALUES ($1, $2, $3, $4, $5)`,
+                [link.id, ip, userAgent.substring(0, 500), referrer.substring(0, 500), deviceType]);
         db.run('UPDATE links SET clicks = clicks + 1, last_clicked = CURRENT_TIMESTAMP WHERE id = $1', [link.id]);
+        
         res.redirect(link.original_url);
     });
 });
