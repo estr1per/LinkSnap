@@ -2222,83 +2222,108 @@ app.post('/api/convert/documents', requireAuth, uploadMultiple.array('files', 10
                 const mimeType = file.mimetype;
                 
                 if (targetFormat === 'pdf') {
-                    let text = '';
-                    
-                    if (ext === '.txt' || mimeType === 'text/plain') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        const buffer = await fs.promises.readFile(inputPath);
-                        const result = await mammoth.extractRawText({ buffer });
-                        text = result.value;
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else {
-                        throw new Error(`Конвертация из ${ext} в PDF не поддерживается`);
-                    }
-                    
-                    const pdfDoc = new PDFDocument({ margin: 50 });
-                    const writeStream = fs.createWriteStream(outputPath);
-                    pdfDoc.pipe(writeStream);
-                    pdfDoc.fontSize(12).text(text, { align: 'left', lineGap: 5 });
-                    pdfDoc.end();
-                    
-                    await new Promise((resolve) => writeStream.on('finish', resolve));
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                    
-                } else if (targetFormat === 'docx') {
-                    let text = '';
-                    
-                    if (ext === '.txt' || mimeType === 'text/plain') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else if (ext === '.pdf' || mimeType === 'application/pdf') {
-                        throw new Error('PDF в DOCX не поддерживается (требуется внешний сервис)');
-                    } else {
-                        throw new Error(`Конвертация из ${ext} в DOCX не поддерживается`);
-                    }
-                    
-                    const { Document, Packer, Paragraph, TextRun } = require('docx');
-                    const lines = text.split('\n');
-                    const paragraphs = lines.map(line => {
-                        return new Paragraph({
-                            children: [new TextRun({ text: line || ' ', size: 24 })],
-                            spacing: { after: 200 }
-                        });
-                    });
-                    
-                    const doc = new Document({ sections: [{ children: paragraphs }] });
-                    const buffer = await Packer.toBuffer(doc);
-                    await fs.promises.writeFile(outputPath, buffer);
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                    
-                } else if (targetFormat === 'txt') {
-                    let text = '';
-                    
-                    if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        const buffer = await fs.promises.readFile(inputPath);
-                        const result = await mammoth.extractRawText({ buffer });
-                        text = result.value;
-                    } else if (ext === '.md' || mimeType === 'text/markdown') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    } else if (ext === '.html' || mimeType === 'text/html') {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                        text = text.replace(/<[^>]*>/g, '');
-                    } else if (ext === '.pdf') {
-                        throw new Error('PDF в TXT не поддерживается');
-                    } else {
-                        text = await fs.promises.readFile(inputPath, 'utf8');
-                    }
-                    
-                    await fs.promises.writeFile(outputPath, text, 'utf8');
-                    results.push({ original: file.originalname, converted: outputFilename, success: true });
-                }
+    let text = '';
+    
+    if (ext === '.txt' || mimeType === 'text/plain') {
+        text = await fs.promises.readFile(inputPath, 'utf8');
+    } else if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const buffer = await fs.promises.readFile(inputPath);
+        const result = await mammoth.extractRawText({ buffer });
+        text = result.value;
+        
+        // Дополнительная очистка от кракозябр
+        text = text.replace(/[^\w\s\u0400-\u04FF\.,!?;:()\-"'\n\r]/g, '');
+    } else if (ext === '.md' || mimeType === 'text/markdown') {
+        text = await fs.promises.readFile(inputPath, 'utf8');
+    } else if (ext === '.html' || mimeType === 'text/html') {
+        text = await fs.promises.readFile(inputPath, 'utf8');
+        text = text.replace(/<[^>]*>/g, '');
+    } else {
+        throw new Error(`Конвертация из ${ext} в PDF не поддерживается`);
+    }
+    
+    // Очистка текста от лишних символов
+    text = text
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n');
+    
+    // Путь к шрифту с поддержкой кириллицы
+    const fontPath = path.join(__dirname, 'fonts', 'DejaVuSans.ttf');
+    let fontOptions = {};
+    
+    // Проверяем, существует ли файл шрифта
+    let useDefaultFont = true;
+    try {
+        await fs.promises.access(fontPath);
+        useDefaultFont = false;
+        console.log('✅ Шрифт DejaVuSans.ttf найден');
+    } catch (e) {
+        console.log('⚠️ Шрифт DejaVuSans.ttf не найден, используется стандартный шрифт (русские буквы могут отображаться некорректно)');
+    }
+    
+    const pdfDoc = new PDFDocument({ 
+        margin: 50,
+        autoFirstPage: true
+    });
+    
+    // Подключаем шрифт с кириллицей, если он есть
+    if (!useDefaultFont) {
+        pdfDoc.registerFont('DejaVuSans', fontPath);
+        pdfDoc.font('DejaVuSans');
+    }
+    
+    const writeStream = fs.createWriteStream(outputPath);
+    pdfDoc.pipe(writeStream);
+    
+    // Разбиваем текст на строки и добавляем в PDF
+    const lines = text.split('\n');
+    let y = 50;
+    const lineHeight = 20;
+    const maxWidth = pdfDoc.page.width - 100;
+    
+    for (let line of lines) {
+        if (line.trim() === '') {
+            y += lineHeight / 2;
+            continue;
+        }
+        
+        // Перенос длинных строк
+        let words = line.split(' ');
+        let currentLine = '';
+        
+        for (let word of words) {
+            let testLine = currentLine + (currentLine ? ' ' : '') + word;
+            let testWidth = pdfDoc.widthOfString(testLine);
+            
+            if (testWidth > maxWidth && currentLine.length > 0) {
+                pdfDoc.text(currentLine, 50, y);
+                y += lineHeight;
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        
+        if (currentLine) {
+            pdfDoc.text(currentLine, 50, y);
+            y += lineHeight;
+        }
+        
+        // Если конец страницы
+        if (y > pdfDoc.page.height - 50) {
+            pdfDoc.addPage();
+            y = 50;
+            if (!useDefaultFont) pdfDoc.font('DejaVuSans');
+        }
+    }
+    
+    pdfDoc.end();
+    
+    await new Promise((resolve) => writeStream.on('finish', resolve));
+    results.push({ original: file.originalname, converted: outputFilename, success: true });
+}
                 
             } catch (err) {
                 errors.push({ original: file.originalname, error: err.message });
